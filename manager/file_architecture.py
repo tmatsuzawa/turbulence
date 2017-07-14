@@ -26,7 +26,8 @@ Dir_data.append(distant_root+'labshared/Stephane_lab1/Vortex_vs_turbulence/')
 Dir_data.append(distant_root+'labshared2/Bipul/')
 #Dir_data.append(distant_root+'labshared2/Weerapat/Four_vortex_collider/')
 Dir_data.append(distant_root+'labshared2/Stephane/')
-Dir_data.append(distant_root+'labshared2/Takumi/')
+Dir_data.append(distant_root+'labshared2/takumi/')
+Dir_data.append(distant_root+'labshared2/noah/')
 
 			
 #Dir_data.append(distant_root+'Stephane/Vortices/Stephane/')
