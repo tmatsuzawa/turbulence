@@ -6,12 +6,9 @@ Created on Wed Mar 18 15:57:41 2015
 """
 
 import os.path
-
 import turbulence.tools.pickle_m as pickle_m
 import turbulence.tools.browse as browse
-
 import turbulence.manager.file_architecture as file_architecture
-
 import turbulence.mdata.Sdata_manip as Sdata_manip
 from turbulence.mdata.Mdata import Mdata
 from turbulence.mdata.Mdata_PIVlab import Mdata_PIVlab
