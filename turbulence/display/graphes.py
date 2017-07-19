@@ -5,8 +5,11 @@ from math import *
 # import turbulence.tools.fitting as fitting
 import turbulence.hdf5.h5py_s as h5py_s
 
+'''Module for plotting turbulence data
 '''
-'''
+
+# Define global variables
+__fontsize__ = 12
 
 
 def plot(fun, x, y, fignum=1, label='-', subplot=None, **kwargs):
@@ -124,13 +127,14 @@ def subplot(i, j, k):
     plt.subplot(i, j, k)
 
 
-def legende(x_legend, y_legend, title, display=False, cplot=False, show=True):
+def legende(x_legend, y_legend, title, display=False, cplot=False, show=True, fontsize=__fontsize__):
     """
     Add a legend to the current figure
         Contains standard used font and sizes
         return a default name for the figure, based on x and y legends
-    INPUT
-    -----
+
+    Parameters
+    ----------
     x_legend : str
         x label
     y_legend : str
@@ -140,31 +144,35 @@ def legende(x_legend, y_legend, title, display=False, cplot=False, show=True):
     colorplot : bool
         default False
         if True, use the title for the output legend
-    OUTPUT
-    -----
+
+    Returns
+    -------
     fig : dict
         one element dictionnary with key the current figure number
         contain a default filename generated from the labels
     """
-    font = 24
-    # additionnal options ?
+    # additional options ?
     plt.rc('font', family='Times New Roman')
-    plt.xlabel(x_legend, fontsize=font)
-    plt.ylabel(y_legend, fontsize=font)
-    plt.title(title, fontsize=font)
+    plt.xlabel(x_legend, fontsize=fontsize)
+    plt.ylabel(y_legend, fontsize=fontsize)
+    plt.title(title, fontsize=fontsize)
 
     if show:
         refresh()
 
-    # rec
-    fig = figure_label(x_legend, y_legend, title, display=display,
-                       cplot=cplot)  # fig is a dictionnary where the key correspond to the fig number and the element to the automatic title
+    # fig is a dictionnary where the key correspond to the fig number and the element to the automatic title
+    fig = figure_label(x_legend, y_legend, title, display=display, cplot=cplot)
     fig = get_data(fig)
 
     return fig
 
 
 def get_data(fig, cplot=False):
+    """
+
+    fig :
+    cplot :
+    """
     current = plt.gcf()
     lines = plt.gca().get_lines()
 
@@ -184,6 +192,20 @@ def get_data(fig, cplot=False):
 
 
 def figure_label(x_legend, y_legend, title, display=True, cplot=False, include_title=False):
+    """
+
+    Parameters
+    ----------
+    x_legend :
+    y_legend :
+    title :
+    display :
+    cplot :
+    include_title :
+
+    Returns
+    -------
+    """
     # generate a standard name based on x and y legend, to be used by default as a file name output
     x_legend = remove_special_chars(x_legend)
     y_legend = remove_special_chars(y_legend)
@@ -209,16 +231,18 @@ def remove_special_chars(string, chars_rm=['$', '\ ', '[', ']', '^', '/', ') ', 
                          chars_rp=['{', '(', ',', '=', '.']):
     """
     Remove characters from a typical latex format to match non special character standards
-    INPUT
-    -----
+
+    Parameters
+    ----------
     string : str
         input string
     chars_rm : str list. Default value : ['$','\ ',') ']
         char list to be simply removed
     chars_rp : str list. Default value : ['( ',',']
         char list to be replaced by a '_'
-    OUTPUT
-    -----
+
+    Returns
+    -------
     string : str
         modified string
     """
@@ -230,9 +254,10 @@ def remove_special_chars(string, chars_rm=['$', '\ ', '[', ']', '^', '/', ') ', 
 
 
 def title(M):
-    # standard title format to know from what date is has been created
-    # need something much more sophisticated than that !
-    # create a dictionnary of keyword to be added in the title, and add every element into a string formatted style
+    """standard title format to know from what date is has been created
+    Need something much more sophisticated than that !
+    Create a dictionnary of keyword to be added in the title, and add every element into a string formatted style
+    """
     tdict = {}
     tdict['type'] = M.param.typeplane
     if M.param.typeplane == 'sv':
@@ -249,16 +274,35 @@ def title(M):
     return title
 
 
-def colorbar(fignum=-2, label=''):
+def colorbar(fignum=-2, label='', fontsize=__fontsize__):
+    """
+
+    Parameters
+    ----------
+    fignum :
+    label :
+
+    Returns
+    -------
+    """
     set_fig(fignum)
-
     c = plt.colorbar()
-
-    c.set_label(label, fontsize=18)
+    c.set_label(label, fontsize=fontsize)
     return c
 
 
 def set_title(M, opt=''):
+    """
+
+    Parameters
+    ----------
+    M :
+    opt :
+
+    Returns
+    -------
+    title : str
+    """
     # if Zplane attribute exist !
     title = 'Z= ' + str(int(M.param.Zplane)) + ', ' + M.param.typeview + ', mm, ' + M.Id.get_id() + ', ' + opt
     plt.title(title, fontsize=18)
@@ -275,11 +319,12 @@ def set_name(M, param=[]):
             pi = getattr(M.param, p)
         s = s + p + str(pi) + '_'
     # s =s[:-1]
-    # plt.title(title,fontsize=18)
+    # plt.title(title, fontsize=18)
     return s
 
 
 def clegende(c, c_legend):
+    """Set a label to the object c"""
     c.set_label(c_legend)
 
 
@@ -332,7 +377,8 @@ def save_fig(fignum, filename, frmt='pdf', dpi=300, overwrite=False):
     Parameters
     ----------
     fignum : int
-        number of the fig to save
+        number of the fig to save: this int is matplotlib's figure assignment
+        We should really make this an optional argument, with default==1
     filename : str
         name of the file to save
     frmt : str (optional, default='pdf')
@@ -384,7 +430,8 @@ def color_plot(x, y, Z, fignum=1, vmin=0, vmax=0, log=False, show=False, cbar=Fa
     -----	
     x : 2d numpy array
     y : 2d numpy array
-    Z : 2d numpy array 
+    Z : 2d numpy array
+
     OUTPUT
     ------
     None
@@ -438,6 +485,31 @@ def rotate(X, Y, angle):
 
 def Mplot(M, field, frame, auto_axis=False, step=1, W=None, Dt=None, fignum=1, show=False, vmin=0, vmax=0, log=False,
           display=False, tstamp=False, compute=False, cbar=False, colorbar=False):
+    """
+
+    Parameters
+    ----------
+    M :
+    field :
+    frame :
+    auto_axis :
+    step :
+    W :
+    Dt :
+    fignum :
+    show :
+    vmin :
+    vmax :
+    log :
+    display :
+    tstamp :
+    compute :
+    cbar :
+    colorbar :
+
+    Returns
+    -------
+    """
     import turbulence.pprocess.check_piv as check
     import turbulence.manager.access as access
 
@@ -534,6 +606,22 @@ def Mplot(M, field, frame, auto_axis=False, step=1, W=None, Dt=None, fignum=1, s
 #    title = os.path.basename(M.Sdata.fileCine)
 
 def movie(M, field, indices=None, compute=False, label='', Dirname='./', tracking=False, **kwargs):
+    """
+
+    Parameters
+    ----------
+    M :
+    field :
+    indices :
+    compute :
+    label :
+    Dirname :
+    tracking :
+    kwargs :
+
+    Returns
+    -------
+    """
     figs = {}
     if indices == None:
         nx, ny, nt = M.shape()
@@ -567,9 +655,18 @@ def movie(M, field, indices=None, compute=False, label='', Dirname='./', trackin
         plt.cla()
 
 
-def time_stamp(M, i, x0=-80, y0=50, fignum=None):
-    t = M.t[i]
-    Dt = M.t[i + 1] - M.t[i]
+def time_stamp(M, ii, x0=-80, y0=50, fignum=None):
+    """
+    Parameters
+    ----------
+    M :
+    ii :
+    x0 :
+    y0 :
+    fignum :
+    """
+    t = M.t[ii]
+    Dt = M.t[ii + 1] - M.t[ii]
     s = 't = ' + str(np.round(t * 1000) / 1000) + ' s, Dt = ' + str(np.round(Dt * 10000) / 10) + 'ms'
     #   print(s)
     if fignum is not None:

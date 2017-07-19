@@ -24,24 +24,23 @@ import os.path
 import time
 import h5py
 import dpath
-
 import turbulence.tools.browse as browse
-
 import turbulence.mdata
 import turbulence.mdata.Id as Id
 import turbulence.mdata.Sdata as Sdata
 import turbulence.mdata.param as param
-
 import turbulence.tools.pickle_m as pickle_m
 import turbulence.hdf5.h5py_convert as to_hdf5
-
 import turbulence.manager.file_architecture as file_architecture
-
 import turbulence.analysis.vgradient as vgradient
+
+'''Mdata is...'''
 
 
 class Mdata(object):
-    ################# Generate Mdata ###########################
+    """description
+    """
+
     def __init__(self, generate=True, **kwargs):
         """
         Class generator
@@ -92,7 +91,7 @@ class Mdata(object):
         self.Id = Id.Id(self.Sdata, index=self.Sdata.Id.index, mindex=mindex)
 
         print(self.Id.get_id())
-        ######### Data file
+        # Data file
         # Data are not stored by default in Sdata, the data load must be called explicitly
         self.filePIV = ''  # associate the PIV file parameter ?
 
@@ -115,7 +114,6 @@ class Mdata(object):
                 pass
         else:
             print("load parameters manually")
-
             self.U_ref = self.read_ref(self.load_ref())
             # U_ref has attribute x,y, Ux, Uy
             self.nx, self.ny, self.nt = self.set_dimensions()
@@ -127,7 +125,8 @@ class Mdata(object):
 
             # write the Sdata object in a .txt file using the package pickle
             # The filename is directly determined from the Identification number
-            self.fileDir = self.Sdata.dirCine + "M_" + self.Id.date + "/"  # trouble with the Id of the M file : find another (more     accurate way of classification)
+            self.fileDir = self.Sdata.dirCine + "M_" + self.Id.date + "/"
+            # trouble with the Id of the M file : find another (more     accurate way of classification)
             self.fileDir = file_architecture.os_c(self.fileDir)
 
     def load(self, data):
@@ -197,17 +196,14 @@ class Mdata(object):
     def add_param(self, name, unit):
         value = browse.get_number(self.Sdata.fileCine, '_' + name, unit + '_', from_end=True)
         setattr(self.param, name, value)
-
         # print("New attribute : "+name+'='+str(value))
-
-    #        self.write(data=True,overwrite=True)
+        # self.write(data=True,overwrite=True)
 
     def get_filename(self, frmt=''):
         """
         Return the location where this class instance is (or will be) stored
         """
         # print(self.Id)
-
         return file_architecture.os_c(self.fileDir) + "M_" + self.Id.get_id() + frmt
 
     def get_fileList(self, display=False):
@@ -453,14 +449,14 @@ class Mdata(object):
             Uy = self.get('Uy')
             data = np.transpose(np.asarray([Ux, Uy]), (1, 2, 3, 0))
             return data
-        #        if (not hasattr(self,field)) or (compute):
+        # if (not hasattr(self,field)) or (compute):
 
         #            vgradient.compute(M,field,Dt=Dt_filt,**kwargs)
         if not hasattr(self, field):
             if 'Dt_filt' in kwargs and kwargs['Dt_filt'] > 1:
                 print('Filtering of the data : irreversible')
             self.compute(field)
-        #            setattr(self,field,)
+        # setattr(self,field,)
         if hasattr(self, field):
             return getattr(self, field)
         else:

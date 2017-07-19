@@ -14,6 +14,9 @@ import turbulence.analysis.basics as basics
 import turbulence.analysis.vgradient as vgradient
 import turbulence.manager.access as access
 
+'''
+'''
+
 
 def movie_spectrum(M, field, alpha=[-5. / 3], Dt=10, fignum=1, start=0, stop=0):
     # switch_field(field)
@@ -72,19 +75,67 @@ def compute_spectrum_2d(M, Dt=10):
     setattr(M, 'kx', kx)
     setattr(M, 'ky', ky)
     setattr(M, 'S_E', S_E)
+    return S_E, kx, ky
 
 
 def compute_spectrum_1d(M, Dt=10):
     S_k, k = energy_spectrum_1d(M, display=False, Dt=Dt)
     setattr(M, 'k', k)
     setattr(M, 'S_k', S_k)
+    return S_k, k
+
+
+def compute_spectrum_1d_within_region(mm, radius=None, region=None, dt=10):
+    """
+
+    Parameters
+    ----------
+    mm :
+    radius : float or None
+        the radius of a disc to examine, if not None. If region is not None, radius is ignored
+    region : #vertices x 2 numpy float array
+        If not none, use this closed path to define the region of interes
+    dt :
+
+    Returns
+    -------
+    s_k :
+    k :
+    """
+    if region is not None:
+
+    elif radius is not None:
+        mmr = mm.x ** 2 + mm.y ** 2
+        include = np.abs(mmr) < radius
+    else:
+        raise RuntimeError('Must supply either radius or region values to compute_spectrum_1d_within_region()')
+    # use M.Ux
+
+    ### test
+    # import numpy as np
+    # import turbulence.display.plotting as tplt
+    # radius = 30.
+    # a = np.random.rand(100, 100, 100)
+    # sa = np.abs(np.fft.fftn(a, axes=(0, 1)))
+    # sa = np.fft.fftshift(sa, axes=(0, 1))
+    # # now mask object
+    # xy = np.meshgrid(np.arange(100), np.arange(100))
+    # include = np.abs(xy) < radius
+    # anew = np.zeros_like(a)
+    # for ind in np.arange(np.shape(anew)[2]):
+    #     anew[..., ind][:] = xy[..., ind][include]
+    # sb = np.abs(np.fft.fftn(anew, axes=(0, 1)))
+    # sb = np.fft.fftshift(sa, axes=(0, 1))
+    # tplt.plot_real_matrix(sa, show=True)
+    # tplt.plot_real_matrix(sb, show=True)
 
 
 def energy_spectrum_2d(M, display=False, field='E', Dt=10):
     """
     Compute the 2 dimensionnal energy spectrum of a Mdata class instance
-    INPUT
-    -----
+
+    Parameters
+    ----------
     m : Mdata class instance, or any other object that contains the following fiels :
         methods : shape()
         attributes : Ux, Uy
@@ -92,8 +143,10 @@ def energy_spectrum_2d(M, display=False, field='E', Dt=10):
         display resulting spectrum
     Dt : int. Default value 10
         time window to smooth the data with turbulence.analysis.basics.smooth
-    OUTPUT
-    -----
+
+
+    Returns
+    -------
     S_E : 3d np array
         Power spectrum of Ux and Uy velocity components
     kx : 2d np array
@@ -112,12 +165,16 @@ def spectrum_2d(Y, M=None, Dt=5):
     """
     Compute 2d spatial spectrum of Y. If a Mdata object is specified, use the spatial scale of M.x 
     to scale the spectrum
-    INPUT 
+
+    Parameters
     -----
     Y : 3d numpy array
         Compute the spectrum along the first two dimensions
+    M : Mdata class instance or None
+        description
+    Dt : int
+        points over which to smooth the spectrum?
     """
-
     # cropping for the 2016_08_03
     #    Y = Y[:,5:]
 
@@ -135,8 +192,8 @@ def spectrum_2d(Y, M=None, Dt=5):
     else:
         dx = 1
 
-    kx = kx / (dx * nx)
-    ky = ky / (dx * ny)  # in mm^-1
+    kx /= (dx * nx)
+    ky /= (dx * ny)  # in mm^-1
     #   print(np.shape(E))
     # Y=basics.smooth(Y,Dt)
 
@@ -144,9 +201,8 @@ def spectrum_2d(Y, M=None, Dt=5):
     Y = result[0]  # cdata.rm_nans([E])
 
     #    print(np.where(np.isnan(E)))
-
-    S_E = np.zeros(np.shape(Y))
-    S_E = np.abs(np.fft.fftn(Y, axes=(0, 1))) * dx ** 2 / (nx * ny)
+    # S_E = np.zeros(np.shape(Y))
+    S_E=np.abs(np.fft.fftn(Y, axes=(0, 1))) * dx ** 2 / (nx * ny)
     S_E = np.fft.fftshift(S_E, axes=(0, 1))
 
     # smooth the spectrum by averaging over Dt time steps in time
@@ -155,11 +211,11 @@ def spectrum_2d(Y, M=None, Dt=5):
 
 
 def spectrum_1d(Y, M=None, display=False, Dt=5):
-    """
-    Compute the 1 dimensionnal energy spectrum of Y
+    """Compute the 1 dimensionnal energy spectrum of Y
     The computation is done by averaging over circles in k space from a 2d spectrum
-    INPUT
-    -----
+
+    Parameters
+    ----------
     m : Mdata class instance, or any other object that contains the following fields :
         methods : shape()
         attributes : Ux, Uy
@@ -167,14 +223,14 @@ def spectrum_1d(Y, M=None, display=False, Dt=5):
         display resulting spectrum
     Dt : int. Default value 10
         time window to smooth the data with turbulence.analysis.basics.smooth
-    OUTPUT
-    -----
+
+    Returns
+    -------
     S_k : 2d np array
         1d Power spectrum of Ux and Uy velocity components
     kbin : 1d np array
         wave-vector
     """
-
     # compute the fft 2d, then divide in slices of [k,k+dk]
     print('Compute 2d fft')
     S_E, kx, ky = spectrum_2d(Y, M, display=False, Dt=Dt)
@@ -234,11 +290,11 @@ def spectrum_1d(Y, M=None, display=False, Dt=5):
 
 
 def energy_spectrum_1d(M, display=False, Dt=10):
-    """
-    Compute the 1 dimensionnal energy spectrum of a Mdata class instance
-        The computation is done by averaging over circles in k space from a 2d spectrum
-    INPUT
-    -----
+    """Compute the 1 dimensionnal energy spectrum of a Mdata class instance
+    The computation is done by averaging over circles in k space from a 2d spectrum
+
+    Parameters
+    ----------
     m : Mdata class instance, or any other object that contains the following fields :
         methods : shape()
         attributes : Ux, Uy
@@ -246,8 +302,9 @@ def energy_spectrum_1d(M, display=False, Dt=10):
         display resulting spectrum
     Dt : int. Default value 10
         time window to smooth the data with turbulence.analysis.basics.smooth
-    OUTPUT
-    -----
+
+    Returns
+    -------
     S_k : 2d np array
         1d Power spectrum of Ux and Uy velocity components
     kbin : 1d np array

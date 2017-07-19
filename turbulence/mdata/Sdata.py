@@ -6,10 +6,10 @@ import turbulence.mdata.Id as Id
 import turbulence.mdata.param as param
 import turbulence.tools.pickle_m as pickle_m
 import turbulence.hdf5.h5py_convert as to_hdf5
-
 import glob
 import turbulence.manager.file_architecture as file_architecture
 
+''''''
 
 class Sdata(object):
     def __init__(self, generate=True, **kwargs):
@@ -17,8 +17,9 @@ class Sdata(object):
         # of the raw data, of the measure, and of the present object (in pickle file)
         # filename of the associated cine file (without the dir!)
         if generate:
+            # initializing attributes outside __init__ is bad form... for now we do it here -npm
             self.gen(**kwargs)
-        else:  # generate an emppty object
+        else:  # generate an empty object
             self.Id = Id.Id(self, index=-1, mindex=0)
             self.param = param.param(self, generate=False)
             #  print("initialized")
@@ -27,7 +28,18 @@ class Sdata(object):
         return 'Sdata'
 
     def gen(self, fileCine='', index=-1, mindex=0, fileParam=''):
+        """Sdata contains only the parameter, id, and association to its physical location
 
+        Parameters
+        ----------
+        fileCine :
+        index :
+        mindex :
+        fileParam :
+
+        Returns
+        -------
+        """
         self.fileCine = fileCine
         self.dirCine = self.read_dir()
 
@@ -46,14 +58,15 @@ class Sdata(object):
             except:
                 print("Pickle object cannot be read anymore")
                 pass
-        #########Parameters
+        # Parameters
         self.param = param.param(self)
         self.param.load_exp_parameters(fileParam)
         self.param.set_param()
 
         self.save_param()
-        ###########Measurements        
-        # no more measure associated to the Sdata : it contains only the parameter, id, and association to its physical location
+        # Measurements
+        # no more measure associated to the Sdata : it contains only the parameter, id, and association to
+        # its physical location
 
         # self.m=measure.M(self,dirData)
 
@@ -211,9 +224,11 @@ class Sdata(object):
         self.param.fileParam = fileParam
         print(self.param.fileParam)
 
-    # Write the Sdata in the indicate filename
     def write(self):
-        ############# Depreciated
+        """Write the Sdata in the indicated filename -- depricated!
+
+        """
+        # Depreciated
         print("Writing Sdata in hdf5 file")
 
         self.im_ref = None
@@ -238,7 +253,6 @@ class Sdata(object):
             #   @staticmethod
             # def load_measure(self):
             #    self.m.loadData()
-
 
             # def update(self,Dir_PIV):
             # compare the current dimensions of the data (must be stored in the parameter file for a better efficiency!)

@@ -279,11 +279,11 @@ graphes.save_figs(figs, savedir=savedir, suffix='v400mms')
 
 ########################################################
 # Saves Ux,Uy,omega,E,enstrophy in 'savedir'/'date'/'date'+'indicies'+'version'/Example
-# Bug to be fixed: axis is out of the bound.  - Takumi 7/10/17
 ########################################################
 # Specify the index (Recall each index corresponds to a cine file)
-indices = 2
-figs = comp.vortex_collider(M, indices, version=1)
+# I don't think the above statement is true -- I think these are time indices (frame numbers)
+# indices = 2
+# figs = comp.vortex_collider(M, indices, version=1, outdir=savedir)
 # graphes.plt.close('all')
 
 
@@ -333,6 +333,7 @@ figs = graphes.legende('Time (s)', 'Energy (mm$^2$/s$^{2}$)', '')
 graphes.set_axis(0, 8, 10 ** 1, 10 ** 5)
 #    graphes.graphloglog(t0,Y_moy[ind],label='.-',fignum=2)
 #    i0 = i0+T
+suffix = '_tmpsuffix_'
 graphes.save_figs(figs, savedir=savedir + subdir, suffix=suffix + 'Evst')
 
 graphes.graphloglog(t0, 10 ** 3 * t0 ** (-2), label='r--', fignum=2)
@@ -341,14 +342,15 @@ graphes.set_axis(10 ** -2, 10 ** 0, 10 ** 2, 10 ** 5)
 
 figs.update(graphes.legende('Translated Time (s) ', 'Energy (mm$^2$/s$^{2}$)', ''))
 suffix = graphes.set_name(M, param=['freq', 'v'])
-# graphes.save_figs(figs,savedir=savedir+subdir,suffix=suffix+'shaped')
+graphes.save_figs(figs, savedir=savedir + subdir, suffix=suffix + 'shaped')
+plt.close('all')
 
 ########################################################
 # Fourier to obtain Energy spectrum in k space
 ########################################################
 M = Mlist[0]
-# compute_spectrum_2d() returns S_E,kx,ky
-# compute_spectrum_1d() returns S_E,k
+# compute_spectrum_2d() returns S_E, kx, ky
+# compute_spectrum_1d() returns S_E, k
 Fourier.compute_spectrum_2d(M, Dt=3)
 Fourier.compute_spectrum_1d(M, Dt=3)
 M.S_k[:, 100]
@@ -361,14 +363,16 @@ Enstrophy_total = np.mean(M.omega ** 2, axis=(0, 1))
 Omega_total = np.mean(M.omega, axis=(0, 1))
 E_total = np.mean(M.E, axis=(0, 1))
 
-figs = {};
+figs = {}
 graphes.graph(M.t, Omega_total, fignum=1)
 figs.update(graphes.legende('Time (s)', 'Vorticity $\Omega$ (s$^{-1}$)', ''))
 graphes.save_figs(figs, savedir=savedir, suffix=M.Id.get_id() + '_Full_Vorticity_plot', display=True)
+plt.close('all')
 
 graphes.graph(M.t, E_total, fignum=2)
 figs.update(graphes.legende('Time (s)', 'Energy $E$ (mm$^2$ s$^{-2}$)', ''))
 graphes.save_figs(figs, savedir=savedir, suffix=M.Id.get_id() + '_Full_Energy_plot', display=True)
+plt.close('all')
 
 # tt = M.t[175:500];
 # EE = E_total[175:500];
@@ -382,21 +386,30 @@ graphes.save_figs(figs, savedir=savedir, suffix=M.Id.get_id() + '_Full_Energy_pl
 # graphes.set_axis(0.35,0.57,0,80)
 # graphes.save_figs(figs,savedir=savedir,suffix=M.Id.get_id()+'_Partial_Vorticity_plot',display=True)
 
-
 ########################################################
 # Energy spectrum (Kolmogorov scaling: -5/3)
 ########################################################
+plt.close('all')
 M = Mlist[0]
-for i in range(20, 148):
-    # print(i)
-    graphes.graphloglog(M.k, M.S_k[..., i], 'k')
-    graphes.graph(M.k, 15 * M.k ** (-5. / 3), label='r-')
-    figs = graphes.legende('$k$ (mm$^{-1}$)', 'E (mm/s^{2})', '')
+for ii in range(20, 148):
+    print 'Plotting energy spectrum, item =', ii
+    graphes.graphloglog(M.k, M.S_k[..., ii], 'k')
 
+graphes.graph(M.k, 15 * M.k ** (-5. / 3), label='r-')
+figs = graphes.legende(r'$k$ [mm$^{-1}$]', r'$E$ [mm/s$^{2}$]', '')
+graphes.save_fig(1, savedir + 'energy_spectrum1', frmt='pdf', dpi=300, overwrite=False)
+
+########################################################
+# Energy spectrum as function of shell radius
+########################################################
+
+
+
+sys.exit()
 # Above the codes work nice and sound. Well-organized (run cells from the top)
 # What is this? - Takumi 7/10/17
 indices = 2
-comp.comparison(Mlist, indices)
+comp.comparison(Mlist, indices, outdir=savedir)
 for i, M in enumerate(Mlist):
     Ux_moy = np.nanmean(M.Ux, axis=2)
     Uy_moy = np.nanmean(M.Uy, axis=2)
@@ -406,7 +419,7 @@ for i, M in enumerate(Mlist):
 
 # Should compute the spatial decay: not working currently....
 for M in Mlist:
-    figs = comp.spatial_decay(M, indices=indices)
+    figs = comp.spatial_decay(M, indices=indices, outdir=savedir)
     graphes.save_figs(figs, savedir=savedir + 'Spatial_decay', prefix=graphes.set_name(M, param=['freq', 'v']))
     graphes.plt.close('all')
 

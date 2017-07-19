@@ -12,7 +12,7 @@ def vortex_collider(M, indices=range(20, 430), version=0, outdir='./'):
 
     Parameters
     ----------
-    M :
+    M : Mdata_PIVlab object
     indices : list or numpy int array
     version : int
     outdir : str
@@ -43,7 +43,7 @@ def comparison(Mlist, indices=None, version=0, save=False, outdir='./'):
 
     Parameters
     ----------
-    Mlist :
+    Mlist : list of Mdata_PIVlab objects?
     indices :
     version :
     save :
@@ -70,7 +70,7 @@ def make_figures(M, indices=None, version=0, outdir='./'):
 
     Parameters
     ----------
-    M :
+    M : Mdata_PIVlab object
     indices :
     version :
 
@@ -131,7 +131,7 @@ def time_average(M, indices=None):
 
     Parameters
     ----------
-    M :
+    M : Mdata_PIVlab object
     indices :
 
     Returns
@@ -168,7 +168,7 @@ def spatial_average(M, indices=None):
 
     Parameters
     ----------
-    M :
+    M : Mdata_PIVlab object
     indices :
 
     Returns
@@ -190,7 +190,7 @@ def spectrum_2d(M, indices=None, smoothing_dt=3):
 
     Parameters
     ----------
-    M :
+    M : Mdata_PIVlab object
     indices :
     smoothing_dt : int
         Number of frames in time over which to smooth
@@ -223,10 +223,13 @@ def spectrum_1d(M, indices=None, norm_factor=1, smoothing_dt=3):
 
     Parameters
     ----------
-    M :
-    indices :
-    norm_factor :
-    smoothing_dt :
+    M : Mdata_PIVlab object
+    indices : list of ints, int array, or None
+        Frames to examine for the spectrum
+    norm_factor : float
+
+    smoothing_dt : int
+        Number of timesteps/frames to smooth over
 
     Returns
     -------
@@ -240,7 +243,7 @@ def spectrum_1d(M, indices=None, norm_factor=1, smoothing_dt=3):
 
     if single_frame:
         Fourier.compute_spectrum_2d(M, Dt=smoothing_dt)  # smooth on 3 time step.
-        S_k = M.S_E[..., indices]
+        S_k = M.S_k[..., indices]
     else:
         Fourier.compute_spectrum_1d(M, Dt=smoothing_dt)
         S_k = np.nanmean(M.S_k[..., indices], axis=1) / norm_factor
@@ -258,6 +261,17 @@ def spectrum_1d(M, indices=None, norm_factor=1, smoothing_dt=3):
 
 
 def std_fields():
+    """
+
+    Returns
+    -------
+    fields
+    names
+    vmin
+    vmax
+    labels
+    units
+    """
     fields = ['Ux', 'Uy', 'omega', 'E', 'enstrophy']
     names = ['$U_x$', '$U_y$', '$\omega_z$', '$E$', '$\omega^2$']
     vmin = [-300, -300, -300, 0, 0]
