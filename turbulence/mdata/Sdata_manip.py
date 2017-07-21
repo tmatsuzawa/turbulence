@@ -15,8 +15,8 @@ def Sdata_gen_day(date):
 
     print(fileDir)
     #    print(fileDir)
-    cineList, n = browse.get_fileList(fileDir, 'cine',
-                                      display=True)  # cineList=['/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z150mm_fps10000_H1000mm_zoom_S100mm.cine','/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z200mm_fps10000_H1000mm_zoom_S100mm.cine','/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z0mm_fps10000_H1380mm_zoom_zoom_S100mm.cine']
+    cineList, n = browse.get_fileList(fileDir, 'cine', display=True)
+    # cineList=['/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z150mm_fps10000_H1000mm_zoom_S100mm.cine','/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z200mm_fps10000_H1000mm_zoom_S100mm.cine','/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z0mm_fps10000_H1380mm_zoom_zoom_S100mm.cine']
     # cineList=['/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z0mm_fps10000_H1380mm_zoom_zoom_S100mm.cine']
     # cineList=['/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X0mm_fps10000_H1000mm_zoom_S100mm.cine']
     print(cineList)
@@ -38,6 +38,17 @@ def Sdata_gen_day(date):
 
 
 def Sdata_gen(cineFile, index):
+    """
+
+    Parameters
+    ----------
+    cineFile
+    index
+
+    Returns
+    -------
+    S :
+    """
     failure = None
     # print(cineFile)
     base = browse.get_string(os.path.basename(cineFile), '', end='.cine')
@@ -58,10 +69,10 @@ def Sdata_gen(cineFile, index):
         if browse.contain(base, s):
             file_param = f
             # input()
-        #    file = os.path.dirname(cineFile)+'/References/Ref_'+base+'.txt'
-        #    file = os.path.dirname(cineFile)+'/'+'Setup_file_Ref.txt' #/Volumes/labshared/Stephane_lab1/25015_09_22/References/Ref_PIV_sv_vp_zoom_Polymer_200ppm_X25mm_fps5000_n18000_beta500mu_H1180mm_S300mm.txt'
-        #    print(file)
-        # try:
+            # file = os.path.dirname(cineFile)+'/References/Ref_'+base+'.txt'
+            # file = os.path.dirname(cineFile)+'/'+'Setup_file_Ref.txt'
+            # #/Volumes/labshared/Stephane_lab1/25015_09_22/References/Ref_PIV_sv_vp_zoom_Polymer_200ppm_X25mm_fps5000_n18000_beta500mu_H1180mm_S300mm.txt'
+            #    print(file)
     print(cineFile)
     S = Sdata(fileCine=cineFile, index=index, fileParam=file_param)
     S.write()
@@ -86,7 +97,13 @@ def load_Sdata_day(date):
 
 
 def load_Sdata_file(filename):
-    # load a Sdata using its filename
+    """load a Sdata using its filename
+
+    Parameters
+    ----------
+    filename : str
+        load the data from the given filename
+    """
     #  print(filename)
     if os.path.isfile(filename):
         #  print('Reading Sdata')
@@ -98,16 +115,28 @@ def load_Sdata_file(filename):
         # print(S.fileCine)
         return S
     else:
-        print('No data found for ' + S.filename)
+        print('No data found for ' + filename)
         return None
 
 
-def load_serie(date, indices):
+def load_serie(date, indices, datadir=None):
+    """
+
+    Parameters
+    ----------
+    date :
+    indices :
+
+    Returns
+    -------
+    Slist : list of Sdata objects
+
+    """
     n = len(indices)
     Slist = [None for i in range(n)]
     c = 0
     for i in indices:
-        Slist[c] = load_Sdata(date, i)
+        Slist[c] = load_Sdata(date, i, datadir=datadir)
         c += 1
     return Slist
 
@@ -152,9 +181,22 @@ def load_all():
     return Slist
 
 
-def load_Sdata(date, index, mindex=0):
+def load_Sdata(date, index, mindex=0, datadir=None):
+    """Load
+
+    Parameters
+    ----------
+    date
+    index
+    mindex
+    datadir : str
+
+    Returns
+    -------
+
+    """
     # load a Sdata using its Id
-    filename = getloc(date, index, mindex)
+    filename = getloc(date, index, mindex, datadir=datadir)
     S = load_Sdata_file(filename)
     return S
 
@@ -168,8 +210,10 @@ def read(filename, data=False):
 
 
 def getloc(date, index, mindex, frmt='.hdf5'):
-    Dir = getDir(date)
-    filename = Dir + "Sdata_" + date + "_" + str(index) + "_" + str(mindex) + frmt
+    """"""
+    if not datadir:
+        datadir = getDir(date)
+    filename = datadir + "Sdata_" + date + "_" + str(index) + "_" + str(mindex) + frmt
     return filename
 
 

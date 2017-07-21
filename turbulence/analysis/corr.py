@@ -39,7 +39,8 @@ def time_correlation(Mlist, indices=None, display=False):
     OUTPUT
     -----
     tf :
-    tau
+    tau :
+        for each time in ft, timescale over which correlation is reduced to 1/e, on average
     """
 
     if indices is None:
@@ -753,8 +754,10 @@ def compute_Ct(M, tlist=None, t0=20, axes=['Ux', 'Ux'], p=1, display=False, labe
 
     Returns
     -------
-    tf : the time
-    tau :
+    tf : float array of dim len(tlist) x 1 or, if tlist==None, len(range(t0, dimensions[2] - t0, Dt)) x 1
+        the times probed for auto correlation
+    tau : float array of dim len(tlist) x 1 or, if tlist==None, len(range(t0, dimensions[2] - t0, Dt)) x 1
+        the correlation timescales evaluated at each time tf
     """
     display_part = False
     if tlist is None:

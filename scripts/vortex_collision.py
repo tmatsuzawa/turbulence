@@ -25,7 +25,9 @@ Eventually we will roll these into methods of a vortex_collision class, but for 
 
 date = '2017_06_30'
 # savedir = '/Users/stephane/Documents/Experiences_local/Results/Vortex_collision/'+date+'/'
-savedir = '/Users/npmitchell/Desktop/data_local/vortex_collision/' + date + '/'
+rootdir = '/Users/npmitchell/Desktop/data_local/vortex_collision/'
+datadir = rootdir + 'sample_data/'
+savedir = rootdir + date + '/'
 subdir = 'summary/'
 
 indices = [2]  # range(6,10)
@@ -35,7 +37,7 @@ indices = [2]  # range(6,10)
 # Slist is Sdata_date_index_ver.hdf5.
 # Each index of Slist is associated to a cine file in the directory.
 # Mlist is a list of variables associated to each element of Slist.
-Slist = Sdata_manip.load_serie(date, indices)
+Slist = Sdata_manip.load_serie(date, indices, datadir=datadir)
 print 'file name -->', Slist[0].fileCine
 Mlist = Sdata_manip.load_measures(Slist, indices=0)  # refer to the index of the measurement. here 0 - Stephane
 Mfluc_list = Sdata_manip.load_measures(Slist, indices=0)
