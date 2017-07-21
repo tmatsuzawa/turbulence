@@ -2,6 +2,13 @@ import numpy as np
 import turbulence.display.plotting as tplt
 import matplotlib.pyplot as plt
 import turbulence.analysis.Fourier as four
+import turbulence.mdata.Sdata_manip as Sdata_manip
+import numpy as np
+import turbulence.display.graphes as graphes
+import turbulence.vortex.track as track
+import turbulence.analysis.Fourier as Fourier
+import turbulence.analysis.compilation as comp
+import matplotlib.pyplot as plt
 
 """Test out how to extract E(k) for different shells of the blob"""
 
@@ -28,22 +35,6 @@ tplt.plot_real_matrix(sb, show=True, climv=(-100, 100), name='F(clipped image)')
 tplt.plot_real_matrix(sb - sa, show=True, climv=(-100, 100), name='F(clipped image) - F(full image)')
 
 # Now do time series of images
-
-import turbulence.mdata.Sdata_manip as Sdata_manip
-import turbulence.mdata.Sdata as Sdata
-import turbulence.analysis.cdata as cdata
-import numpy as np
-import turbulence.pprocess.test_serie as tests
-import turbulence.display.graphes as graphes
-import turbulence.display.panel as panel
-import turbulence.vortex.track as track
-import turbulence.manager.access as access
-import turbulence.analysis.Fourier as Fourier
-import turbulence.analysis.compilation as comp
-import turbulence.tools.Smath as Smath
-import matplotlib.pyplot as plt
-import sys
-
 '''Examine (time averaged) properties of experiment data
 Eventually we will roll these into methods of a vortex_collision class, but for now it is a script
 '''

@@ -86,7 +86,7 @@ def compute_spectrum_2d(M, Dt=10):
     return S_E, kx, ky
 
 
-def compute_spectrum_1d(M, Dt=10):
+def compute_spectrum_1d(mm, Dt=10):
     """
 
     Parameters
@@ -97,9 +97,9 @@ def compute_spectrum_1d(M, Dt=10):
     Returns
     -------
     """
-    S_k, k = energy_spectrum_1d(M, display=False, Dt=Dt)
-    setattr(M, 'k', k)
-    setattr(M, 'S_k', S_k)
+    S_k, k = energy_spectrum_1d(mm, display=False, Dt=Dt)
+    setattr(mm, 'k', k)
+    setattr(mm, 'S_k', S_k)
     return S_k, k
 
 
@@ -122,27 +122,36 @@ def compute_spectrum_1d_within_region(mm, radius=None, polygon=None, display=Fal
     k :
     """
     import turbulence.analysis.data_handling as dh
+    data = access.get_all(mm, 'E')
     if polygon is not None:
         # Use matplotlib to find points in path
         dh.pts_in_polygon(mm.x, mm.y, polygon=polygon)
     elif radius is not None:
         mmr = mm.x ** 2 + mm.y ** 2
-        include = np.abs(mmr) < radius
+        include = (np.abs(mmr) < radius).astype(np.int)
+        # mdatr = np.zeros_like(data, dtype=float)
+        # ind = 0
+        mdatr = np.ma.array(data, mask=np.tile(include, (data.shape[0], 1)))
+        # field3d_mask = np.broadcast_to(field2d > 0.3, field3d.shape)
+        # for slice in data:
+        #     mdatr[..., ind]
+        #     ind += 1
     else:
         raise RuntimeError('Must supply either radius or region values to compute_spectrum_1d_within_region()')
 
     # use M.Ux
     # test: see turbulence/scripts/fourier_shells_test.py
-    return energy_spectrum_1d(mmr, display=display, Dt=dt)
+    s_e, kx, ky = spectrum_2d(mdatr, M=None, dx=None, Dt=dt)
+    s_k, k = spectrum_2d_to_1d_convert(s_e, kx, ky, dt=dt)
+    return s_k, k
 
 
-def energy_spectrum_2d(M, display=False, field='E', Dt=10):
-    """
-    Compute the 2 dimensionnal energy spectrum of a Mdata class instance
+def energy_spectrum_2d(mm, display=False, field='E', Dt=10):
+    """Compute the 2 dimensionnal energy spectrum of a Mdata class instance
 
     Parameters
     ----------
-    m : Mdata class instance, or any other object that contains the following fiels :
+    mm : Mdata class instance, or any other object that contains the following fiels :
         methods : shape()
         attributes : Ux, Uy
     display : bool. Default False
@@ -160,14 +169,12 @@ def energy_spectrum_2d(M, display=False, field='E', Dt=10):
     ky : 2d np array
         wave-vector along y
     """
-    data = access.get_all(M, field)
-    #    E=(M.Ux**2+M.Uy**2)#/(nx*ny)
-
-    S_E, kx, ky = spectrum_2d(data, M, Dt=Dt)
+    data = access.get_all(mm, field)
+    S_E, kx, ky = spectrum_2d(data, mm, Dt=Dt)
     return S_E, kx, ky
 
 
-def spectrum_2d(Y, M=None, Dt=5):
+def spectrum_2d(Y, M=None, dx=None, Dt=5):
     """
     Compute 2d spatial spectrum of Y. If a Mdata object is specified, use the spatial scale of M.x 
     to scale the spectrum
@@ -177,7 +184,9 @@ def spectrum_2d(Y, M=None, Dt=5):
     Y : 3d numpy array
         Compute the spectrum along the first two dimensions
     M : Mdata class instance or None
-        description
+        If supplied, M.x is used to supply an absolute scale for the k vectors.
+    dx : float
+        If M is not supplied,
     Dt : int
         points over which to smooth the spectrum?
     """
@@ -195,8 +204,9 @@ def spectrum_2d(Y, M=None, Dt=5):
         #    print('dx : ' +str(dx))
         if dx == 0:
             dx = 1
-    else:
+    elif dx is None:
         dx = 1
+    # Note that otherwise dx = supplied dx
 
     kx /= (dx * nx)
     ky /= (dx * ny)  # in mm^-1
@@ -209,12 +219,12 @@ def spectrum_2d(Y, M=None, Dt=5):
 
     #    print(np.where(np.isnan(E)))
     # S_E = np.zeros(np.shape(Y))
-    S_E = np.abs(np.fft.fftn(vel3d, axes=(0, 1))) * dx ** 2 / (nx * ny)
-    S_E = np.fft.fftshift(S_E, axes=(0, 1))
+    s_e = np.abs(np.fft.fftn(vel3d, axes=(0, 1))) * dx ** 2 / (nx * ny)
+    s_e = np.fft.fftshift(s_e, axes=(0, 1))
 
     # smooth the spectrum by averaging over Dt time steps in time
-    S_E = basics.smooth(S_E, Dt / 2)
-    return S_E, kx, ky
+    s_e = basics.smooth(s_e, Dt / 2)
+    return s_e, kx, ky
 
 
 def spectrum_1d(Y, M=None, display=False, Dt=5):
@@ -319,17 +329,30 @@ def energy_spectrum_1d(M, display=False, Dt=10):
     """
     # compute the fft 2d, then divide in slices of [k,k+dk]
     print('Compute 2d fft')
-    S_E, kx, ky = energy_spectrum_2d(M, display=False, Dt=Dt)
-    nx, ny, nt = np.shape(S_E)
+    s_e, kx, ky = energy_spectrum_2d(M, display=False, Dt=Dt)
+    S_k, kbin = spectrum_2d_to_1d_convert(s_e, kx, ky, dt=Dt)
+
+    return S_k, kbin
+
+
+def spectrum_2d_to_1d_convert(s_e, kx, ky, dt=10):
+    """Convert a 2d spectrum s_e computed over a grid of k values kx and ky into a 1d spectrum computed over k
+
+    Returns
+    -------
+    s_k :
+    kbin :
+    """
+    nx, ny, nt = np.shape(s_e)
 
     k = np.sqrt(np.reshape(kx ** 2 + ky ** 2, (nx * ny,)))
     kx_1d = np.sqrt(np.reshape(kx, (nx * ny,)))
     ky_1d = np.sqrt(np.reshape(ky, (nx * ny,)))
 
-    S_E = np.reshape(S_E, (nx * ny, nt))
+    s_e = np.reshape(s_e, (nx * ny, nt))
     # sort k by values
     #    indices=np.argsort(k)
-    #    S_E=S_E[indices]
+    #    s_e=s_e[indices]
 
     Nbit = 30
     nk, nbin = np.histogram(k, Nbit)
@@ -345,24 +368,23 @@ def energy_spectrum_1d(M, display=False, Dt=10):
                                        np.logical_and(np.abs(kx_1d) >= epsilon, np.abs(ky_1d) >= epsilon))
         kbin[i] = np.mean(k[indices[:, i]])
 
-        #   print(len(indices[i]))
-    #    kbin=(np.cumsum(nbin)[2:]-np.cumsum(nbin)[0:-2])/2
+    # print(len(indices[i]))
+    # kbin=(np.cumsum(nbin)[2:]-np.cumsum(nbin)[0:-2])/2
 
-    S_k = np.zeros((N, nt))
-    S_part = np.zeros(nx * ny)
+    s_k = np.zeros((N, nt))
+    s_part = np.zeros(nx * ny)
 
     print('Compute 1d fft from 2d')
     for t in range(nt):
         for i in range(N):
-            S_part = S_E[:, t]
-            S_k[i, t] = np.nanmean(S_part[indices[:, i]])
-            #    print(S_k[i,t])
+            s_part = s_e[:, t]
+            s_k[i, t] = np.nanmean(s_part[indices[:, i]])
+            # print(S_k[i,t])
 
     # averaged in time ??
-    S_k = basics.smooth(S_k, Dt)
-    print('Done')
+    s_k = basics.smooth(s_k, dt)
 
-    return S_k, kbin
+    return s_k, kbin
 
 
 def display_fft_vs_t(m, dimension='1d', Dt=20, fignum=0, label='^', display=False):

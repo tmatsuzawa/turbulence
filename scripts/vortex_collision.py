@@ -37,7 +37,7 @@ indices = [2]  # range(6,10)
 # Slist is Sdata_date_index_ver.hdf5.
 # Each index of Slist is associated to a cine file in the directory.
 # Mlist is a list of variables associated to each element of Slist.
-Slist = Sdata_manip.load_serie(date, indices, datadir=datadir)
+Slist = Sdata_manip.load_serie(date, indices)  # , datadir=datadir)
 print 'file name -->', Slist[0].fileCine
 Mlist = Sdata_manip.load_measures(Slist, indices=0)  # refer to the index of the measurement. here 0 - Stephane
 Mfluc_list = Sdata_manip.load_measures(Slist, indices=0)
@@ -405,8 +405,29 @@ graphes.save_fig(1, savedir + 'energy_spectrum1', frmt='pdf', dpi=300, overwrite
 # Energy spectrum as function of shell radius
 ########################################################
 radii = [40, 80, 160, 320, 640, 1280, 2560]
+sk_disc = []
+k_disc = []
 for rad in radii:
-    Fourier.compute_spectrum_1d_within_region(M, radius=rad, polygon=None, display=False, dt=10)
+    sk, k = Fourier.compute_spectrum_1d_within_region(M, radius=rad, polygon=None, display=False, dt=10)
+    sk_disc.append(sk)
+    k_disc.append(k)
+
+plt.close('all')
+M = Mlist[0]
+ind = 0
+for skk in sk_disc:
+    kk = k_disc[ind]
+    for ii in range(20, 148):
+        print 'Plotting energy spectrum, item =', ii
+        graphes.graphloglog(k, skk[..., ii], 'k')
+
+    ind += 1
+
+    graphes.graph(M.k, 15 * M.k ** (-5. / 3), label='r-')
+    figs = graphes.legende(r'$k$ [mm$^{-1}$]', r'$E$ [mm/s$^{2}$]', r'$S(k)$ for $r <$' + str(radii[ind]) + ' pixels')
+    graphes.save_fig(1, savedir + 'energy_spectrum_radius{0:03d}'.format(radii[ind]), frmt='pdf', dpi=300,
+                     overwrite=True)
+
 
 
 sys.exit()

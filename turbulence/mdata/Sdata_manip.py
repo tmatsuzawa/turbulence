@@ -1,12 +1,13 @@
-# import Sdata_measure
 import os.path
-# import time
 import turbulence.manager.file_architecture as file_architecture
 import turbulence.tools.pickle_m as pickle_m
 import turbulence.tools.browse as browse
 from turbulence.mdata.Sdata import Sdata
 import turbulence.tools.rw_data as rw_data
 import turbulence.tools.pickle_2json as p2json
+
+"""
+"""
 
 
 def Sdata_gen_day(date):
@@ -16,8 +17,12 @@ def Sdata_gen_day(date):
     print(fileDir)
     #    print(fileDir)
     cineList, n = browse.get_fileList(fileDir, 'cine', display=True)
-    # cineList=['/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z150mm_fps10000_H1000mm_zoom_S100mm.cine','/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z200mm_fps10000_H1000mm_zoom_S100mm.cine','/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z0mm_fps10000_H1380mm_zoom_zoom_S100mm.cine']
-    # cineList=['/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z0mm_fps10000_H1380mm_zoom_zoom_S100mm.cine']
+    # cineList=
+    # ['/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z150mm_fps10000_H1000mm_zoom_S100mm.cine',
+    # '/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z200mm_fps10000_H1000mm_zoom_S100mm.cine',
+    # '/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z0mm_fps10000_H1380mm_zoom_zoom_S100mm.cine']
+    # cineList=
+    # ['/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X25mm_Z0mm_fps10000_H1380mm_zoom_zoom_S100mm.cine']
     # cineList=['/Volumes/labshared3/Stephane/Experiments/2015_03_04/PIV_sv_X0mm_fps10000_H1000mm_zoom_S100mm.cine']
     print(cineList)
     failure = []
@@ -209,9 +214,10 @@ def read(filename, data=False):
     return S
 
 
-def getloc(date, index, mindex, frmt='.hdf5'):
-    """"""
-    if not datadir:
+def getloc(date, index, mindex, frmt='.hdf5', datadir=None):
+    """Return the filename associated with the cine or hdf5 file in supplied datadir or in a directory with the
+    supplied date that is in the current $PATH"""
+    if datadir is None:
         datadir = getDir(date)
     filename = datadir + "Sdata_" + date + "_" + str(index) + "_" + str(mindex) + frmt
     return filename
