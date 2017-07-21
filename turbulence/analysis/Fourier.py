@@ -129,9 +129,14 @@ def compute_spectrum_1d_within_region(mm, radius=None, polygon=None, display=Fal
     elif radius is not None:
         mmr = mm.x ** 2 + mm.y ** 2
         include = (np.abs(mmr) < radius).astype(np.int)
+        print 'np.shape(include) = ', np.shape(include)
         # mdatr = np.zeros_like(data, dtype=float)
         # ind = 0
-        mdatr = np.ma.array(data, mask=np.tile(include, (data.shape[0], 1)))
+        mdatr = np.ma.array(data, mask=np.tile(include, (data.shape[2], 1)))
+
+        # Check it
+        import turbulence.display.plotting as tplt
+        
         # field3d_mask = np.broadcast_to(field2d > 0.3, field3d.shape)
         # for slice in data:
         #     mdatr[..., ind]

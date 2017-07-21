@@ -399,6 +399,8 @@ for ii in range(20, 148):
 
 graphes.graph(M.k, 15 * M.k ** (-5. / 3), label='r-')
 figs = graphes.legende(r'$k$ [mm$^{-1}$]', r'$E$ [mm/s$^{2}$]', '')
+figname = savedir + 'energy_spectrum1'
+print 'saving fig: ' + figname
 graphes.save_fig(1, savedir + 'energy_spectrum1', frmt='pdf', dpi=300, overwrite=False)
 
 ########################################################
@@ -417,7 +419,7 @@ M = Mlist[0]
 ind = 0
 for skk in sk_disc:
     kk = k_disc[ind]
-    for ii in range(20, 148):
+    for ii in range(20, np.shape(skk)[2]):
         print 'Plotting energy spectrum, item =', ii
         graphes.graphloglog(k, skk[..., ii], 'k')
 
@@ -425,7 +427,9 @@ for skk in sk_disc:
 
     graphes.graph(M.k, 15 * M.k ** (-5. / 3), label='r-')
     figs = graphes.legende(r'$k$ [mm$^{-1}$]', r'$E$ [mm/s$^{2}$]', r'$S(k)$ for $r <$' + str(radii[ind]) + ' pixels')
-    graphes.save_fig(1, savedir + 'energy_spectrum_radius{0:03d}'.format(radii[ind]), frmt='pdf', dpi=300,
+    figname = savedir + 'energy_spectrum_radius{0:03d}'.format(radii[ind])
+    print 'saving fig: ' + figname
+    graphes.save_fig(1, figname, frmt='pdf', dpi=300,
                      overwrite=True)
 
 

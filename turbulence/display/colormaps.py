@@ -168,6 +168,24 @@ def husl_cmap(name='husl_qual', n_colors=255, h=0.01, s=0.9, l=0.65):
     return ListedColormap(husl_p, name=name)
 
 
+def cubehelix_palette(n_colors=8, start=0.5, rot=-0.75, check=False):
+    """Wrapper for seaborn.cubehelix_palette()
+
+    Parameters
+    ----------
+    n_colors : int
+        The number of colors to return
+    start : float (default=0.5)
+    rot : float (default=-0.75)
+    check : bool (default=False)
+        Show a plot of the palette (palplot) before continuing
+    """
+    if check:
+        sns.palplot(sns.cubehelix_palette(n_colors, start=start, rot=rot))
+        plt.show()
+
+    return sns.cubehelix_palette(n_colors, start=start, rot=rot)
+
 # Define some nice perceptually uniform colormaps
 
 # An example of nice qualitative colormap is: lecmaps.husl_palette(n_colors=15, s=1, l=0.6)
