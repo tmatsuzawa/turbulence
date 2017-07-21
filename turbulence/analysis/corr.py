@@ -27,15 +27,19 @@ def time_correlation(Mlist, indices=None, display=False):
     Compute the spatial averaged time of velocity autocorrelation
     Velocity autocorrelation functions in time are fitted by an exponential in time.
     Typical time tc gives the time correlation
-    INPUT
-    -----
+
+    Parameters
+    ----------
     Mlist : list of Mdata
     indices : list of int
         indices of Mlist elements to process. default value process all the elements
     display : bool
         default value False
+
     OUTPUT
     -----
+    tf :
+    tau
     """
 
     if indices is None:
@@ -65,26 +69,32 @@ def time_correlation(Mlist, indices=None, display=False):
         graphes.graphloglog(Ef, tau, fignum=10, label=label)
         graphes.legende('$E (m^2/s^2)$', '$\tau (s)$', '')
 
+    return tf, tau
+
 
 def spatial_correlation(M, compute=True, rootdir='Corr_functions', label='k^', fignum=1, display=True, save=False):
-    """
-    Compute the spatial correlation function 
-        or display the correlation length as a function of time 
-        save the correlations function in txt files
-    INPUT
+    """Compute the spatial correlation function
+    or display the correlation length as a function of time
+    save the correlations function in txt files
+    Fit using turbulence.tools.fitting.exp function
+
+    Parameters
     -----
     M : Mdata object
     compute : bool
         default value : True
-        if True, the correlations functions are computed, and save in txt files 
+        if True, the correlations functions are computed, and save in txt files
         if False, load the previously computed correlations functions and display the correlation length as a function of timme
     rootdir : string
         subdirectory name for saving the corr functions. Base directory correspond to the location of the associated dataset.
-    OUTPUT
-    -----
-    None
-    """
+    save : bool
+        Whether to save the autocorrelation functions to disk
 
+    Returns
+    -------
+    Corr_functions : list of numpy float arrays (size?)
+        [Cxx, Cyy, Cxy, CEE]
+    """
     if compute:
         # chose randomly the pair of indices that will be used for computing the spatial correlation function
         dlist = range(int(max(M.shape()) / 2))
@@ -95,7 +105,7 @@ def spatial_correlation(M, compute=True, rootdir='Corr_functions', label='k^', f
         print('Pair of indices computed')
         (ny, nx, nt) = M.shape()
 
-        #  tref,d,Cxx,Cyy,Cxy,CEE = correlation_functions(M,dlist,indices,Dt=Dt)
+        #  tref, d, Cxx, Cyy, Cxy, CEE = correlation_functions(M,dlist,indices,Dt=Dt)
         #  print('Correlation functions computed')
 
         step = 100
@@ -119,7 +129,7 @@ def spatial_correlation(M, compute=True, rootdir='Corr_functions', label='k^', f
             #     rw_data.write_matrix(tref,D,C)
 
             print('Correlation functions saved in ' + filename)
-
+        return Corr_functions
     else:
         # try first to load the data rfrom the Corr_functions directory
         Dir = os.path.dirname(M.filename) + '/' + rootdir
@@ -155,7 +165,7 @@ def spatial_correlation(M, compute=True, rootdir='Corr_functions', label='k^', f
                 if i % 100 == 0:
                     graphes.set_fig(1)
                     graphes.graph(d, Cd, fignum=0, label='ko')
-                    graphes.graph(d, exp(d, -1 / lc[i]), label='r')
+                    graphes.graph(d, np.exp(d, -1 / lc[i]), label='r')
                     #   graphes.graph(d,parabola(d,-1/lc[i])+1,label='r')
                     graphes.legende('$d (mm)$', '$C_d$', '')
                     graphes.set_axes(0, 3, -1, 1.1)
@@ -166,6 +176,8 @@ def spatial_correlation(M, compute=True, rootdir='Corr_functions', label='k^', f
         if display:
             graphes.graphloglog(tf, lc, fignum=fignum, label=label)
             graphes.legende('$t (s)$', '$d (mm)$', graphes.title(M))
+
+    return None
 
 
 def correlation_functions(M, dlist, indices, Dt=1):
@@ -183,18 +195,18 @@ def correlation_functions(M, dlist, indices, Dt=1):
             time window for averaging over time
     OUTPUT
     -----
-        tref : np array
-            time axis
-        d : 1d np array
-            distance axis
-        Cxx : 2d np array
-            autocorrelation function along xx
-        Cyy : 2d np array
-            autocorrelation function along xx
-        Cxy : 2d np array
-            crosscorrelation function between x and y
-        CEE : 2d np array
-            autocorrelation function of energy E
+    tref : np array
+        time axis
+    d : 1d np array
+        distance axis
+    Cxx : 2d np array
+        autocorrelation function along xx
+    Cyy : 2d np array
+        autocorrelation function along xx
+    Cxy : 2d np array
+        crosscorrelation function between x and y
+    CEE : 2d np array
+        autocorrelation function of energy E
     """
     # tref = [M.t[1000:1010]]
     tref = M.t[50:60]
@@ -236,6 +248,23 @@ def correlation_functions(M, dlist, indices, Dt=1):
 
 
 def display_corr_vs_t(M, dlist, indices, step=100, Dt=1, label='-', display=False, fignum=1):
+    """
+
+    Parameters
+    ----------
+    M
+    dlist
+    indices
+    step
+    Dt
+    label
+    display
+    fignum
+
+    Returns
+    -------
+
+    """
     tref, d, Cxx, Cyy, Cxy, CEE = correlation_functions(M, dlist, indices, Dt=Dt)
 
     # Display successive correlations functions
@@ -260,6 +289,17 @@ def display_corr_vs_t(M, dlist, indices, step=100, Dt=1, label='-', display=Fals
 
 
 def correlation_length(d, X):
+    """
+
+    Parameters
+    ----------
+    d
+    X
+
+    Returns
+    -------
+
+    """
     # from a correlation function, return the correlation length
     # try to fit by different models of corr functions ? (exp ?)
     dc = np.asarray(d)
@@ -651,6 +691,23 @@ def chose_axe(M, t, axes, Dt=1):
 
 
 def stat_corr_t(M, t, Dt=20, axes=['Ux', 'Ux'], p=1, display=False, label='k^', fignum=0):
+    """
+
+    Parameters
+    ----------
+    M
+    t
+    Dt
+    axes
+    p
+    display
+    label
+    fignum
+
+    Returns
+    -------
+
+    """
     t0 = M.t[t]
     tlist = range(t - Dt // 2, t + Dt // 2)
 
@@ -679,10 +736,28 @@ def stat_corr_t(M, t, Dt=20, axes=['Ux', 'Ux'], p=1, display=False, label='k^', 
     return X, Y, Yerr
 
 
-def compute_Ct(M, tlist=[], axes=['Ux', 'Ux'], p=1, display=False, label='ko', fignum=1):
+def compute_Ct(M, tlist=None, t0=20, axes=['Ux', 'Ux'], p=1, display=False, label='ko', fignum=1):
+    """
+
+    Parameters
+    ----------
+    M :
+    tlist :
+    t0 : int
+        frame number to start correlation function if tlist is None
+    axes :
+    p :
+    display :
+    label :
+    fignum :
+
+    Returns
+    -------
+    tf : the time
+    tau :
+    """
     display_part = False
-    if tlist == []:
-        t0 = 20
+    if tlist is None:
         Dt = 50
         dimensions = M.shape()
         tlist = range(t0, dimensions[2] - t0, Dt)
@@ -716,7 +791,7 @@ def compute_Ct(M, tlist=[], axes=['Ux', 'Ux'], p=1, display=False, label='ko', f
             texp = np.abs(X)
             graphes.set_fig(1)
             graphes.errorbar(texp, Y, texp * 0, Yerr, fignum=0, label='ko')
-            graphes.graph(texp, exp(texp, -1 / tau[i]), fignum=1, label='r')
+            graphes.graph(texp, np.exp(texp, -1 / tau[i]), fignum=1, label='r')
             graphes.legende('$t/u^{2m}$', '$C_t$', '$m=1/2$')
 
     if display:

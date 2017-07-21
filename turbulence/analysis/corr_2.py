@@ -1,8 +1,8 @@
 import numpy as np
-import stephane.analysis.corr as corr
-import stephane.analysis.statP as statP
-import stephane.manager.access as access
-import stephane.display.graphes as graphes
+import turbulence.analysis.corr as corr
+import turbulence.analysis.statP as statP
+import turbulence.manager.access as access
+import turbulence.display.graphes as graphes
 import matplotlib.pylab as plt
 import dpath.util
 

@@ -63,6 +63,14 @@ def add_theory(k, Y_k, alpha, fignum=0):
 
 
 def switch_field(M, field):
+    """
+
+    M:
+    field:
+
+    Returns
+    -------
+    """
     theory = {}
     theory['E'] = {'variable': M.E, 'exponent': -5. / 3, 'Unit': 'mm^3/s^-2', 'name': 'Energy'}
     theory['Enstrophy'] = {'variable': M.omega ** 2, 'exponent': -1, 'Unit': 'mm/s^-2', 'name': 'Enstrophy'}
@@ -79,6 +87,16 @@ def compute_spectrum_2d(M, Dt=10):
 
 
 def compute_spectrum_1d(M, Dt=10):
+    """
+
+    Parameters
+    ----------
+    M :
+    Dt :
+
+    Returns
+    -------
+    """
     S_k, k = energy_spectrum_1d(M, display=False, Dt=Dt)
     setattr(M, 'k', k)
     setattr(M, 'S_k', S_k)
@@ -86,11 +104,12 @@ def compute_spectrum_1d(M, Dt=10):
 
 
 def compute_spectrum_1d_within_region(mm, radius=None, polygon=None, display=False, dt=10):
-    """
+    """description
 
     Parameters
     ----------
-    mm :
+    mm : Mdata_PIVlab class instance
+        The dataset on which to compute the 1d spectrum
     radius : float or None
         the radius of a disc to examine, if not None. If region is not None, radius is ignored
     polygon : #vertices x 2 numpy float array

@@ -5,20 +5,6 @@ Created on Wed Mar 18 16:40:47 2015
 @author: stephane
 """
 
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Mar 12 19:00:47 2015
-
-@author: stephane
-"""
-
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Mar 12 14:42:10 2015
-
-@author: stephane
-"""
-
 import numpy as np
 import os.path
 import time
