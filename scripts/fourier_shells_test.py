@@ -1,9 +1,34 @@
-import turbulence.mdata.M_manip as M_manip
-import turbulence.tools.rw_data as rw_data
-import glob
-import turbulence.tools.browse as browse
-import turbulence.pprocess.check_piv as check
-import turbulence.mdata.Mdata_PIVlab as pivlab
+import numpy as np
+import turbulence.display.plotting as tplt
+import matplotlib.pyplot as plt
+import turbulence.analysis.Fourier as four
+
+"""Test out how to extract E(k) for different shells of the blob"""
+
+radius = 30.
+
+# First do single image
+radius = 30.
+a = np.random.rand(100, 100)
+sa = np.abs(np.fft.fftn(a, axes=(0, 1)))
+sa = np.fft.fftshift(sa, axes=(0, 1))
+# now mask object
+xx, yy = np.meshgrid(np.arange(100), np.arange(100))
+xx = xx - np.median(xx)
+yy = yy - np.median(yy)
+include = np.sqrt(xx ** 2 + yy ** 2) < radius
+anew = np.zeros_like(a)
+anew[include] = a[include]
+
+print 'np.shape(anew) = ', np.shape(anew)
+sb = np.abs(np.fft.fftn(anew, axes=(0, 1)))
+sb = np.fft.fftshift(sa, axes=(0, 1))
+tplt.plot_real_matrix(sa, show=True, climv=(-100, 100), name='F(full image)')
+tplt.plot_real_matrix(sb, show=True, climv=(-100, 100), name='F(clipped image)')
+tplt.plot_real_matrix(sb - sa, show=True, climv=(-100, 100), name='F(clipped image) - F(full image)')
+
+# Now do time series of images
+
 import turbulence.mdata.Sdata_manip as Sdata_manip
 import turbulence.mdata.Sdata as Sdata
 import turbulence.analysis.cdata as cdata
@@ -405,80 +430,3 @@ graphes.save_fig(1, savedir + 'energy_spectrum1', frmt='pdf', dpi=300, overwrite
 radii = [40, 80, 160, 320, 640, 1280, 2560]
 for rad in radii:
     Fourier.compute_spectrum_1d_within_region(M, radius=rad, polygon=None, display=False, dt=10)
-
-
-sys.exit()
-# Above the codes work nice and sound. Well-organized (run cells from the top)
-# What is this? - Takumi 7/10/17
-indices = 2
-comp.comparison(Mlist, indices, outdir=savedir)
-for i, M in enumerate(Mlist):
-    Ux_moy = np.nanmean(M.Ux, axis=2)
-    Uy_moy = np.nanmean(M.Uy, axis=2)
-    E_moy = Ux_moy ** 2 + Uy_moy ** 2
-    graphes.color_plot(M.x, M.y, E_moy, fignum=i + 1, vmin=0, vmax=0000)
-    graphes.colorbar()
-
-# Should compute the spatial decay: not working currently....
-for M in Mlist:
-    figs = comp.spatial_decay(M, indices=indices, outdir=savedir)
-    graphes.save_figs(figs, savedir=savedir + 'Spatial_decay', prefix=graphes.set_name(M, param=['freq', 'v']))
-    graphes.plt.close('all')
-
-##
-from mpl_toolkits.axes_grid.inset_locator import inset_axes
-
-R, Theta = Smath.cart2pol(M.x - X0, M.y - Y0)
-
-Z = np.ndarray.flatten(Z)
-R_flat = np.ndarray.flatten(R)
-Theta_flat = np.ndarray.flatten(Theta)
-
-R0 = 20
-phi = np.pi / 2
-C = np.mod((Theta_flat + phi + np.pi) / 2 / np.pi, 1)
-cmap = plt.cm.hot
-color = [plt.colors.rgb2hex(cmap(c)[:3]) for c in C]
-
-fig, ax2 = graphes.set_fig(1, subplot=122)
-fig.set_size_inches(20, 6)
-sc = ax2.scatter(R_flat, Z, marker='o', facecolor=color, alpha=0.3, lw=0, cmap=cmap)
-# plt.plt.colorbar(sc)
-# graphes.scatter([np.log10(r)],[np.log10(r)],label='o',c=c,alpha=0.6)
-# plt.xscale('log')
-# graphes.plt.colorbar()
-# cbar = fig.colorbar(cax, ticks=[-1, 0, 1])
-# graphes.graphloglog([R0,R0],[10**2,8*10**4],label='b-')
-Rth = np.arange(10 ** 1, 10 ** 2, 1.)
-graphes.graphloglog(Rth, 10 ** 5 * (Rth / R0) ** -3.2, label='k--')
-graphes.graphloglog(Rth, 5 * 10 ** 4 * (Rth / R0) ** -4.5, label='k--')
-# graphes.graphloglog(R,Z,label='ko')
-graphes.set_axis(10 ** 0, 10 ** 2, 10 ** 2, 8 * 10 ** 4)
-# cbar = fig.colorbar(ax1, ticks=[0, 1], orientation='vertical')
-figs = graphes.legende('$R$ (mm)', 'Energy (mm$^2$/s$^{2}$)', 'Spatial decay')
-
-fig, ax1 = graphes.set_fig(1, subplot=121)
-graphes.color_plot(M.x, M.y, E_moy, fignum=1, vmin=0, vmax=40000, subplot=121)
-graphes.colorbar(label=names[j] + ' (' + units[j] + ')')
-figs.update(graphes.legende('X (mm)', 'Y (mm)', 'Time averaged ' + field, cplot=True))
-
-inset_ax = inset_axes(ax2, height="50%", width="50%", loc=3)
-inset_ax.pcolormesh(M.x / 10 - 10, M.y / 10 - 10, Theta, cmap=cmap)
-inset_ax.axis('off')
-graphes.save_figs(figs, savedir=savedir, prefix='Final', suffix='Colored_Scaling_Exponent_from_32d_to45d')
-
-R, Theta = Smath.cart2pol(M.x - X0, M.y - Y0)
-
-print(Z.shape)
-print(R.shape)
-
-R0 = 20
-graphes.graphloglog(R, Z, label='ko')
-graphes.graphloglog([R0, R0], [10 ** 2, 8 * 10 ** 4], label='b-')
-
-graphes.graphloglog(R, 10 ** 5 * (R / R0) ** -3.2, label='r--')
-graphes.graphloglog(R, 5 * 10 ** 4 * (R / R0) ** -4.5, label='r--')
-# graphes.graphloglog(R,Z,label='ko')
-graphes.set_axis(10 ** 0, 10 ** 2, 10 ** 2, 8 * 10 ** 4)
-figs = graphes.legende('$R$ (mm)', 'Energy (mm$^2$/s$^{2}$)', 'Spatial decay')
-graphes.save_figs(figs, savedir=savedir, suffix='Scaling_Exponent_from_32d_to45d')

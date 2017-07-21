@@ -85,7 +85,7 @@ def compute_spectrum_1d(M, Dt=10):
     return S_k, k
 
 
-def compute_spectrum_1d_within_region(mm, radius=None, region=None, dt=10):
+def compute_spectrum_1d_within_region(mm, radius=None, polygon=None, display=False, dt=10):
     """
 
     Parameters
@@ -93,7 +93,7 @@ def compute_spectrum_1d_within_region(mm, radius=None, region=None, dt=10):
     mm :
     radius : float or None
         the radius of a disc to examine, if not None. If region is not None, radius is ignored
-    region : #vertices x 2 numpy float array
+    polygon : #vertices x 2 numpy float array
         If not none, use this closed path to define the region of interes
     dt :
 
@@ -102,32 +102,19 @@ def compute_spectrum_1d_within_region(mm, radius=None, region=None, dt=10):
     s_k :
     k :
     """
-    if region is not None:
-
+    import turbulence.analysis.data_handling as dh
+    if polygon is not None:
+        # Use matplotlib to find points in path
+        dh.pts_in_polygon(mm.x, mm.y, polygon=polygon)
     elif radius is not None:
         mmr = mm.x ** 2 + mm.y ** 2
         include = np.abs(mmr) < radius
     else:
         raise RuntimeError('Must supply either radius or region values to compute_spectrum_1d_within_region()')
-    # use M.Ux
 
-    ### test
-    # import numpy as np
-    # import turbulence.display.plotting as tplt
-    # radius = 30.
-    # a = np.random.rand(100, 100, 100)
-    # sa = np.abs(np.fft.fftn(a, axes=(0, 1)))
-    # sa = np.fft.fftshift(sa, axes=(0, 1))
-    # # now mask object
-    # xy = np.meshgrid(np.arange(100), np.arange(100))
-    # include = np.abs(xy) < radius
-    # anew = np.zeros_like(a)
-    # for ind in np.arange(np.shape(anew)[2]):
-    #     anew[..., ind][:] = xy[..., ind][include]
-    # sb = np.abs(np.fft.fftn(anew, axes=(0, 1)))
-    # sb = np.fft.fftshift(sa, axes=(0, 1))
-    # tplt.plot_real_matrix(sa, show=True)
-    # tplt.plot_real_matrix(sb, show=True)
+    # use M.Ux
+    # test: see turbulence/scripts/fourier_shells_test.py
+    return energy_spectrum_1d(mmr, display=display, Dt=dt)
 
 
 def energy_spectrum_2d(M, display=False, field='E', Dt=10):
@@ -198,11 +185,12 @@ def spectrum_2d(Y, M=None, Dt=5):
     # Y=basics.smooth(Y,Dt)
 
     result = cdata.rm_nans([Y])
-    Y = result[0]  # cdata.rm_nans([E])
+    print 'Fourier: result = ', result
+    vel3d = result[0]  # cdata.rm_nans([E])
 
     #    print(np.where(np.isnan(E)))
     # S_E = np.zeros(np.shape(Y))
-    S_E=np.abs(np.fft.fftn(Y, axes=(0, 1))) * dx ** 2 / (nx * ny)
+    S_E = np.abs(np.fft.fftn(vel3d, axes=(0, 1))) * dx ** 2 / (nx * ny)
     S_E = np.fft.fftshift(S_E, axes=(0, 1))
 
     # smooth the spectrum by averaging over Dt time steps in time
@@ -300,7 +288,7 @@ def energy_spectrum_1d(M, display=False, Dt=10):
         attributes : Ux, Uy
     display : bool. Default False
         display resulting spectrum
-    Dt : int. Default value 10
+    Dt : int (defaul=10)
         time window to smooth the data with turbulence.analysis.basics.smooth
 
     Returns
@@ -310,7 +298,6 @@ def energy_spectrum_1d(M, display=False, Dt=10):
     kbin : 1d np array
         wave-vector
     """
-
     # compute the fft 2d, then divide in slices of [k,k+dk]
     print('Compute 2d fft')
     S_E, kx, ky = energy_spectrum_2d(M, display=False, Dt=Dt)
@@ -356,12 +343,24 @@ def energy_spectrum_1d(M, display=False, Dt=10):
     S_k = basics.smooth(S_k, Dt)
     print('Done')
 
-    #    print(len(np.where(np.isnan(S_k))[0]))
-
     return S_k, kbin
 
 
 def display_fft_vs_t(m, dimension='1d', Dt=20, fignum=0, label='^', display=False):
+    """
+    Parameters
+    ----------
+    m :
+    dimension:
+    Dt:
+    fignum:
+    label:
+    display:
+
+    Returns
+    -------
+    t, E_t
+    """
     display_part = True
     #  plt.close(1)
     if dimension == '1d':
@@ -369,7 +368,7 @@ def display_fft_vs_t(m, dimension='1d', Dt=20, fignum=0, label='^', display=Fals
         S_k, k = energy_spectrum_1d(m, Dt=Dt)
     if dimension == '2d':
         S_k, kx, ky = energy_spectrum_2d(m, Dt=Dt)
-    #    start=580
+    # start=580
     #    end=700
     #    step=10
     # print(S_k)
