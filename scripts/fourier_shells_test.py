@@ -98,7 +98,8 @@ if test_single:
 Eventually we will roll these into methods of a vortex_collision class, but for now it is a script
 '''
 
-date = '2017_06_30'
+# date = '2017_06_30'
+date = '2017_06_15'
 # savedir = '/Users/stephane/Documents/Experiences_local/Results/Vortex_collision/'+date+'/'
 localroot = '/Users/npmitchell/Desktop/data_local/vortex_collision/testdata/'
 savedir = localroot.replace('testdata/', 'output/') + date + '/'
@@ -244,11 +245,11 @@ for skk in sk_disc:
         graphes.graphloglog(kk, skk[..., ii], 'k', color=colors[dmyi])
         dmyi += 1
 
-    graphes.graph(mm.k, 15 * mm.k ** (-5. / 3), label='r-')
+    graphes.graph(mm.k, 100 * mm.k ** (-5. / 3), label='r-')
     figs = graphes.legende(r'$k$ [mm$^{-1}$]', r'$E$ [mm/s$^{2}$]', r'$S(k)$ for $r <$' + str(radii[ind]) + ' pixels')
     figname = savedir + 'energy_spectrum_radius{0:03d}'.format(radii[ind])
     print 'saving fig: ' + figname
-    graphes.save_fig(1, figname, frmt='pdf', dpi=300, overwrite=True)
+    graphes.save_fig(1, figname, frmt='png', dpi=300, overwrite=True)
     plt.clf()
 
     ind += 1
