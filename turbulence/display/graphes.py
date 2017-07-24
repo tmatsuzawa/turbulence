@@ -423,43 +423,44 @@ def plot_axes(fig, num):
     return ax
 
 
-def color_plot(x, y, Z, fignum=1, vmin=0, vmax=0, log=False, show=False, cbar=False):
-    """
-    Color coded plot
-    INPUT
-    -----	
+def color_plot(x, y, z, fignum=1, vmin=0, vmax=0, log10=False, show=False, cbar=False):
+    """Color coded plot
+
+    Parameters
+    ----------
     x : 2d numpy array
     y : 2d numpy array
     Z : 2d numpy array
+    fignum : int
+    vmin : float
+    vmax : float
+    log10 : bool
+    show : bool
+    cbar : bool
 
-    OUTPUT
-    ------
-    None
-    	"""
+    Returns
+    -------
+    fig
+    ax
+    cc
+    """
     fig, ax = set_fig(fignum, subplot=111)
-    # ax.axis('off')
 
-    if log:
-        Z = np.log10(Z)
+    if log10:
+        z = np.log10(z)
 
-        # vmin=-3
-        #   vmax=max([1,log(np.std(Z)*2)])
-        #  Z=np.log(Z)
-    #    ax = plot_axes(fig,111)
-    #  ax.axis('off')
+    # Note that the cc returned is a matplotlib.collections.QuadMesh
+    # print('np.shape(z) = ' + str(np.shape(z)))
     if vmin == vmax == 0:
-        c = plt.pcolormesh(x, y, Z)  # ,shading='gouraud')
+        cc = plt.pcolormesh(x, y, z)
     else:
-        c = plt.pcolormesh(x, y, Z, vmin=vmin, vmax=vmax)
-        # set_axis(np.min(x),np.max(x),np.min(y),np.max(y))
-    #    plt.axis((np.min(x),np.max(x),np.min(y),np.max(y)))
-    #    plt.xlim(xmin=np.min(x),xmax=np.max(x))
-    #    plt.ylim(xmin=np.min(x),xmax=np.max(x))
+        cc = plt.pcolormesh(x, y, z, vmin=vmin, vmax=vmax)
+
     if cbar:
         colorbar()
     if show:
         refresh()
-    return fig, ax, c
+    return fig, ax, cc
 
 
 def get_axis_coord(M, direction='v'):
@@ -472,11 +473,9 @@ def get_axis_coord(M, direction='v'):
             Yb = Y
             X = Yb
             Y = Xb
-
+    # return rotate(X,Y,M.param.angle)
     return X, Y
 
-
-#    return rotate(X,Y,M.param.angle)
 
 def rotate(X, Y, angle):
     angle = angle / 180 * np.pi

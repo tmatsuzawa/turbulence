@@ -1,21 +1,16 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Oct 21 15:37:51 2015
-
-@author: stephane
-"""
-
 import numpy as np
 # from scipy import ndimage,ndarray,interpolate
-from matplotlib import backend_bases as bck
-from math import *
+# from matplotlib import backend_bases as bck
+# Never import *: stephane had 'from math import *' here
 from scipy import ndimage
-import os.path
 import random
 import pylab as plt
 import time
 import turbulence.display.graphes as graphes
 
+"""Module for very common operations that are useful in many circumstances
+"""
 
 
 def profile_average(M, i, Dt=10, p=1, direction='h'):
@@ -55,14 +50,14 @@ def profile_average(M, i, Dt=10, p=1, direction='h'):
     Uy = M.Uy[:, :, start:end]
 
     if M.param.angle == 90:
-        axes = (0, 2,
-                1)  # permute the time and the dimensions whose shouldn't be averaged along (here the x direction in second )
+        # permute the time and the dimensions whose shouldn't be averaged along (here the x direction in second )
+        axes = (0, 2, 1)
         shape = (nx, n, ny)
         z = M.x[0, :]
     if M.param.angle == 0:
         #  print('horizontal average')
-        axes = (1, 2,
-                0)  # permute the time and the dimensions whose shouldn't be averaged along (here the x directionm in second )
+        # permute the time and the dimensions whose shouldn't be averaged along (here the x directionm in second )
+        axes = (1, 2, 0)
         shape = (ny, n, nx)
         z = M.y[:, 0]
 
@@ -80,24 +75,24 @@ def profile_average(M, i, Dt=10, p=1, direction='h'):
         return z, Upx, Upy
 
 
-def smooth(V, Dt=10, fixed_length=False):
-    """
-    Smooth a N+1 dimensional array using a linear average
-    The smoothing operation is performed along the lqst dimension (may correspond to time axis)
-    INPUT 
-    -----
+def smooth(vec, Dt=10, fixed_length=False):
+    """Smooth a N+1 dimensional array using a linear average
+    The smoothing operation is performed along the last dimension (often corresponds to time axis)
+
+    Parameters
+    ----------
     V : N+1 numpy array to smooth
     Dt : int, number of points for the averaging. Default value is 10
     fixed_length : not implemented yet
     
-    OUTPUT
-    -----
+    Returns
+    -------
     ts : 1 dimensional array,
         new axis for the dimension of the smoothing
     Vs : smoothed N+1 dimensional array
         The length along the averaged dimension has been shortened by Dt
     """
-    dim = np.shape(V)
+    dim = np.shape(vec)
     print(dim)
     nt = dim[-1]
     N = len(dim)
@@ -106,9 +101,7 @@ def smooth(V, Dt=10, fixed_length=False):
         print("add zero matrices at the begining and the end to keep the length constant")
         print("Not implemented yet")
 
-        #  print(Dt)
-        #  print([k for k in range(Dt,nt-Dt)])
-    Vs = np.array([np.nanmean(V[..., k - Dt:k + Dt], N - 1) for k in range(Dt, nt - Dt)])
+    vec_s = np.array([np.nanmean(vec[..., k - Dt:k + Dt], N - 1) for k in range(Dt, nt - Dt)])
 
     # some elements are lost during the smoothing operation : we should add the initial and enn elements
     #   Vs=np.array([V[...,:Dt]+[np.nanmean(V[...,k-Dt:k+Dt],N-1) for k in range(Dt,nt-Dt)])
@@ -120,7 +113,7 @@ def smooth(V, Dt=10, fixed_length=False):
     #  print(Vs.shape)
     #  print(ind)
 
-    Vs = np.transpose(Vs, ind)
+    vec_s = np.transpose(vec_s, ind)
     #    indices=[slice(dim[i]) for i in range(N-1)]
     #   indices[N-1]=
     #    for k in range(Dt,nt-Dt):
@@ -134,7 +127,7 @@ def smooth(V, Dt=10, fixed_length=False):
     #        Vs=np.array([np.mean(V[:,:,k-Dt:k+Dt],2) for k in range(Dt,nt-Dt)])
     #    if len(dim)==4:
     #        Vs=np.array([np.mean(V[:,:,:,k-Dt:k+Dt],3) for k in range(Dt,nt-Dt)])
-    return Vs
+    return vec_s
 
 
 def fluctuations(S, Dx, Dy, Dt):
@@ -154,6 +147,19 @@ def fluctuations(S, Dx, Dy, Dt):
 
 
 def horizontal_profile(S, ylines, Dt, start=0):
+    """
+
+    Parameters
+    ----------
+    S
+    ylines
+    Dt
+    start
+
+    Returns
+    -------
+
+    """
     nx, ny, nt = S.shape()
 
     x = S.x[0, :]
@@ -177,6 +183,19 @@ def horizontal_profile(S, ylines, Dt, start=0):
 
 
 def vertical_profile(S, xlines, Dt, start=0):
+    """
+
+    Parameters
+    ----------
+    S
+    xlines
+    Dt
+    start
+
+    Returns
+    -------
+
+    """
     nx, ny, nt = S.shape()
 
     y = S.y[:, 0]
@@ -203,6 +222,7 @@ def vertical_profile(S, xlines, Dt, start=0):
 
 
 def compare_profil(S1, S2):
+    raise RuntimeError('This function is depricated: move Sdata.subset_index to a new module of smart data indexing')
     #### DEPRECIATED : move Sdata.subset_index to a new module of smart data indexing
 
     # S1 and S2 must be the same length, and the same x and y dimensions
@@ -248,6 +268,21 @@ def subset_index(S1, S2):
 
 
 def mean_profile(S, i, j, direction='v', label='k^', display=False):
+    """mean profile along the whole field : average on one direction only ! (and small windows on the other direction ?)
+
+    Parameters
+    ----------
+    S
+    i
+    j
+    direction
+    label
+    display
+
+    Returns
+    -------
+
+    """
     # mean profile along the whole field : average on one direction only ! (and small windows on the other direction ?)
     nx, ny, nt = S.shape()
 
@@ -285,17 +320,36 @@ def mean_profile(S, i, j, direction='v', label='k^', display=False):
     return U_moy, U_std
 
 
-#    plt.xlim([0, 500])
-#    plt.ylim([0, 3])
-
-
 def profile_xy(S, x0, y0):
+    """
+
+    Parameters
+    ----------
+    S
+    x0
+    y0
+
+    Returns
+    -------
+
+    """
     # plot the profile at a given position : will be use to compare several movies
     i, j = get_index(S.m, x0, y0)
     return i, j
 
 
 def histogramm(M, label='ko'):
+    """
+
+    Parameters
+    ----------
+    M
+    label
+
+    Returns
+    -------
+
+    """
     # complete histogramm
     nx, ny, nt = M.shape()
     U = np.sqrt(M.Ux ** 2 + M.Uy ** 2)
@@ -306,12 +360,18 @@ def histogramm(M, label='ko'):
     # add bounded values of velocity measurement ??
 
 
-#    bounded_velocity(M,True,max(n))
-#  plt.show(block=False)
-#  time.sleep(10e-3)
-
-
 def velocity_fluctuation(S, nframe):
+    """
+
+    Parameters
+    ----------
+    S
+    nframe
+
+    Returns
+    -------
+
+    """
     # for each point, compute an everage variation of velocity on nframe
     # both in angle and modulus !
     nx, ny, nt = S.shape()
@@ -332,7 +392,19 @@ def velocity_fluctuation(S, nframe):
 #    dU_moy=[dU_sum[:,:,i]-dU_sum[:,:,0] for i in range(1,nframe)]
 #    dUr,dUtheta=Smath.cart2pol(dUx,dUy)
 
+
 def velocity(M, nframe=0):
+    """
+
+    Parameters
+    ----------
+    M
+    nframe
+
+    Returns
+    -------
+
+    """
     nx, ny, nt = M.shape()
 
     U = (M.Ux ** 2 + M.Uy ** 2)
@@ -349,6 +421,17 @@ def velocity(M, nframe=0):
 
 
 def time_window(S, nframe):
+    """
+
+    Parameters
+    ----------
+    S
+    nframe
+
+    Returns
+    -------
+
+    """
     # compute histogramm from each time windows
     U = np.sqrt(S.Ux ** 2 + S.Uy ** 2)
     nx, ny, nt = S.shape()
@@ -380,7 +463,18 @@ def multi_mean_profile(Slist, i, j, direction='v', shift=0):
 
 # mean_profile(S,label[Slist.index(S)%len(label)])
 
+
 def fix_PIV(S):
+    """replace by NaN all the values of Ux and Uy that does not correspond to a bounded velocity
+
+    Parameters
+    ----------
+    S
+
+    Returns
+    -------
+
+    """
     # replace by NaN all the values of Ux and Uy that does not correspond to a bounded velocity
     Umax, Umin = bounded_velocity(S)
 
@@ -432,12 +526,3 @@ def divergence(S, xlines, ylines, display=False):
                 graphes.graph(t[Dt:-Dt], Ds)
                 graphes.legende('t (ms)', 'V (m/s)', 'Velocity difference between two symetric points')
     return Ds
-
-
-    # not NaN elements can be acceded from
-
-#    np.median(a[np.invert(np.isnan(a))])
-# def main():
-#   velocity(M_log[2])
-
-# main()

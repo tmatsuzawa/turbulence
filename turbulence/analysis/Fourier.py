@@ -13,8 +13,9 @@ import turbulence.display.graphes as graphes
 import turbulence.analysis.basics as basics
 import turbulence.analysis.vgradient as vgradient
 import turbulence.manager.access as access
+import sys
 
-'''
+'''Module containing functions for taking fourier transforms of data, typically 3d data of 2d flow fields over time.
 '''
 
 
@@ -25,14 +26,14 @@ def movie_spectrum(M, field, alpha=[-5. / 3], Dt=10, fignum=1, start=0, stop=0):
         M, field = vgradient.compute(M, field)
 
     if not hasattr(M, 'S_' + field):
-        Y = getattr(M, field)
-        Y_k, k = spectrum_1d(Y, M, display=False, Dt=Dt)
-        print(Y_k.shape)
+        yy = getattr(M, field)
+        yy_k, k = spectrum_1d(yy, M, display=False, Dt=Dt)
+        print(yy_k.shape)
     else:
-        Y_k = getattr(M, 'S_' + field)
+        yy_k = getattr(M, 'S_' + field)
         k = getattr(M, 'k_' + field)
     step = max(Dt / 2, 1)
-    N, nt = Y_k.shape
+    N, nt = yy_k.shape
 
     if stop == 0:
         tax = range(start, nt, step)
@@ -43,20 +44,20 @@ def movie_spectrum(M, field, alpha=[-5. / 3], Dt=10, fignum=1, start=0, stop=0):
 
     for i, t in enumerate(tax):
         # graphes.cla(fignum)
-        graphes.graph(k, Y_k[:, t], label='k-', fignum=fignum)
-        # graphes.graphloglog(k,Y_k[:,t],label='k-',fignum=fignum)
-        add_theory(k, Y_k[:, t], alpha, fignum=fignum)
+        graphes.graph(k, yy_k[:, t], label='k-', fignum=fignum)
+        # graphes.graphloglog(k,yy_k[:,t],label='k-',fignum=fignum)
+        add_theory(k, yy_k[:, t], alpha, fignum=fignum)
         # graphes.set_axis(10**-2,10**0,10**-4,10**2)
         figs.update(graphes.legende('k (mm^-1)', 'E_k (mm^3/s^-2)', ''))
 
         graphes.save_graphes(M, figs, prefix='Movie_Spectrum_' + field + '/', suffix='_' + str(t))
 
 
-def add_theory(k, Y_k, alpha, fignum=0):
+def add_theory(k, yy_k, alpha, fignum=0):
     for a in alpha:
         k0 = np.nanmean(k)
-        val = np.nanmean(Y_k * (k / k0) ** (-a))
-        std_val = np.nanstd(Y_k * (k / k0) ** (-a))
+        val = np.nanmean(yy_k * (k / k0) ** (-a))
+        std_val = np.nanstd(yy_k * (k / k0) ** (-a))
 
         #  print('Corrected spectrum : '+str(std_val/val*100)+' %')
         graphes.graphloglog(k, val * (k / k0) ** a, label='r--', fignum=fignum)
@@ -149,23 +150,25 @@ def compute_spectrum_1d_within_region(mm, radius=None, polygon=None, display=Fal
         #         tplt.plot_real_matrix(frame, show=True, close=True)
 
         if center_frame:
-            cols = np.unique(np.where(np.abs(mm.x - np.nanmean(mm.x)) < radius)[0])
+            cols = np.unique(np.where(np.abs(mm.x - np.nanmean(mm.x)) < radius)[1])
             rows = np.unique(np.where(np.abs(mm.y - np.nanmean(mm.y)) < radius)[0])
             # include = np.logical_and(np.abs(mm.x - np.nanmean(mm.x)) < radius,
             #                          np.abs(mm.y - np.nanmean(mm.y)) < radius)
         else:
-            cols = np.unique(np.where(np.abs(mm.x) < radius)[0])
+            cols = np.unique(np.where(np.abs(mm.x) < radius)[1])
             rows = np.unique(np.where(np.abs(mm.y) < radius)[0])
             # include = np.logical_and(np.abs(mm.x) < radius, np.abs(mm.y) < radius)
 
         mdatr = data[np.min(rows):np.max(rows), np.min(cols):np.max(cols), :]
 
-        # print 'rows = ', rows
-        # print 'cols = ', cols
         # print 'include = ', include
         # print 'np.shape(include) = ', np.shape(include)
 
         if display:
+            # print 'mm.y = ', mm.y
+            # print 'radius = ', radius
+            # print 'rows = ', rows
+            # print 'cols = ', cols
             print 'np.shape(data) = ', np.shape(data)
             print 'np.shape(mdatr) = ', np.shape(mdatr)
             import turbulence.display.plotting as tplt
@@ -181,8 +184,17 @@ def compute_spectrum_1d_within_region(mm, radius=None, polygon=None, display=Fal
     # use M.Ux
     # test: see turbulence/scripts/fourier_shells_test.py
     dx = np.mean(np.diff(mm.x))
-    s_e, kx, ky = spectrum_2d(mdatr, M=None, dx=dx, Dt=dt)
-    s_k, k = spectrum_2d_to_1d_convert(s_e, kx, ky, dt=dt)
+    s_e, kx, ky = spectrum_2d(mdatr, M=None, dx=dx, Dt=dt, display=display)
+    nk_approx = min(np.shape(mdatr)[0:2])
+    s_k, k = spectrum_2d_to_1d_convert(s_e, kx, ky, dt=dt, nkout=nk_approx + 1)
+    if display:
+        print('kx = ', np.shape(kx))
+        print('ky = ', np.shape(ky))
+        print('s_e = ', np.shape(s_e))
+        # print('k = ', k)
+        # print('s_k = ', s_k)
+        plt.plot(k, s_k, 'b.-')
+        plt.show()
 
     return s_k, k
 
@@ -215,14 +227,14 @@ def energy_spectrum_2d(mm, display=False, field='E', Dt=10):
     return S_E, kx, ky
 
 
-def spectrum_2d(Y, M=None, dx=None, Dt=5):
+def spectrum_2d(yy, M=None, dx=None, Dt=5, display=False, display_frames=None):
     """
-    Compute 2d spatial spectrum of Y. If a Mdata object is specified, use the spatial scale of M.x 
+    Compute 2d spatial spectrum of yy. If a Mdata object is specified, use the spatial scale of M.x
     to scale the spectrum
 
     Parameters
     -----
-    Y : 3d numpy array
+    yy : 3d numpy array
         Compute the spectrum along the first two dimensions
     M : Mdata class instance or None
         If supplied, M.x is used to supply an absolute scale for the k vectors.
@@ -230,11 +242,17 @@ def spectrum_2d(Y, M=None, dx=None, Dt=5):
         If M is not supplied,
     Dt : int
         points over which to smooth the spectrum?
+    display : bool
+        show the resulting spectrum. Note that if the object yy is 3d, we display the frames in display_frames, one by
+        one, or only the first frame if display_frames is None
+    display_frames : bool or None
+        the (time) slices of the spectrum of yy to display if yy is 3d. If None and display==True, display just the
+        first frame
     """
     # cropping for the 2016_08_03
-    #    Y = Y[:,5:]
+    #    yy = yy[:,5:]
 
-    nx, ny, nt = Y.shape
+    nx, ny, nt = yy.shape
     # kx=np.arange(-(nx-1)/2,(nx-1)/2+1,1)
     # ky=np.arange(-(ny-1)/2,(ny-1)/2+1,1)
     kx, ky = np.mgrid[-nx / 2:nx / 2:complex(0, nx), -ny / 2:ny / 2:complex(0, ny)]
@@ -252,24 +270,34 @@ def spectrum_2d(Y, M=None, dx=None, Dt=5):
     kx /= (dx * nx)
     ky /= (dx * ny)  # in mm^-1
     #   print(np.shape(E))
-    # Y=basics.smooth(Y,Dt)
+    # yy=basics.smooth(yy,Dt)
 
-    result = cdata.rm_nans([Y])
+    result = cdata.rm_nans([yy])
     # print 'Fourier: result = ', result
     vel3d = result[0]  # cdata.rm_nans([E])
 
     #    print(np.where(np.isnan(E)))
-    # S_E = np.zeros(np.shape(Y))
+    # S_E = np.zeros(np.shape(yy))
     s_e = np.abs(np.fft.fftn(vel3d, axes=(0, 1))) * dx ** 2 / (nx * ny)
     s_e = np.fft.fftshift(s_e, axes=(0, 1))
 
     # smooth the spectrum by averaging over Dt time steps in time
     s_e = basics.smooth(s_e, Dt / 2)
+
+    if display:
+        # check if 3d. If so, display only certain frames decided by display_frames
+        if len(np.shape(s_e)) > 2:
+            if display_frames is None:
+                display_frames = [0]
+            for frame in display_frames:
+                display_fft_2d(kx, ky, s_e[:, :, frame], fignum=1, vmin=0, vmax=7)
+        else:
+            display_fft_2d(kx, ky, s_e, fignum=1, vmin=0, vmax=7)
     return s_e, kx, ky
 
 
-def spectrum_1d(Y, M=None, display=False, Dt=5):
-    """Compute the 1 dimensionnal energy spectrum of Y
+def spectrum_1d(yy, M=None, display=False, Dt=5):
+    """Compute the 1 dimensionnal energy spectrum of yy
     The computation is done by averaging over circles in k space from a 2d spectrum
 
     Parameters
@@ -290,13 +318,14 @@ def spectrum_1d(Y, M=None, display=False, Dt=5):
         wave-vector
     """
     # compute the fft 2d, then divide in slices of [k,k+dk]
-    print('Compute 2d fft')
-    S_E, kx, ky = spectrum_2d(Y, M, display=False, Dt=Dt)
+    print('Fourier.spectrum_1d(): Compute 2d fft')
+    S_E, kx, ky = spectrum_2d(yy, M, display=False, Dt=Dt)
     nx, ny, nt = np.shape(S_E)
 
     k = np.sqrt(np.reshape(kx ** 2 + ky ** 2, (nx * ny,)))
-    kx_1d = np.sqrt(np.reshape(kx, (nx * ny,)))
-    ky_1d = np.sqrt(np.reshape(ky, (nx * ny,)))
+    # note: stephane was missing the squaring operation below
+    kx_1d = np.sqrt(np.reshape(kx ** 2, (nx * ny,)))
+    ky_1d = np.sqrt(np.reshape(ky ** 2, (nx * ny,)))
 
     S_E = np.reshape(S_E, (nx * ny, nt))
     # sort k by values
@@ -320,7 +349,6 @@ def spectrum_1d(Y, M=None, display=False, Dt=5):
     #    kbin=(np.cumsum(nbin)[2:]-np.cumsum(nbin)[0:-2])/2
 
     S_k = np.zeros((N, nt))
-    S_part = np.zeros(nx * ny)
 
     if M is not None:
         dx = np.mean(np.diff(M.x))
@@ -329,7 +357,7 @@ def spectrum_1d(Y, M=None, display=False, Dt=5):
     else:
         dx = 1
 
-    print('Compute 1d fft from 2d')
+    print('Fourier.spectrum_1d(): Compute 1d fft from 2d')
     for t in range(nt):
         for i in range(N):
             S_part = S_E[:, t]
@@ -340,9 +368,13 @@ def spectrum_1d(Y, M=None, display=False, Dt=5):
 
     # averaged in time ??
     S_k = basics.smooth(S_k, Dt)
-    print('Done')
+    print('Fourier.spectrum_1d(): Done')
 
     #    print(len(np.where(np.isnan(S_k))[0]))
+    if display:
+        plt.plot(kbin[:-1], S_k)
+        plt.show()
+        plt.clf()
 
     return S_k, kbin[:-1]
 
@@ -369,15 +401,26 @@ def energy_spectrum_1d(M, display=False, Dt=10):
         wave-vector
     """
     # compute the fft 2d, then divide in slices of [k,k+dk]
-    print('Compute 2d fft')
+    print('Fourier.energy_spectrum_1d(): Compute 2d fft')
     s_e, kx, ky = energy_spectrum_2d(M, display=False, Dt=Dt)
     S_k, kbin = spectrum_2d_to_1d_convert(s_e, kx, ky, dt=Dt)
 
     return S_k, kbin
 
 
-def spectrum_2d_to_1d_convert(s_e, kx, ky, dt=10):
+def spectrum_2d_to_1d_convert(s_e, kx, ky, dt=10, nkout=30, verbose=False):
     """Convert a 2d spectrum s_e computed over a grid of k values kx and ky into a 1d spectrum computed over k
+
+    Parameters
+    ----------
+    s_e : n x m float array
+        The fourier transform intensity pattern to convert to 1d
+    kx : n x m float array
+        input wavenumbers' x components
+    ky : n x m float array
+        input wavenumbers' y components, as np.array([[y0, y0, y0, y0, ...], [y1, y1, y1, y1, ...], ...]])
+    nkout : int
+        approximate length of the k vector for output; will be larger since k values smaller than 1/L will be removed
 
     Returns
     -------
@@ -386,45 +429,65 @@ def spectrum_2d_to_1d_convert(s_e, kx, ky, dt=10):
     """
     nx, ny, nt = np.shape(s_e)
 
-    k = np.sqrt(np.reshape(kx ** 2 + ky ** 2, (nx * ny,)))
-    kx_1d = np.sqrt(np.reshape(kx, (nx * ny,)))
-    ky_1d = np.sqrt(np.reshape(ky, (nx * ny,)))
+    kk = np.sqrt(np.reshape(kx ** 2 + ky ** 2, (nx * ny,)))
+    kx_1d = np.sqrt(np.reshape(kx ** 2, (nx * ny,)))
+    ky_1d = np.sqrt(np.reshape(ky ** 2, (nx * ny,)))
 
     s_e = np.reshape(s_e, (nx * ny, nt))
     # sort k by values
     #    indices=np.argsort(k)
     #    s_e=s_e[indices]
 
-    Nbit = 30
-    nk, nbin = np.histogram(k, Nbit)
-    N = len(nbin) - 1
-    #  print(nbin)
+    nk, nbin = np.histogram(kk, bins=nkout)
+    print 'Fourier.spectrum_2d_to_1d_convert(): nkout = ', nkout
+    print 'Fourier.spectrum_2d_to_1d_convert(): nbin = ', nbin
+    nn = len(nbin) - 1
 
     # remove too small values of kx or ky (components aligned with the mesh directions)
     epsilon = nbin[2]
-    kbin = np.zeros(N)
-    indices = np.zeros((nx * ny, N), dtype=bool)
-    for i in range(N):
-        indices[:, i] = np.logical_and(np.logical_and(k >= nbin[i], k < nbin[i + 1]),
-                                       np.logical_and(np.abs(kx_1d) >= epsilon, np.abs(ky_1d) >= epsilon))
-        kbin[i] = np.mean(k[indices[:, i]])
+    kbin = np.zeros(nn)
+    indices = np.zeros((nx * ny, nn), dtype=bool)
+    jj = 0
+    okinds_nn = []
+    for ii in range(nn):
+        print 'ii = ', ii
+        indices[:, ii] = np.logical_and(np.logical_and(kk >= nbin[ii], kk < nbin[ii + 1]),
+                                        np.logical_and(np.abs(kx_1d) >= epsilon, np.abs(ky_1d) >= epsilon))
 
-    # print(len(indices[i]))
-    # kbin=(np.cumsum(nbin)[2:]-np.cumsum(nbin)[0:-2])/2
+        # If there are any values to add, add them to kbin (prevents adding values less than epsilon
+        if indices[:, ii].any():
+            kbin[jj] = np.mean(kk[indices[:, ii]])
+            okinds_nn.append(ii)
+            jj += 1
 
-    s_k = np.zeros((N, nt))
-    s_part = np.zeros(nx * ny)
+        # Check for an error
+        # print 'kbin[', ii, '] = ', kbin[ii]
+        # print 'kbin[', ii, '] = ', kk[indices[:, ii]]
+        # print 'indices[:, ii] = ', indices[:, ii]
+        # print 'kk = ', kk
+        # print 'kx_1d = ', np.abs(kx_1d)
+        # print 'ky_1d = ', np.abs(ky_1d)
+        # print 'epsilon = ', epsilon
+        # sys.exit()
 
-    print('Compute 1d fft from 2d')
+    print 'Fourier.spectrum_2d_to_1d_convert(): np.shape(kbin) = ', np.shape(kbin)
+    s_k = np.zeros((nn, nt))
+    # s_part = np.zeros(nx * ny)
+
+    print('Fourier.spectrum_2d_to_1d_convert(): Compute 1d fft from 2d')
     for t in range(nt):
-        for i in range(N):
-            s_part = s_e[:, t]
-            s_k[i, t] = np.nanmean(s_part[indices[:, i]])
+        s_part = s_e[:, t]
+        jj = 0
+        for ii in okinds_nn:
+            s_k[jj, t] = np.nanmean(s_part[indices[:, ii]])
+            jj += 1
             # print(S_k[i,t])
 
     # averaged in time ??
     s_k = basics.smooth(s_k, dt)
 
+    print('Fourier.spectrum_2d_to_1d_convert(): np.shape(kbin) = ', np.shape(kbin))
+    print('Fourier.spectrum_2d_to_1d_convert(): np.shape(s_k) = ', np.shape(s_k))
     return s_k, kbin
 
 
@@ -582,20 +645,36 @@ def display_fft(m, i, tag):
     if tag == '2d':
         graphes.legende('$k_x$ (mm$^{-1}$)', '$k_y$ (mm$^{-1}$)', title)
 
-        #  plt.pause(0.001)
-        # graphes.save_fig(3,'png',Dir,i)
+    return None
 
 
-def display_fft_2d(kx, ky, S, fignum=1, vmin=1, vmax=7):
+def display_fft_2d(kx, ky, sk, fignum=1, vmin=1, vmax=7, log10=True):
+    """Preview the 2d spectrum (typically energy spectrum) in log scale
+
+    Parameters
+    ----------
+    kx : n x m float array
+        wavenumbers in x dimension
+    ky : n x m float array
+        wavenumbers in y dimension
+    S : n x m complex? array
+        the fourier transform to display, supplied in raw linear scale
+    fignum : int
+        The index of the figure on which to plot the fft
+    vmin : float
+        minimum for the colorscale
+    vmax : float
+        maximum for the colorscale
+
+    Returns
+    -------
+    cc :
+    """
     # display in logscale
-    S_log = np.log10(S)
-    c = graphes.color_plot(kx, ky, S_log, vmin=vmin, vmax=vmax, fignum=fignum)
+    fig, ax, cc = graphes.color_plot(kx, ky, sk, log10=log10, vmin=vmin, vmax=vmax, fignum=fignum)
 
-    graphes.clegende(c, '$E_k (a.u.)$')
-    #   plt.figure(2)
-    #   plt.hist(np.reshape(S_i,(nx*ny,1)),50)
-    #   plt.show(False)
-    #   print(np.shape(S_i))
+    graphes.clegende(cc, '$\ln (E_k) [a.u.]$')
+    return cc
 
 
 def display_fft_1d(k, S, fignum=1, label='k^', vmin=-3, vmax=0.5, theory=False, alpha=-5. / 3):

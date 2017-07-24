@@ -9,8 +9,13 @@ import turbulence.analysis.Fourier as Fourier
 import matplotlib.pyplot as plt
 import turbulence.display.colormaps as tcmaps
 import glob
+import argparse
 
 """Test out how to extract E(k) for different shells of the blob"""
+
+parser = argparse.ArgumentParser(description='Specify time string (timestr) for gyro simulation.')
+parser.add_argument('-display', '--display', help='Show intermediate results in plots', action='store_true')
+args = parser.parse_args()
 
 # test masking code
 # a = np.random.rand(24, 36, 3)
@@ -218,7 +223,7 @@ radii = np.arange(int(maxdim * 0.2), maxdim + 3, 2)
 sk_disc = []
 k_disc = []
 for rad in radii:
-    sk, k = Fourier.compute_spectrum_1d_within_region(mm, radius=rad, polygon=None, display=False, dt=10)
+    sk, k = Fourier.compute_spectrum_1d_within_region(mm, radius=rad, polygon=None, display=args.display, dt=10)
     sk_disc.append(sk)
     k_disc.append(k)
 
@@ -239,12 +244,12 @@ for skk in sk_disc:
         graphes.graphloglog(kk, skk[..., ii], 'k', color=colors[dmyi])
         dmyi += 1
 
-    ind += 1
-
     graphes.graph(mm.k, 15 * mm.k ** (-5. / 3), label='r-')
     figs = graphes.legende(r'$k$ [mm$^{-1}$]', r'$E$ [mm/s$^{2}$]', r'$S(k)$ for $r <$' + str(radii[ind]) + ' pixels')
     figname = savedir + 'energy_spectrum_radius{0:03d}'.format(radii[ind])
     print 'saving fig: ' + figname
     graphes.save_fig(1, figname, frmt='pdf', dpi=300, overwrite=True)
     plt.clf()
+
+    ind += 1
 
