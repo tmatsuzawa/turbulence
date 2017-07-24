@@ -44,8 +44,6 @@ Dir_data.append(distant_root + 'Stephane/Vortices/Stephane/')
 Dir_data.append(distant_root + 'Stephane_Data_1/Stephane_Data_1/Experiments/')
 # Dir_data.append(distant_root+'Stephane_Data_1-1/Experiments/')
 
-
-
 local_root = '/Users/stephane/Documents/'
 
 Dir_data.append(local_root + 'Experiences_local/Accelerated_grid/')
@@ -67,25 +65,26 @@ Dir_data.append(linux_root + 'Stephane/Vortices/Martin/')
 linux_root_2 = '/media/steph/'
 Dir_data.append(linux_root_2 + 'Data_1/Stephane_Data_1/Experiments/')
 
+messiaen_root = '/Users/npmitchell/'
+Dir_data.append(messiaen_root + 'Desktop/data_local/vortex_collision/')
 
 # Dir_data.append(linux_root_2+'Stephane_Data_1-1/Experiments/')
-
 # Dir_data.append(linux_root+'Stephane/Vortices/Stephane/')
 
 
-
 def get_dir(date):
-    """
-    Return the directory in which the data corresponding to the date given are stored.
+    """Return the directory in which the data corresponding to the date given are stored.
     Look in any of the specified rootfolder
-    INPUT 
-    -----
+
+    Parameters
+    ----------
     date : str
         date to be processed
-    OUTPUT
+
+    Returns
+    -------
     path : str
         path of the rootdir
-    -----
     """
     Dirdata = []
 
@@ -93,7 +92,7 @@ def get_dir(date):
         if os.path.isdir(Dir + date):
             Dirdata.append(Dir + date)
 
-    if Dirdata == []:
+    if not Dirdata:
         print('No folder found for ' + date)
         return ''
     if len(Dirdata) == 1:
@@ -110,8 +109,9 @@ def get_dir(date):
             #      print(j)
             #     input()
         else:
-            j = 0  # do not ask for input anymore. preset by the user, or take the first one of the list as a default one
-        #            j=int(input())
+            # do not ask for input anymore. preset by the user, or take the first one of the list as a default one
+            j = 0
+
         return Dirdata[j]
 
 

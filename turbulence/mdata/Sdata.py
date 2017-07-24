@@ -9,9 +9,23 @@ import turbulence.hdf5.h5py_convert as to_hdf5
 import glob
 import turbulence.manager.file_architecture as file_architecture
 
-''''''
+'''Define the Sdata class, which contains
+parameter, id, and association to its physical location
+The Sdata class has the following attributes:
+Id
+param
+fileDir
+fileCine
+dirCine
+
+__init__ file calls a gen() method to instantiate the attributes. This is bad but we can't remove it without changing
+lots of calls to this class. -npm 20170723
+'''
+
 
 class Sdata(object):
+    """
+    """
     def __init__(self, generate=True, **kwargs):
         # Physical location
         # of the raw data, of the measure, and of the present object (in pickle file)
@@ -28,7 +42,10 @@ class Sdata(object):
         return 'Sdata'
 
     def gen(self, fileCine='', index=-1, mindex=0, fileParam=''):
-        """Sdata contains only the parameter, id, and association to its physical location
+        """This method actually initializes the class instance. This is a horrible way to do this, since attributes
+        are created outside the __init__ method. We need to get rid of any time when Sdata(generate=False) is used
+        elsewhere and move the content of this method to the __init__() method.
+        Sdata contains only the parameter, id, and association to its physical location.
 
         Parameters
         ----------
@@ -85,8 +102,7 @@ class Sdata(object):
         #  print(self.fileCine)
 
     def load_all(self, source=None):
-        """
-        Load the data from various possible sources :
+        """Load the data from various possible sources :
         pickle file
         json file
         h5py
@@ -99,38 +115,42 @@ class Sdata(object):
             if filename is None:
                 print("No hdf5 file found")
 
-        f = to_hdf5.open(filename)
-        # print(f['Sdata'].keys())
-        # names_search = ['mdata.'+name for name in names]
-        if 'Id' in f['Sdata'].keys():
-            self.load(f['Sdata'])
+        print 'Sdata.load_all(): Attempting to load from hdf5...'
+        fi = to_hdf5.open(filename)
+        if 'Id' in fi['Sdata'].keys():
+            print "Sdata.load_all(): loading with self.load(fi['Sdata']) since key 'Id' is in hdf5['Sdata']..."
+            self.load(fi['Sdata'])
+            print("Sdata.load_all(): self.fileCine = " + self.fileCine)
         else:
+            print "Sdata.load_all(): loading with self.load_rec() using a list [Sdata, param, Id]..."
             names = ['Sdata', 'param', 'Id']
             for name in names:
-                self.load_rec(f, name)
-
+                self.load_rec(fi, name)
                 #    print(self.param)
-        f.close()
+        fi.close()
 
     def load_measures(self, frmt='.hdf5'):
+        """Look for measurements associated to this cine file, and if so, load them in Mdata objects,
+            and return a list of the Mdata objects.
+            Should it be inserted direcly in the Sdata object ?
+            -> It could be problematic for the storage, but simpler from a coding point of view.
+        """
         import turbulence.mdata.M_manip as M_manip
-        """
-        Look for measurements associated to this cine file, and if so, load them in Mdata objects, 
-        and return a list of them.
-        Should it be inserted direcly in the Sdata object ? 
-        -> It could be problematic for the storage, but simpler from a coding point of view.
-        """
-        fileList_M = glob.glob(
-            file_architecture.os_c(self.dirCine) + 'M_' + self.Id.date + '/M_' + self.Id.date + '_' + str(
-                self.Id.index) + '_*' + frmt)
+        searchstr = file_architecture.os_c(self.dirCine) + 'M_' + self.Id.date + '/M_' + self.Id.date + '_' +\
+                    str(self.Id.index) + '_*' + frmt
+        print('Sdata.Sdata.load_measures(): Looking for ' + searchstr + '...')
+        filelist_m = glob.glob(searchstr)
+        if not filelist_m:
+            print 'filelist_m is empty'
+            sys.exit()
 
-        Mlist = []
+        mlist = []
         # print("Data processed found at : "+str(fileList_M))
-        for filename in fileList_M:
-            # print(filename)
-            Mlist.append(M_manip.load_Mdata_file(filename, data=True))
-
-        return Mlist
+        for filename in filelist_m:
+            print('Sdata.Sdata.load_measures(): filename = ' + filename)
+            mlist.append(M_manip.load_Mdata_file(filename, data=True))
+            print 'Sdata.Sdata.load_measures(): mlist = ', mlist
+        return mlist
 
     def load_measure(self, indice=0, frmt='.hdf5'):
         import turbulence.mdata.M_manip as M_manip
@@ -190,6 +210,12 @@ class Sdata(object):
         #       print("already exist, skip")
 
     def read_param(self):
+        """
+
+        Returns
+        -------
+
+        """
         print('Reading Parameters from param file')
         # try to read a Sdata and put it in a param object !!
         fileParam = self.param.fileParam

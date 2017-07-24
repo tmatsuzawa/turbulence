@@ -103,7 +103,7 @@ def compute_spectrum_1d(mm, Dt=10):
     return S_k, k
 
 
-def compute_spectrum_1d_within_region(mm, radius=None, polygon=None, display=False, dt=10):
+def compute_spectrum_1d_within_region(mm, radius=None, polygon=None, display=False, dt=10, center_frame=False):
     """description
 
     Parameters
@@ -114,7 +114,13 @@ def compute_spectrum_1d_within_region(mm, radius=None, polygon=None, display=Fal
         the radius of a disc to examine, if not None. If region is not None, radius is ignored
     polygon : #vertices x 2 numpy float array
         If not none, use this closed path to define the region of interes
-    dt :
+    display : bool
+        show some intermediate results to check that code is functioning
+    dt : int (default=10)
+        Number of frames to smooth over
+    center_frame : bool
+        Cut off the edges of the frame, keeping the center within distance 'radius' of center pixel rather than using
+        mm.x and mm.y for position information
 
     Returns
     -------
@@ -127,27 +133,57 @@ def compute_spectrum_1d_within_region(mm, radius=None, polygon=None, display=Fal
         # Use matplotlib to find points in path
         dh.pts_in_polygon(mm.x, mm.y, polygon=polygon)
     elif radius is not None:
-        mmr = mm.x ** 2 + mm.y ** 2
-        include = (np.abs(mmr) < radius).astype(np.int)
-        print 'np.shape(include) = ', np.shape(include)
-        # mdatr = np.zeros_like(data, dtype=float)
-        # ind = 0
-        mdatr = np.ma.array(data, mask=np.tile(include, (data.shape[2], 1)))
 
-        # Check it
-        import turbulence.display.plotting as tplt
-        
-        # field3d_mask = np.broadcast_to(field2d > 0.3, field3d.shape)
-        # for slice in data:
-        #     mdatr[..., ind]
-        #     ind += 1
+        # # Circular mask
+        # mmr = (mm.x - np.nanmean(mm.x)) ** 2 + (mm.y - np.nanmean(mm.y)) ** 2
+        # include = (np.abs(mmr) < radius).astype(np.int)
+        # mdatr = data * include[:, :, np.newaxis]
+        #
+        # # Check it
+        # if display:
+        #     import turbulence.display.plotting as tplt
+        #     toview = [0, 20]
+        #     for ind in toview:
+        #         frame = mdatr[:, :, ind]
+        #         print 'np.shape(frame) = ', np.shape(frame)
+        #         tplt.plot_real_matrix(frame, show=True, close=True)
+
+        if center_frame:
+            cols = np.unique(np.where(np.abs(mm.x - np.nanmean(mm.x)) < radius)[0])
+            rows = np.unique(np.where(np.abs(mm.y - np.nanmean(mm.y)) < radius)[0])
+            # include = np.logical_and(np.abs(mm.x - np.nanmean(mm.x)) < radius,
+            #                          np.abs(mm.y - np.nanmean(mm.y)) < radius)
+        else:
+            cols = np.unique(np.where(np.abs(mm.x) < radius)[0])
+            rows = np.unique(np.where(np.abs(mm.y) < radius)[0])
+            # include = np.logical_and(np.abs(mm.x) < radius, np.abs(mm.y) < radius)
+
+        mdatr = data[np.min(rows):np.max(rows), np.min(cols):np.max(cols), :]
+
+        # print 'rows = ', rows
+        # print 'cols = ', cols
+        # print 'include = ', include
+        # print 'np.shape(include) = ', np.shape(include)
+
+        if display:
+            print 'np.shape(data) = ', np.shape(data)
+            print 'np.shape(mdatr) = ', np.shape(mdatr)
+            import turbulence.display.plotting as tplt
+            toview = [0, 20]
+            for ind in toview:
+                frame = mdatr[:, :, ind]
+                print 'np.shape(frame) = ', np.shape(frame)
+                tplt.plot_real_matrix(frame, show=True, close=True)
+
     else:
         raise RuntimeError('Must supply either radius or region values to compute_spectrum_1d_within_region()')
 
     # use M.Ux
     # test: see turbulence/scripts/fourier_shells_test.py
-    s_e, kx, ky = spectrum_2d(mdatr, M=None, dx=None, Dt=dt)
+    dx = np.mean(np.diff(mm.x))
+    s_e, kx, ky = spectrum_2d(mdatr, M=None, dx=dx, Dt=dt)
     s_k, k = spectrum_2d_to_1d_convert(s_e, kx, ky, dt=dt)
+
     return s_k, k
 
 
@@ -219,7 +255,7 @@ def spectrum_2d(Y, M=None, dx=None, Dt=5):
     # Y=basics.smooth(Y,Dt)
 
     result = cdata.rm_nans([Y])
-    print 'Fourier: result = ', result
+    # print 'Fourier: result = ', result
     vel3d = result[0]  # cdata.rm_nans([E])
 
     #    print(np.where(np.isnan(E)))

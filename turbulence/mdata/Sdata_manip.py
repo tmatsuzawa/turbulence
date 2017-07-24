@@ -86,7 +86,7 @@ def Sdata_gen(cineFile, index):
 
 def load_Sdata_day(date):
     # load all the data of the day, in a given Slist
-    Dir = getDir(date)
+    Dir = getdir(date)
     # print(Dir)
     fileList, n = browse.get_fileList(Dir, 'hdf5', display=True)
 
@@ -108,29 +108,35 @@ def load_Sdata_file(filename):
     ----------
     filename : str
         load the data from the given filename
+
+    Returns
+    -------
+    ss : Sdata object or None
     """
     #  print(filename)
     if os.path.isfile(filename):
         #  print('Reading Sdata')
-        S = Sdata(generate=False)  # create an empty instance of Sdata object
-        setattr(S, 'filename', filename[:-5])  # set the reference to the filename where it was stored
-        # print(S.filename)
-        S.load_all()  # load all the parameters (only need an attribute filename in S)
+        # todo: Erase instantiation without __init__ of attributes here
+        ss = Sdata(generate=False)  # create an empty instance of Sdata object
+        setattr(ss, 'filename', filename[:-5])  # set the reference to the filename where it was stored
+        print('Sdata_manip.load_Sdata_file(): ss.filename = ' + ss.filename)
+        ss.load_all()  # load all the parameters (only need an attribute filename in S)
 
-        # print(S.fileCine)
-        return S
+        print('Sdata_manip.load_Sdata_file(): ss.fileCine = ' + ss.fileCine)
+        return ss
     else:
         print('No data found for ' + filename)
         return None
 
 
-def load_serie(date, indices, datadir=None):
-    """
+def load_serie(date, indices, rootdir=None):
+    """Load a list of Sdata objects
 
     Parameters
     ----------
     date :
-    indices :
+    indices : list of ints
+        The indices of the cine files (I think?) found in the directory which matches the specified date
 
     Returns
     -------
@@ -141,22 +147,26 @@ def load_serie(date, indices, datadir=None):
     Slist = [None for i in range(n)]
     c = 0
     for i in indices:
-        Slist[c] = load_Sdata(date, i, datadir=datadir)
+        Slist[c] = load_Sdata(date, i, rootdir=rootdir)
         c += 1
     return Slist
 
 
 def load_measures(Slist, indices=0):
-    """
-    Load the measures associated to each element of Slist. 
-    by default, only load the first set. 
-    if indices = None, load all the Measures associated to each Sdata
-    """
+    """Load the measures associated to each element of Slist.
+    By default, only load the first set.
+    If indices = None, load all the Measures associated to each Sdata
 
+    Parameters
+    ----------
+    Slist : list of ...?
+    indices : int or list of ints
+        The indices of the Slist for which to load measures
+    """
     Mlist = []
     for S in Slist:
+        print 'Sdata_manip.load_measures(): Slist[current] = ', S
         output = S.load_measures()
-
         # sort ouput by length
         # print(output)
         output = sorted(output, key=lambda s: (s.shape()[2], s.shape()[1]))
@@ -165,14 +175,22 @@ def load_measures(Slist, indices=0):
             Mlist.append(output)
         else:
             if not output == []:
+                print('Sdata_manip.load_measures(): added mdata for Sdata element in Slist')
                 Mlist.append(output[indices])
             else:
-                print('Sdata unprocessed')
+                print('Sdata_manip.load_measures(): Sdata unprocessed')
                 Mlist.append(None)
     return Mlist
 
 
 def load_all():
+    """For all the subdir in rootDir, find all the cine files and their associated Sdata.
+    Return a List of all Sdata
+
+    Returns
+    -------
+    Slist : list of all Sdata for all cine files
+    """
     # for all the subdir in rootDir, find all the cine files and their associated Sdata.
     # return a List of all Sdata
     Slist = []
@@ -186,7 +204,7 @@ def load_all():
     return Slist
 
 
-def load_Sdata(date, index, mindex=0, datadir=None):
+def load_Sdata(date, index, mindex=0, rootdir=None):
     """Load
 
     Parameters
@@ -201,7 +219,8 @@ def load_Sdata(date, index, mindex=0, datadir=None):
 
     """
     # load a Sdata using its Id
-    filename = getloc(date, index, mindex, datadir=datadir)
+    filename = getloc(date, index, mindex, rootdir=rootdir)
+    print('Sdata_manip.load_Sdata(): filename = ' + filename)
     S = load_Sdata_file(filename)
     return S
 
@@ -214,24 +233,25 @@ def read(filename, data=False):
     return S
 
 
-def getloc(date, index, mindex, frmt='.hdf5', datadir=None):
+def getloc(date, index, mindex, frmt='.hdf5', rootdir=None):
     """Return the filename associated with the cine or hdf5 file in supplied datadir or in a directory with the
     supplied date that is in the current $PATH"""
-    if datadir is None:
-        datadir = getDir(date)
+    datadir = getdir(date, rootdir=rootdir)
     filename = datadir + "Sdata_" + date + "_" + str(index) + "_" + str(mindex) + frmt
+    print 'Sdata_manip.getloc(): filename = ', filename
     return filename
 
 
 def getloc_S(S, frmt='.hdf5'):
-    Dir = getDir(S.id.date)
+    Dir = getdir(S.id.date)
     filename = Dir + "Sdata_" + S.id.date + "_" + str(S.id.index) + "_" + str(S.id.mindex) + frmt
     return filename
 
 
-def getDir(date):
-    rootdir = file_architecture.get_dir(date)
-    Dir = rootdir + "/Sdata_" + date + "/"
+def getdir(date, rootdir=None):
+    if rootdir is None:
+        rootdir = file_architecture.get_dir(date)
+    Dir = os.path.join(rootdir, "Sdata_" + date + "/")
     return Dir
 
 

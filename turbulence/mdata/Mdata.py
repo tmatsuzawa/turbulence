@@ -20,7 +20,8 @@ import turbulence.hdf5.h5py_convert as to_hdf5
 import turbulence.manager.file_architecture as file_architecture
 import turbulence.analysis.vgradient as vgradient
 
-'''Mdata is...'''
+'''Mdata is a class for handling measurements made on raw data.
+'''
 
 
 class Mdata(object):
