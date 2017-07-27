@@ -6,14 +6,26 @@ import turbulence.display.graphes as graphes
 import matplotlib.pylab as plt
 import dpath.util
 
-'''
-'''
-
 
 def Time(M, field, tlist, N=50, norm_t=1.):
     """
     Compute the auto correlation function in time of a given field on a series of time
     Store the result in a dict format
+
+    Parameters
+    ----------
+    M : Mdata class instance, or any other object that contains the following fields :
+        methods : shape()
+        attributes : Ux, Uy
+    field :
+    tlist :
+    N : int
+    norm :
+
+    Returns
+    -------
+    ccCorr_t :
+
     """
     Corr_t = {}
     for i in tlist:
@@ -159,7 +171,7 @@ def summary_time(Corr_fun, tlist, field, avg=False, fignum=1):
         plt.plot(Corr_fun[(i, 't_' + field)], Corr_fun[(i, 'C_' + field)], label='ko-')
     if avg:
         plt.plot(Corr_fun[('moy', 't_' + field)], Corr_fun[('moy', 'C_' + field)], label='r-')
-    plt.axis([-0.1, 0.1, 0, 1])
+    #plt.axis([-0.1, 0.1, 0, 1])
 
     if field == 'omega':
         field = '\omega'

@@ -345,7 +345,7 @@ def corr_v(M, t, indices, avg=1, axes=['Ux', 'Ux'], p=1, average=False):
     X, Y = chose_axe(M, t, axes)
 
     if average:
-        Xmoy, Xstd = statP.average(X)
+        Xmoy, Xstd = statP.average(X)  # Xmoy, Xstd: median and std of X
         Ymoy, Ystd = statP.average(Y)
     else:
         Xmoy = 0
@@ -435,7 +435,7 @@ def corr_v_t(Mlist, t, axes=['Ux', 'Ux'], N=100, p=1, display=False, save=False,
     # print(tmin)
     # print(tmax)
     t_c = np.asarray(M.t)[np.arange(tmin, tmax)]  # -M.t[t]
-    #    print(t_c)
+    # print(t_c)
     # print(np.mean(np.diff(t_c)))
     # max number of time step
     #  print("Compute mean values 2")
@@ -685,7 +685,9 @@ def chose_axe(M, t, axes, Dt=1):
     axes : string list 
         Possible values are : 'E', 'Ux', 'Uy', 'strain', 'omega'
     OUTPUT
-    ----- 
+    -----
+    data : tuple
+        ax
     """
     data = tuple([access.get(M, ax, t, Dt=Dt) for ax in axes])
     return data
@@ -707,7 +709,7 @@ def stat_corr_t(M, t, Dt=20, axes=['Ux', 'Ux'], p=1, display=False, label='k^', 
 
     Returns
     -------
-
+    X, Y, Yerr
     """
     t0 = M.t[t]
     tlist = range(t - Dt // 2, t + Dt // 2)
