@@ -583,7 +583,7 @@ def Mplot(M, field, frame, auto_axis=False, step=1, W=None, Dt=None, fignum=1, s
     if n != 0:
         X = X[n:-n, n:-n]
         Y = Y[n:-n, n:-n]
-    color_plot(X, Y, data[..., 0], show=show, fignum=fignum, vmin=vmin, vmax=vmax, log=log, cbar=cbar)
+    color_plot(X, Y, data[..., 0], show=show, fignum=fignum, vmin=vmin, vmax=vmax, log10=False, cbar=cbar)
     #    time_stamp(M,frame)
     if colorbar == True:
         plt.colorbar()

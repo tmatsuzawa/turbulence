@@ -8,6 +8,7 @@ import turbulence.tools.pickle_m as pickle_m
 import turbulence.hdf5.h5py_convert as to_hdf5
 import glob
 import turbulence.manager.file_architecture as file_architecture
+import sys
 
 '''Define the Sdata class, which contains
 parameter, id, and association to its physical location

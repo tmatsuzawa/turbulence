@@ -51,7 +51,7 @@ Dir_data.append(local_root + 'Experiences_local/Vortex_Turbulence/')
 Dir_data.append(local_root + 'Experiences_local/Others/')
 Dir_data.append(local_root + 'Experiences_local/Ballooon/')
 
-Dir_data.append(local_root + 'Experiences_local/Vortex_collider/')
+#Dir_data.append(local_root + 'Experiences_local/Vortex_collider/')
 
 Dir_data.append(local_root + 'Gautam/')
 
@@ -91,11 +91,13 @@ def get_dir(date):
     for Dir in Dir_data:
         if os.path.isdir(Dir + date):
             Dirdata.append(Dir + date)
+            print ('here1')
 
     if not Dirdata:
         print('No folder found for ' + date)
         return ''
     if len(Dirdata) == 1:
+        print ('here2')
         return Dirdata[0]
     if len(Dirdata) > 1:
         #        print('Multiple choice of directory, make a choice among :')
@@ -111,7 +113,7 @@ def get_dir(date):
         else:
             # do not ask for input anymore. preset by the user, or take the first one of the list as a default one
             j = 0
-
+        print ('here3')
         return Dirdata[j]
 
 

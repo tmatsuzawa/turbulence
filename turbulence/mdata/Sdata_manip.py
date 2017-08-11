@@ -136,7 +136,7 @@ def load_serie(date, indices, rootdir=None):
     ----------
     date :
     indices : list of ints
-        The indices of the cine files (I think?) found in the directory which matches the specified date
+        The indices of the cine files found in the directory which matches the specified date
 
     Returns
     -------
@@ -162,6 +162,10 @@ def load_measures(Slist, indices=0):
     Slist : list of ...?
     indices : int or list of ints
         The indices of the Slist for which to load measures
+
+    Returns
+    ----------
+    Mlist :
     """
     Mlist = []
     for S in Slist:

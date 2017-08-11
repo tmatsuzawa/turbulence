@@ -35,7 +35,7 @@ parser.add_argument('-n',dest='n',default=10,type=int, help='Number of images fo
 parser.add_argument('-step',dest='step',default=2,type=int, help='Under sampling of the data. Default value is 2')
 args = parser.parse_args()
 
-def main(date):
+def  main(date):
     """
     main function
     INTPUT
