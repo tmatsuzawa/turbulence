@@ -13,12 +13,14 @@ def strain_distribution(data, jhtd=True):
     """
     Compute eigenvectors, vorticity and geometrical quantities 
         wrap into dictionnaries the computed values from the given dataset
-    INPUT 
-    ----- 
+
+    Parameters
+    ----------
     data : JHTD data format 
         data to be processed
-    OUTPUT
-    -----
+
+    Returns
+    -------
     eigen : dict 
         contain the eigenvalues Lambda and eigenvectors lambda fields
     omega : dict 
@@ -46,14 +48,16 @@ def strain_distribution(data, jhtd=True):
 def geom(U, d=3, jhtd=True):
     """
     Compute eigenvectors, vorticity and geometrical quantities from a d matrix U
-    INPUT 
-    -----
+    
+    Parameters 
+    ----------
     U : d dimensions np array
         data 
     d : int
         dimension, default is 3
-    OUTPUT
-    -----
+    
+    Returns
+    -------
     eigen : dict 
         contain the eigenvalues Lambda and eigenvectors lambda fields
     omega : dict 
@@ -79,8 +83,9 @@ def alignements(eigen, omega, W, d=3):
         lambda : eigenvectors of the strain tensor 
         omega : vorticity vector
         W : vortex strecthing vector
-    INPUT
-    -----
+        
+    Parameters
+    ----------
     eigen : dict
         contains Lambda and lambda
     omega : d+1 np array
@@ -89,6 +94,7 @@ def alignements(eigen, omega, W, d=3):
         Vortex strecthing vector
     d : int
         dimension. default value is 3
+        
     OUPUT
     -----
     cosine : list of dict
@@ -110,17 +116,19 @@ def alignements(eigen, omega, W, d=3):
 
 def strain_tensor(U, d=3, step=1, jhtd=True):
     """
-    Compute the strain tensor of a d dimensions matrix using a 6th order sheme in space      
-    INPUT
-    -----	
+    Compute the strain tensor of a d dimensions matrix using a 6th order sheme in space   
+       
+    Parameters
+    ----------	
     U : input data, numpy array format in d+1 dimensions
         U[...,0] : x component, U[...,1] : y component, and so on
         Last dimension of U must be equal to d
         if U contains a time axis, the strain tensor calculation will also return dU_i/dt 
     d : int
         spatial dimension. default value is 3
-    OUTPUT
-    ------
+        
+    Returns
+    -------
     dU : d+2 np array
         strain tensor. The two last dimensions have shape d x d. U[...,i,j] = 
     """
@@ -145,17 +153,17 @@ def strain_tensor(U, d=3, step=1, jhtd=True):
 
     return dU
     # take the symetric part
+    #    s_sym=(dU+np.transpose(dU,(0,1,2,4,3)))/2
+    #    s_asym=(dU-np.transpose(dU,(0,1,2,4,3)))
+    #    print(dU[4,4,4,:,:])
 
-
-#    s_sym=(dU+np.transpose(dU,(0,1,2,4,3)))/2
-#    s_asym=(dU-np.transpose(dU,(0,1,2,4,3)))
-#    print(dU[4,4,4,:,:])
 
 def stretching_vector(dU, omega, d=3, norm=False):
     """
     Compute the stretching vector W = omega_i s_ij from the strain tensor and the vorticity
-    INPUT
-    -----
+    
+    Parameters
+    ----------
     dU : np array of dimensions n[0],...,n[d],d,d. (d=3 by default)
         strain tensor computed from strain_tensor function
     omega : np array of dimension n[0],...,n[d],d. (d=3 by default)
@@ -164,8 +172,9 @@ def stretching_vector(dU, omega, d=3, norm=False):
         spatial dimension. default value is 3
     norm : bool. default False
          Normalize the result (or not)
-    OUTPUT
-    -----
+         
+    Returns
+    -------
     W : np array of dimension n[0],...,n[d],d. (d=3 by default)
         stretching vector W_i = sum((dU[i,j]omega[j]))
     """
@@ -180,8 +189,9 @@ def derivative(U, i, j, d=3, step=1, jhtd=False):
     Compute the derivative of the j-th component of U along the i direction  
         It can be applied to a d dimensions matrix.
         A 6th order sheme in space is used to compute first spatial derivative (Runge Kutta method)
-    INPUT
-    -----	
+        
+    Parameters
+    ----------	
     U : input data, numpy array format
         in any format that can be translated to numpy array by numpy.asarray
     i : int
@@ -190,13 +200,15 @@ def derivative(U, i, j, d=3, step=1, jhtd=False):
         index of the component of U to be derived
     d : int
         spatial dimension. default value is 3
-    OUTPUT
-    ------
+        
+    Returns
+    -------
     dU : numpy array. Strain tensor component s_ij of the velocity field U. 
          WARNING : a strange indexation of JHTD data forced me to introduce a switch between indices 0 and 2 for j 
     """
     U = np.asarray(U)
-    # due to matrix representation of .h5 files, x and z directions are exchanged. This correction is    unfortunately dimension-dependent.
+    # due to matrix representation of .h5 files, x and z directions are exchanged. This correction is   
+    # unfortunately dimension-dependent.
     if jhtd and (d == 3):  # in the case of JHTD, invert components.
         #  print('Permutation')
         # permutation of indices 0 and 2
@@ -231,16 +243,18 @@ def derivative(U, i, j, d=3, step=1, jhtd=False):
 def strain_tensor_C(U, d=2, b=1.5, step=None):
     """
     Compute the strain tensor of a 2+1 dimension matrix using a circular integral (thanks to Dr Leonardo Gordillo)
-    INPUT
-    -----	
+    
+    Parameters
+    ----------	
     U : input data, numpy array format in d+1 dimensions
         U[...,0] : x component, U[...,1] : y component, and so on. Last dimension of U must be equal to d
     d : int
         spatial dimension. default value is 3
     b : float
         radius of the circle used for the circular integral
-    OUTPUT
-    ------
+        
+    Returns
+    -------
     dU : d+2 np array
         strain tensor. The two last dimensions have shape d x d. U[...,i,j] = dUj / dxi
     """
@@ -248,8 +262,7 @@ def strain_tensor_C(U, d=2, b=1.5, step=None):
     # spatial dimension
     dimensions = U.shape[:-1]
     dimensions += (d, d)
-
-    #    dimensions.append(d)
+    # dimensions.append(d)
 
     # 6th order scheme
     dU = np.zeros(dimensions)
@@ -275,6 +288,20 @@ def strain_tensor_C(U, d=2, b=1.5, step=None):
 
 
 def strain_tensor_loc(U, i, j, d=2, b=1.):
+    """
+    
+    Parameters
+    ----------
+    U
+    i
+    j
+    d
+    b
+
+    Returns
+    -------
+    dU :
+    """
     nx, ny, nd = np.shape(U)
     x = range(0, nx)
     y = range(0, ny)
@@ -294,15 +321,17 @@ def derivative_C(U, fx, fy, x0, y0, d=2, b=1):
     Return the tensor of deformation dUij. only available in 2d for now 
     vorticity (antisymetric part of 2d tensor) and strain (symetric part of the 2d tensor)
     Could be decomposed in each component by taking the x and y component of U respectively
-    INPUT
-    -----
+    
+    Parameters
+    ----------
     U : numpy array of dimension 2+1
         input data, the last dimension of U is of length 2 (vector field)
     fx,fy : function with two arguments
         fx,fy should be the interpolation function of U[...,0] and U[...,1] respectively
     fx : interpolation function of U[...,0]
-    OUTPUT
-    -----
+    
+    Returns
+    -------
     dU : 2x2 numpy array
         deformation tensor dUi/dxj with (i,j) in {0,1}^2
     """
@@ -361,8 +390,9 @@ def derivative_C_mat(x, y, U, d=2, b=1.):
     """
     Alternative way of computing derivatives by using a line integral on a circle.
     Return the strain tensor dUi/dxj in 2d
-    INPUT
-    -----
+    
+    Parameters
+    ----------
     x,y : 1d np arrays.
         x and y coordinates
     U : input data, numpy array of dimensions d+1. the last dimension of U is of length d (vector field)
@@ -377,9 +407,10 @@ def derivative_C_mat(x, y, U, d=2, b=1.):
 
     t = []
     t.append(time.time())
+    # interpolate on a square grid. Can be evaluated only on a square grid !
+    # (actually, compute values along a grid given two axis)
     fy = interpolate.RectBivariateSpline(x, y, U[..., 1], kx=3, ky=3)
-    fx = interpolate.RectBivariateSpline(x, y, U[..., 0], kx=3,
-                                         ky=3)  # interpolate on a square grid. Can be evaluated only on a square grid ! (actually, compute values along a grid given two axis)
+    fx = interpolate.RectBivariateSpline(x, y, U[..., 0], kx=3, ky=3)
     t.append(time.time())
 
     dim = np.shape(U)
@@ -494,15 +525,17 @@ def derivative_C_GPU(U, f, x0, y0, axis, d=2, b=1.):
 
 def normalize(U, d=3, p=2):
     """
-    Normalize a matrix U using the p-norm 
-    INPUT
-    -----	
+    Normalize a matrix U using the p-norm
+
+    Parameters
+    ----------	
     U : numpy array of dimension d+1
     d : int
         spatial dimension. default value is 3
     p : float, value for the p-norm computation. default is euclidian norm (p=2)
-    OUTPUT
-    -----
+
+    Returns
+    -------
     U : numpy array of dimension d+1
         Normalized, so that sum(U[i,j,k,:]**2)=1
     """
@@ -516,17 +549,18 @@ def normalize(U, d=3, p=2):
 
 
 def Lambda(a, d=3):
-    """
-    Compute the eigenvalues and the eigenvector of the symetric part of a matrix a
-    INPUT
-    -----	
+    """Compute the eigenvalues and the eigenvector of the symetric part of a matrix a
+
+    Parameters
+    ----------	
     a : numpy array of dimension d+2
         d+2 np array of dimensions (nx,ny,nz,d,d)
     d : int
         spatial dimension. default value is 3
         It might not work for other dimensions than 3 for now  
-    OUTPUT
-    -----
+
+    Returns
+    -------
     eigen : dictionnary containing eigenvalues, eigenvectors and asymetry epsilon
         epsilon refer to the adimensionnalized value of the intermediate eigen value 
         the dictionnary contains the following fields :
@@ -560,7 +594,8 @@ def Lambda(a, d=3):
         if d == 3:
             eigen['epsilon'].append(3 * vals[1] / (vals[2] - vals[0]))
         else:
-            # in 2dimension, epsilon should be zero, incompressibility imply vals[0]+vals[1]=0 (if there is not out of              plane stretching !!!)
+            # in 2dimension, epsilon should be zero, incompressibility imply vals[0]+vals[1]=0 (if there is not out of         
+            # plane stretching !!!)
             eigen['epsilon'].append((vals[0] + vals[1]) / (vals[0] - vals[1]))
 
         for k in range(d):
@@ -579,17 +614,19 @@ def Lambda(a, d=3):
 
 
 def project(U, eigen, d=3):
-    '''
+    """
     Compute the strain along the axis U, given the strain tensor expressed in a eigenbasis of decomposition
-    INPUT
-    -----
+    
+    Parameters
+    ----------
     U : (N,d) np array
         N vectors defining the direction of computing strain
     eigen : dict
         Contains eigenvalues and eigenvectors of a Tensor matrix (commonly the strain tensor)
-    OUTPUT
-    -----
-    '''
+    
+    Returns
+    -------
+    """
     s = np.zeros(np.shape(U))
     for i in range(d):
         dotp = np.sum(eigen['lambda_' + str(i)] * U, axis=1)
@@ -605,14 +642,16 @@ def project(U, eigen, d=3):
 def vorticity(tau, d=3, norm=False):
     """
     Compute the vorticity from the asymetric part of the strain tensor matrix tau
-    INPUT
-    -----	
+    
+    Parameters
+    ----------
     tau : numpy array of dimension 3
     d : int
         spatial dimension. default value is 3
         It might not work for other dimensions than 3 for now
-    OUTPUT
-    -----
+    
+    Returns
+    -------
     vorticity : numpy array of dimensions d + 1
         the last dimension contains d values corresponding to the components of the vorticity
     enstrophy : numpy array of dimensions d
@@ -650,14 +689,15 @@ def vorticity(tau, d=3, norm=False):
 def divergence_2d(tau, d=2, norm=False):
     """
     Compute the 2d divergence from the symetric part of the strain tensor matrix tau
-    INPUT
-    -----	
+    Parameters
+    ----------	
     tau : numpy array of dimension 3
     d : int
         spatial dimension. default value is 3
         It might not work for other dimensions than 3 for now
-    OUTPUT
-    -----
+
+    Returns
+    -------
     div : numpy array of dimensions d + 1
         the last dimension contains 1 value corresponding to the 2d divergence
     """

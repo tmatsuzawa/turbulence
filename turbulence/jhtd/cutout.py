@@ -31,7 +31,7 @@ elif sys.version_info[0] == 3:
 import time
 import numpy as np
 import h5py
-import stephane.tools.rw_data as rw_data
+import turbulence.tools.rw_data as rw_data
 
 
 def get_cutout(
@@ -45,8 +45,7 @@ def get_cutout(
         #        auth_token = 'edu.jhu.pha.turbulence.testing-201311',
         auth_token='edu.uchicago.sperrard-9cf78a64',
         base_website='dsp033.pha.jhu.edu'):
-    url = ('http://{0}/jhtdb/getcutout/{1}/{2}/{3}/'.format(
-        base_website, auth_token, data_set, data_type)
+    url = ('http://{0}/jhtdb/getcutout/{1}/{2}/{3}/'.format(base_website, auth_token, data_set, data_type)
            + '{0},{1}/'.format(t0, tl)
            + '{0},{1}/'.format(x0, xl)
            + '{0},{1}/'.format(y0, yl)
@@ -67,7 +66,7 @@ def get_cutout(
         ncomponents = 1
     elif data_type in ['ub']:
         ncomponents = 6
-    #    print('Retrieving h5 file, size {0} MB = {1} MiB.'.format(
+    # print('Retrieving h5 file, size {0} MB = {1} MiB.'.format(
     #            xl*yl*zl*ncomponents * 4. / 10**6,
     #            xl*yl*zl*ncomponents * 4. / 2**20))
     if os.path.isfile(filename + '.h5'):

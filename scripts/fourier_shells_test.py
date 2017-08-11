@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import turbulence.display.colormaps as tcmaps
 import glob
 import argparse
+import os
 
 """Test out how to extract E(k) for different shells of the blob"""
 
@@ -99,14 +100,16 @@ Eventually we will roll these into methods of a vortex_collision class, but for 
 '''
 
 # date = '2017_06_30'
-date = '2017_06_15'
+# indices = [2]
+date = '2017_06_30'
+indices = [3]
+index = indices[0]
 # savedir = '/Users/stephane/Documents/Experiences_local/Results/Vortex_collision/'+date+'/'
 localroot = '/Users/npmitchell/Desktop/data_local/vortex_collision/testdata/'
 savedir = localroot.replace('testdata/', 'output/') + date + '/'
 rootdir = localroot + date + '/'
 subdir = 'summary/'
 
-indices = [2]  # range(6,10)
 # load the Sdata from 0 to 5. If you want other datam just change the range.
 # Check with the file name by typing slist[0].fileCine
 
@@ -151,9 +154,9 @@ for t in range(0, mfluc.Ux.shape[2]):
 # Print the name of the cine file used to produce the Sdata
 print slist[0].fileCine
 
-print 'mm.Ux[12, 18, 150] = ', mm.Ux[12, 18, 150]
+print 'mm.Ux[12, 18, 50] = ', mm.Ux[12, 18, 50]
 print 'mfluc.Ux.shape = ', mfluc.Ux.shape
-print 'mfluc.Ux[12, 18, 150] = ', mfluc.Ux[12, 18, 150]
+print 'mfluc.Ux[12, 18, 50] = ', mfluc.Ux[12, 18, 50]
 print 'Ux_mean.shape = ', Ux_mean.shape
 print 'Ux_mean[12, 18] ', Ux_mean[12, 18]
 
@@ -247,7 +250,13 @@ for skk in sk_disc:
 
     graphes.graph(mm.k, 100 * mm.k ** (-5. / 3), label='r-')
     figs = graphes.legende(r'$k$ [mm$^{-1}$]', r'$E$ [mm/s$^{2}$]', r'$S(k)$ for $r <$' + str(radii[ind]) + ' pixels')
-    figname = savedir + 'energy_spectrum_radius{0:03d}'.format(radii[ind])
+    imout_dir = savedir + 'energy_spectrum_radius_sequence/' + date + '_' + str(index) + \
+                '_energy_spectrum_radius_sequence/'
+    if not os.path.exists(imout_dir):
+        print 'le.ensure_dir: creating dir: ', imout_dir
+        os.makedirs(imout_dir)
+
+    figname = imout_dir + date + '_' + str(index) + '_energy_spectrum_radius{0:03d}'.format(radii[ind])
     print 'saving fig: ' + figname
     graphes.save_fig(1, figname, frmt='png', dpi=300, overwrite=True)
     plt.clf()
