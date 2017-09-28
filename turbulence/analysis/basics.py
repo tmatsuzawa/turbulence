@@ -13,6 +13,8 @@ import turbulence.display.graphes as graphes
 """
 
 
+
+
 def profile_average(M, i, Dt=10, p=1, direction='h'):
     """
     Compute a one  dimensional spatial average of 2d(more ?) data on a time window, centered on a given time.

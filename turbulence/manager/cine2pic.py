@@ -5,14 +5,17 @@ Created on Thu Mar 26 10:43:49 2015
 @author: stephane
 """
 
-import stephane.cine as cine
+import turbulence.cine as cine
 from scipy import misc
 import os
 import numpy as np
 import math
-import stephane.tools.browse as browse
-import stephane.tools.rw_data as rw_data
-# Convert cine file to a list of .TIFF images (which format ?)
+import turbulence.tools.browse as browse
+import turbulence.tools.rw_data as rw_data
+# Convert cine file to a list of .TIFF images
+
+import sys
+sys.path.append('/Users/stephane/Documents/git/takumi/turbulence')
 
 def cine2tiff(file,mode,step,start=0,stop=0,ctime=1,folder='/Tiff_folder',post=''):
     """
@@ -41,6 +44,7 @@ def cine2tiff(file,mode,step,start=0,stop=0,ctime=1,folder='/Tiff_folder',post='
         Name of the root folder where the images will be saved.
     post : str. Default ''
         post string to add to the title of the tiff folder name
+    OUTPUT
     OUTPUT
     None
     """

@@ -15,9 +15,9 @@ Created on Thu Mar 12 14:42:10 2015
 import glob
 import os.path
 
-import stephane.manager.cine2pic as cine2pic
-import stephane.tools.browse as browse
-import stephane.tools.rw_data as rw_data
+import turbulence.manager.cine2pic as cine2pic
+import turbulence.tools.browse as browse
+import turbulence.tools.rw_data as rw_data
 #generate an small avi movie for each of the cine file, only the first 200 images to be used as spatial reference
 
 
