@@ -1,23 +1,56 @@
+"""description
+author: Stephane Perrard
+tweaked by Takumi Matsuzawa 9/14/17
+"""
+
 
 import glob
 import os.path
 
 def get_fileList(fileDir,frmt,root='',display=False,sort='date'):
-    fileName = fileDir + root+'*.' + frmt
+    """ Returns the list of files with format, frmt with the number of the files
+
+    Parameters
+    ----------
+    fileDir : string
+            name of file directory
+    frmt : string
+            extension of file you would like to retrieve
+            e.g. cine, txt, avi
+    root : string, default=''
+            head of file names you would like to retrive
+            e.g. header = 'data'  for lists of data__something_something__.cine
+    diplay : boolean, default=False
+            If display=True, then it prints out the number of files you specified by frmt.
+    sort : default='date'
+
+
+    Returns
+    -------
+    fileList : list
+            a list of files specified  by fileDir + root + '*.' + frmt
+
+    n : int
+        number of files in the filelist
+
+    """
+    print ('-------Checking the number of ' + frmt + ' files in ' + fileDir + '-------')
+
+    fileName = fileDir + root + '*.' + frmt   #e.g. /Volumes/labshared3-1/takumi/2017_09_14/*.cine
     fileList = glob.glob(fileName)
-    
+
     if sort=='name':
         fileList=sortbyname(fileList)
     else:
         fileList=sortbydate(fileList)
 
-    
+
     n=len(fileList)
     if display:
         print('Number of ' + frmt + ' files : ' + str(n))
         print(fileName)
-        
-    return fileList,n
+    print ('-------------------------------------------------------------------------')
+    return fileList, n
 
 #get a number between two given separators : the first one should be unique in the string
 def get_number(s,start,end,display=False,shift=0,from_end=True):
@@ -45,6 +78,17 @@ def get_end(s,start,end=0,shift=0,display=False):
     return s[n:]
     
 def get_string(s,start,end='',shift=0,display=False,from_end=False):
+    """ This function returns the name of the file without extension
+        e.g. browse.get_string('awesome_video.cine', '', end='.cine') returns 'awesome_video'
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+
+
     if from_end:
         j_p=str.find(s,end)
         i_p=str.find(s[j_p-1:0:-1],start[::-1])
@@ -80,6 +124,18 @@ def get_string(s,start,end='',shift=0,display=False,from_end=False):
         return s[deb:fin]
 
 def contain(s,pattern):
+    """
+    If "s" contains "pattern", this returns True. Otherwise, this returns False.
+
+    Parameters
+    ----------
+    s : string
+    pattern : string
+
+    Returns
+    True or False: Boolean
+    -------
+    """
     return str.find(s,pattern)>=0
         
 def get_dataDir(cinefile,root='/PIV_',frmat='cine',display=True):

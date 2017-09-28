@@ -606,17 +606,20 @@ def Mplot(M, field, frame, auto_axis=False, step=1, W=None, Dt=None, fignum=1, s
 
 def movie(M, field, indices=None, compute=False, label='', Dirname='./', tracking=False, **kwargs):
     """
+    Generates png files of heatmap of specified field in specified directory
 
     Parameters
     ----------
-    M :
-    field :
-    indices :
+    M : M class object
+    field : E, omega, enstrophy
+    indices : tuple
+              e.g. indices=range(500,1000) saves the image files of the specified heatmap between 500-th and 999-th frame
     compute :
     label :
-    Dirname :
+    Dirname : string
+              name of the directory where the image files will be stored
     tracking :
-    kwargs :
+    kwargs : keys are vmin, vmax, and possibly more.
 
     Returns
     -------

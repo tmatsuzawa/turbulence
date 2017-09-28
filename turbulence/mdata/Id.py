@@ -7,7 +7,14 @@ Created on Thu Mar 12 14:42:10 2015
 import turbulence.tools.browse as browse
 import turbulence.hdf5.h5py_convert as to_hdf5
 import h5py
-
+"""
+Id class has the following attributes: index, mindex=0, type, and who
+Currently, Sdata class has an attribute called "Id" which belongs to this Id class.
+index: index associated to PIV data of a cine file
+mindex=0: index for mdata... index of mdata is necessary apart from index because "index" is associated to a cine file, but different mdata can be generated from the same cine file by changing PIV settings.
+type: experimental type, default is vortex collision
+who: conductor of the experiment
+"""
 
 class Id:
     def __init__(self, S=None, generate=True, **kwargs):
@@ -24,10 +31,10 @@ class Id:
     def load(self, data):
         self = to_hdf5.load(self, data)
 
-    def gen(self, index=-1, mindex=0, typ="Accelerated grid", who='SPerrard'):
+    def gen(self, index=-1, mindex=0, type="vortex collision", who='takumi'):
         self.index = index
         self.mindex = mindex
-        self.type = typ
+        self.type = type
         self.who = who
 
         if hasattr(self.Sdata, 'fileCine'):

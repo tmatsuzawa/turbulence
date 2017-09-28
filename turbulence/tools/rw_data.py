@@ -34,9 +34,9 @@ def read_dataFile(file,Hdelimiter=',',Ddelimiter=',',Oneline=False):
     """
     Basic function for reading a .txt dataFile
 	
-    The data file format has to be as follow :
+    The data file format has to be as following:
     Header of one or more lines containing the title of each dataset in the last Header line.
-    Data are presented into columns, separeted by a given character Ddelimiter
+    Data are presented into columns, separated by a given character Ddelimiter
     
     INPUT
     -----	
@@ -51,15 +51,15 @@ def read_dataFile(file,Hdelimiter=',',Ddelimiter=',',Oneline=False):
 
     OUTPUT
     ------
-    Return a tuple containing the Header of the file, and Data in a dictionnary format. Each key is given by the title present at the top of each column
+    Header: tuple
+        Header in the file
+    Data: dictionary
+        Data["key"]=data, and keys can be seen in the Header.
     	"""    
     f = open(file,'r')
-    Header,fline=read_begin(f,Hdelimiter)
+    Header, fline = read_begin(f,Hdelimiter)
     #Name the fields from the last line of the Header
     Names=parseline(Header[-1],Hdelimiter)
-   # print(Names)
-    #Generate a dictionnary with these names
-   # Names=[name[0] for name in Names]
 
     Names=[name for name in Names]    
     Data={name:[] for name in Names}  #Just keep the first letter for now (!) should be improved for the first list of characters without space

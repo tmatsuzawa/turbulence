@@ -2,8 +2,9 @@
 """
 Created on Wed Sep 30 11:20:23 2015
 Generates :
-the timestep files for sampling the images
-generate the tiff files following the instruction given in timestep
+- generate the tiff files following the instruction given in timestep
+- These tiff images will be used to calculate velocity field on Matlab.
+
 @author: stephane
 """
 
@@ -11,14 +12,15 @@ generate the tiff files following the instruction given in timestep
 #Process data
 #several steps to process data :
 # generates ref movies for each cine file in the date folder
+import sys
+sys.path.append('/Users/stephane/Documents/git/takumi/turbulence/')
+import turbulence.manager.ref_movie as ref_movie
+import turbulence.manager.file_architecture as file_architecture
+import turbulence.manager.cine2pic as cine2pic
 
-import stephane.manager.ref_movie as ref_movie
-import stephane.manager.file_architecture as file_architecture
-import stephane.manager.cine2pic as cine2pic
-
-import stephane.tools.browse as browse
-import stephane.tools.rw_data as rw_data
-import stephane.cine as cine
+import turbulence.tools.browse as browse
+import turbulence.tools.rw_data as rw_data
+import turbulence.cine as cine
 
 import argparse
 import os.path
@@ -51,6 +53,7 @@ def  main(date):
     #if the directory is not specified, look automatticlly in grid_turbulence folders
     if args.folder is None:
         args.folder = file_architecture.get_dir(date)
+
     process(args.folder)
     list_item = glob.glob(args.folder+'/*')
     
@@ -128,7 +131,7 @@ def make_timestep_files(fileList,Dt=1,starts=[],ends=[],Dt_list=[]):
     fileList : list of filename to process
     Dt : int. timestep to be applied. Default value : 1
         Rmq : could be switched to a list of timestep and associated start/end indexes for each timestep 
-    Optionnal variables (not implemented yet) : starts, ends and Dt_list to set a list of timestep for different instants in the movie.
+    Optional variables (not implemented yet) : starts, ends and Dt_list to set a list of timestep for different instants in the movie.
     OUTPUT
     -----
     NONE
@@ -200,7 +203,7 @@ def make_result_folder(fileList,type_analysis='Sample',algo='PIVlab',W=32,ratio=
                 Sample : ratio = 10
     algo : string (default value 'PIVlab')
         Name of the PIV algorithm used to processed the data
-    W : int (default value = 16)
+    W : int (default value = 32)
         Window size used for PIV processing.
     ratio : number of images / number of pair of images processed. default value = 10. Can be set to standard values using type_analysis
     OUTPUT

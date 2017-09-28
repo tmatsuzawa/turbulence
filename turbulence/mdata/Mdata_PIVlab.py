@@ -27,8 +27,7 @@ class Mdata_PIVlab(Mdata, object):
         return 'Mdata_PIVlab'
 
     def gen(self, dataDir='', **kwargs):
-        self.fieldnames = {'x': 'x', 'y': 'y', 'ux': 'u',
-                           'uy': 'v'}  # Here is the attributes specific to a PIVlab measurement
+        self.fieldnames = {'x': 'x', 'y': 'y', 'ux': 'u','uy': 'v'}  # Here are the attributes specific to a PIVlab measurement
         self.frmt = 'txt'
         self.im_indexA = []
         self.im_indexB = []
@@ -61,8 +60,7 @@ class Mdata_PIVlab(Mdata, object):
         return Data2D
 
     def read_ref(self, Ref):
-        self.ref_indexA = browse.get_number(self.ref_Header[1], 'A: im', '.tiff',
-                                            from_end=False)  # nimage names are localized in the second line of the ASCII file
+        self.ref_indexA = browse.get_number(self.ref_Header[1], 'A: im', '.tiff', from_end=False)  # image names are localized in the second line of the ASCII file
         self.ref_indexB = browse.get_number(self.ref_Header[1], 'B: im', '.tiff', from_end=False)
         return super(Mdata_PIVlab, self).read_ref(Ref)
 
@@ -81,10 +79,10 @@ class Mdata_PIVlab(Mdata, object):
 
     def set_dimension_init(self, Data):
         """
-        Rescale the data from a 1d array to a 2d data set
+        Returns the size of the 2d array (x,y)
         """
         minx = min(Data[self.fieldnames['x']])
-        miny = max(Data[self.fieldnames['y']])
+        miny = max(Data[self.fieldnames['y']])  # why does this become minimum y? - Takumi 08/15/17
 
         nx = Data[self.fieldnames['x']].count(minx)
         ny = Data[self.fieldnames['y']].count(miny)  # print((nx,ny))
@@ -120,13 +118,13 @@ class Mdata_PIVlab(Mdata, object):
 
         if hasattr(self.Sdata, 'fileCine'):
             if os.path.isfile(self.Sdata.fileCine):
-                times = time_step_sample.get_cine_time(self.Sdata.fileCine, True)
+                times = time_step_sample.get_cine_time(self.Sdata.fileCine, False)   ## If the boolean is True, it may sometimes crush. Log says that it cannot plot NaN values. The source of NaN is unknown. - Takumi 9/28/17
             else:
                 # do a global search using file_architecture.py
                 Dircine = file_architecture.get_dir(self.Id.date)
                 fileCine = Dircine + '/' + os.path.basename(self.Sdata.fileCine)
                 print(fileCine)
-                times = time_step_sample.get_cine_time(fileCine, True)
+                times = time_step_sample.get_cine_time(fileCine, False)  ## If the boolean is True, it may sometimes crush. Log says that it cannot plot NaN values. The source of NaN is unknown. - Takumi 9/28/17
         else:
             times = None
 
@@ -144,12 +142,10 @@ class Mdata_PIVlab(Mdata, object):
                 print(Header)
                 os.remove(filename)
             else:
-                indexA = browse.get_number(Header[1], 'A: im', '.tiff',
-                                           from_end=False)  # name of the image is localized on the second line of the ASCII file
+                indexA = browse.get_number(Header[1], 'A: im', '.tiff', from_end=False)  # name of the image is localized on the second line of the ASCII file
                 indexB = browse.get_number(Header[1], 'B: im', '.tiff', from_end=False)
                 if indexA == 0:  # Header is given in another format
-                    indexA = browse.get_number(Header[1], ': im', '.tiff',
-                                               from_end=False)  # name of the image is localized on the second line of the ASCII file
+                    indexA = browse.get_number(Header[1], ': im', '.tiff', from_end=False)  # name of the image is localized on the second line of the ASCII file
                     indexB = browse.get_number(Header[1], '& im', '.tiff', from_end=False)
                 self.im_indexA[i] = indexA
                 self.im_indexB[i] = indexB
@@ -158,7 +154,10 @@ class Mdata_PIVlab(Mdata, object):
         # print("files un-able to read : "+str(c))
 
         if times is not None:
-            Dt = [times[i] - times[j] for i, j in zip(self.im_indexB, self.im_indexA)]
+            a=self.im_indexA.astype(int)  #Convert a numpy array into int for later use as a counter  -added by takumi 08/15/2017
+            b=self.im_indexB.astype(int)  #Convert a numpy array into int for later use as a counter  -added by takumi 08/15/2017
+
+            Dt = [times[i] - times[j] for i, j in zip(b, a)]
             t = [times[int(i)] for i in self.im_index]
         else:
             Dt = [i - j for i, j in zip(self.im_indexB, self.im_indexA)]

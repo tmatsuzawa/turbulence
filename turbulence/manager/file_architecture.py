@@ -28,6 +28,8 @@ Dir_data.append(distant_root + 'labshared2/Stephane/')
 Dir_data.append(distant_root + 'labshared2/takumi/')
 Dir_data.append(distant_root + 'labshared2/noah/')
 
+Dir_data.append(distant_root + 'labshared3-1/takumi/')
+
 # Dir_data.append(distant_root+'Stephane/Vortices/Stephane/')
 # Dir_data.append(distant_root+'labshared/Stephane_lab1/Vortices/') -> to be analyzed later
 
@@ -91,13 +93,11 @@ def get_dir(date):
     for Dir in Dir_data:
         if os.path.isdir(Dir + date):
             Dirdata.append(Dir + date)
-            print ('here1')
 
     if not Dirdata:
         print('No folder found for ' + date)
         return ''
     if len(Dirdata) == 1:
-        print ('here2')
         return Dirdata[0]
     if len(Dirdata) > 1:
         #        print('Multiple choice of directory, make a choice among :')
