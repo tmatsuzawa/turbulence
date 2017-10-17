@@ -200,7 +200,7 @@ def compute_spectrum_1d_within_region(mm, radius=None, polygon=None, display=Fal
 
 
 def energy_spectrum_2d(mm, display=False, field='E', Dt=10):
-    """Compute the 2 dimensionnal energy spectrum of a Mdata class instance
+    """Compute the 2 dimensional energy spectrum of a Mdata class instance
 
     Parameters
     ----------
@@ -222,7 +222,7 @@ def energy_spectrum_2d(mm, display=False, field='E', Dt=10):
     ky : 2d np array
         wave-vector along y
     """
-    data = access.get_all(mm, field)
+    data = access.get_all(mm, field)  #data is a 3d numpy array (x,y,t) which contains energy values
     S_E, kx, ky = spectrum_2d(data, mm, Dt=Dt)
     return S_E, kx, ky
 
@@ -255,20 +255,23 @@ def spectrum_2d(yy, M=None, dx=None, Dt=5, display=False, display_frames=None):
     nx, ny, nt = yy.shape
     # kx=np.arange(-(nx-1)/2,(nx-1)/2+1,1)
     # ky=np.arange(-(ny-1)/2,(ny-1)/2+1,1)
-    kx, ky = np.mgrid[-nx / 2:nx / 2:complex(0, nx), -ny / 2:ny / 2:complex(0, ny)]
+    kx, ky = np.mgrid[-nx / 2: nx / 2: complex(0, nx), -ny / 2: ny / 2: complex(0, ny)]
 
-    # distance between two measure in mm
+    # distance between two measures in mm
     if M is not None:
         dx = np.mean(np.diff(M.x))
         #    print('dx : ' +str(dx))
         if dx == 0:
             dx = 1
     elif dx is None:
-        dx = 1
-    # Note that otherwise dx = supplied dx
+        dx = 1      # Note that otherwise dx = supplied dx
 
+    # Compute kx and ky
+    kx *= 2*np.pi
+    ky *= 2*np.pi
     kx /= (dx * nx)
     ky /= (dx * ny)  # in mm^-1
+
     #   print(np.shape(E))
     # yy=basics.smooth(yy,Dt)
 
@@ -276,7 +279,7 @@ def spectrum_2d(yy, M=None, dx=None, Dt=5, display=False, display_frames=None):
     # print 'Fourier: result = ', result
     vel3d = result[0]  # cdata.rm_nans([E])
 
-    #    print(np.where(np.isnan(E)))
+    # print(np.where(np.isnan(E)))
     # S_E = np.zeros(np.shape(yy))
     s_e = np.abs(np.fft.fftn(vel3d, axes=(0, 1))) * dx ** 2 / (nx * ny)
     s_e = np.fft.fftshift(s_e, axes=(0, 1))
