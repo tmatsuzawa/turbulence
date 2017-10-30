@@ -6,8 +6,7 @@ import turbulence.tools.browse as browse
 import turbulence.jhtd.cutout as cutout
 import datetime
 
-'''
-'''
+
 
 
 def read(file, key_type=u'u'):
@@ -23,7 +22,7 @@ def read(file, key_type=u'u'):
 
     OUTPUT
     ------
-    return a dictionnary with same keys as the initial set, each field containing one time step
+    return a dictionary with same keys as the initial set, each field containing one time step
     """
     f = h5py.File(file, 'r')
     # print(f.keys())
@@ -85,7 +84,7 @@ def generate_log(files_fail, date=None, rootdir='/Users/npmitchell/Dropbox/Soft_
         date = datetime.date
 
     dirbase = rootdir + 'spatial_measurement_2d_' + date + '/'
-    List_key = ['zl', 'yl', 'xl', 't0', 'tl', 'y0', 'x0', 'z0']
+    List_key = [ 't0', 'x0', 'y0', 'z0', 'tl', 'xl', 'yl', 'zl']  # These parameters were what you used to download cut-out data from JHTD.
 
     log_file = dirbase + 'log.txt';
     f_log = open(log_file, 'w')
@@ -102,6 +101,30 @@ def generate_log(files_fail, date=None, rootdir='/Users/npmitchell/Dropbox/Soft_
 
 
 def get_parameters(file):
+    """
+    If the hdf5 file is named like "isotropic1024_zl_20_yl_20_xl_20_coarse_t0_0_tl_1_y0_0_x0_0_z0_0_",
+    this method gets each parameter values.
+
+    Parameters
+    ----------
+    file: str
+        a definite path to the hdf5 file
+
+    Returns
+    -------
+    param: dict
+        parameter names and values read from the name of the hdf5 file
+    """
+    List_key = ['zl', 'yl', 'xl', 't0', 'tl', 'y0', 'x0', 'z0']
+
+    param = {}
+    for k in List_key:
+        param[k] = int(browse.get_string(file, '_' + k + '_', end='_', display=False))
+    k = List_key
+
+    return param
+
+def get_parameters_isotropic(file):   ##use this method to get parameters for the isotropic data
     """
 
     Parameters

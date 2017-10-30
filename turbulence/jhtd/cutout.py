@@ -18,6 +18,15 @@
 # Website: http://turbulence.pha.jhu.edu/
 #
 ########################################################################
+# Notes by Takumi 10/18/17
+# Running main() causes... IOError: Unable to open file (File signature not found)
+# Apparently, this is an error many people get.
+# It is believed this is caused because the method is trying to cut out hdf5 files but the original data is hdf4.
+# For the time being, it is far easier to get data from the website.
+# If you want to use get_parameters() from /turbulence/jhtd/get, change the name of the file like "jhtdb_data_zl_256_yl_256_xl_1_t0_0_tl_1_y0_0_x0_512_z0_0"
+
+
+
 
 import os
 import sys
@@ -42,16 +51,20 @@ def get_cutout(
         z0=0, zl=16,
         data_set='isotropic1024coarse',
         data_type='u',
-        #        auth_token = 'edu.jhu.pha.turbulence.testing-201311',
-        auth_token='edu.uchicago.sperrard-9cf78a64',
-        base_website='dsp033.pha.jhu.edu'):
+        #auth_token = 'edu.jhu.pha.turbulence.testing-201311',
+        #auth_token='edu.uchicago.sperrard-9cf78a64',
+        auth_token='edu.uchicago.tmatsuzawa-5e4905e2',
+        #base_website='dsp033.pha.jhu.edu'
+        base_website='turbulence.pha.jhu.edu'
+        ):
+
     url = ('http://{0}/jhtdb/getcutout/{1}/{2}/{3}/'.format(base_website, auth_token, data_set, data_type)
            + '{0},{1}/'.format(t0, tl)
            + '{0},{1}/'.format(x0, xl)
            + '{0},{1}/'.format(y0, yl)
            + '{0},{1}/'.format(z0, zl))
     """
-# auth_token =  'edu.uchicago.sperrard-9cf78a64',
+# auth_token =  'edu.uchicago.tmatsuzawa-5e4905e2',
         base_website = 'turbulence.pha.jhu.edu'):
     url = ('http://{0}/cutout/download.aspx/{1}/{2}/{3}/'.format(
                 base_website, auth_token, data_set, data_type)
@@ -66,9 +79,9 @@ def get_cutout(
         ncomponents = 1
     elif data_type in ['ub']:
         ncomponents = 6
-    # print('Retrieving h5 file, size {0} MB = {1} MiB.'.format(
-    #            xl*yl*zl*ncomponents * 4. / 10**6,
-    #            xl*yl*zl*ncomponents * 4. / 2**20))
+    print('Retrieving h5 file, size {0} MB = {1} MB.'.format(
+                xl*yl*zl*ncomponents * 4. / 10**6,
+                xl*yl*zl*ncomponents * 4. / 2**20))
     if os.path.isfile(filename + '.h5'):
         os.remove(filename + '.h5')
 
@@ -94,7 +107,7 @@ def get_big_cutout(filename='tst',
                    chunk_zdim=16,
                    data_set='isotropic1024coarse',
                    data_type='u',
-                   auth_token='edu.uchicago.sperrard-9cf78a64',
+                   auth_token='edu.uchicago.tmatsuzawa-5e4905e2',
                    base_website='turbulence.pha.jhu.edu'):
     big_data_file = h5py.File(filename + '.h5', mode='w')
     xchunk_list = [chunk_xdim for n in range(int(xl / chunk_xdim))]
@@ -269,7 +282,8 @@ def date():
 
 
 def main():
-    dirbase = '/Users/stephane/Documents/JHT_Database/Data/Spatial_measurement_2d/' + date() + '/'  # '#_2016_04_11/'
+    #dirbase = '/Users/stephane/Documents/JHT_Database/Data/Spatial_measurement_2d/' + date() + '/'  # '#_2016_04_11/'
+    dirbase = '/Volumes/labshared3-1/takumi/JHTD-sample/JHT_Database/Data/Spatial_measurement_2d/' + date() + '/'  # '#_2016_04_11/'
     print(date())
     #    input()
 
@@ -277,12 +291,19 @@ def main():
     keys = ['t0', 'x0', 'y0', 'z0', 'tl', 'xl', 'yl', 'zl']
 
     if not os.path.isdir(directory):
-        print("Not a directory")
+        print("The directory does not exist... make one.")
         os.makedirs(directory)
 
     N = 256
     Nt = 1024
     N0 = 0
+    x0 = 512
+    y0 = 0
+    z0 = 0
+    tl = 1
+    xl = 1
+    yl = N
+    zl = N
     t = range(Nt)  # ,2**4)#[256]#range(N/2**6)
 
     log_file = dirbase + 'log.txt';
@@ -291,7 +312,7 @@ def main():
 
     for t0 in t:
         print(t0)
-        values = [t0, 512, 0, 0, 1, 1, N, N]  # [indices[i][j] for j in range(d+1)]+[nt,nx,ny,nz]
+        values = [t0, x0, y0, z0, tl, xl, N, N]  # [indices[i][j] for j in range(d+1)]+[nt,nx,ny,nz]
         dset = {key: values[j] for j, key in enumerate(keys)}
 
         dir_current = directory + convert_dict(dset) + '/'
@@ -354,6 +375,9 @@ def recover(log_file):
             z0=dset['z0'], zl=dset['zl'],
             data_set='isotropic1024coarse',
             data_type=data_type, filename=name)
+        f0 = h5py.File('tst.h5', mode='r')
+        print((data_type, f0['_contents'][:]))
+        f0.close()
 
 
 if __name__ == '__main__':

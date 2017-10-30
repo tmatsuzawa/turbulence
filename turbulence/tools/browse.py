@@ -79,7 +79,7 @@ def get_end(s,start,end=0,shift=0,display=False):
     
 def get_string(s,start,end='',shift=0,display=False,from_end=False):
     """ This function returns the name of the file without extension
-        e.g. browse.get_string('awesome_video.cine', '', end='.cine') returns 'awesome_video'
+        e.g. browse.get_string('awesome_video.cine', start='', end='.cine') returns 'awesome_video'
     Parameters
     ----------
 

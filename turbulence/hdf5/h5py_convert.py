@@ -1,4 +1,3 @@
-
 """
 Store a dictionary into a hdf5 file
 Look recursively for any dictionary contained
@@ -12,9 +11,9 @@ import os.path
 import copy
 
 
-def convert(obj ,L=[] ,t=0):
+def convert(obj, L=[], t=0):
     """
-    Convert recursively an homemade class to a dictionnary.
+    Convert recursively an homemade class to a dictionary.
     If a loop between homemade class instance is detected, cut the loop.
     INPUT
     -----
@@ -22,18 +21,18 @@ def convert(obj ,L=[] ,t=0):
     OUTPUT
     -----
     """
-    types = ['stephane' ,'instance']
-    if type(obj ) ==dict:
+    types = ['stephane', 'instance']
+    if type(obj) == dict:
         return obj
     elif True in [a in str(type(obj)) for a in types]:
-        name = copy.deepcopy(getattr(obj ,'__name__')())
+        name = copy.deepcopy(getattr(obj, '__name__')())
         if not name in L:
             L.append(name)
-            D = copy.deepcopy(getattr(obj ,'__dict__'))
+            D = copy.deepcopy(getattr(obj, '__dict__'))
 
             for key in D.keys():
                 #   print(key)
-                if t< 10:
+                if t < 10:
                     attr = copy.deepcopy(getattr(obj, key))
                     D[key] = convert(attr, L=L, t=t + 1)
 
@@ -224,7 +223,7 @@ def open(filename, typ='r'):
 
 def load_dict(data):
     """
-    Transform a h5py group into a dictionnary. Recursive function
+    Transform a h5py group into a dictionary. Recursive function
     """
     return load_rec(data)
 
