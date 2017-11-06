@@ -87,7 +87,7 @@ def compute_spectrum_2d(M, Dt=10):
     return S_E, kx, ky
 
 
-def compute_spectrum_1d(mm, Dt=10):
+def compute_spectrum_1d(M, Dt=10, nkout=40):
     """
 
     Parameters
@@ -98,9 +98,9 @@ def compute_spectrum_1d(mm, Dt=10):
     Returns
     -------
     """
-    S_k, k = energy_spectrum_1d(mm, display=False, Dt=Dt)
-    setattr(mm, 'k', k)
-    setattr(mm, 'S_k', S_k)
+    S_k, k = energy_spectrum_1d(M, nkout, display=False, Dt=Dt)
+    setattr(M, 'k', k)
+    setattr(M, 'S_k', S_k)
     return S_k, k
 
 
@@ -299,13 +299,14 @@ def spectrum_2d(yy, M=None, dx=None, Dt=5, display=False, display_frames=None):
     return s_e, kx, ky
 
 
-def spectrum_1d(yy, M=None, display=False, Dt=5):
-    """Compute the 1 dimensionnal energy spectrum of yy
+def spectrum_1d(yy, M=None, display=False, Dt=5, nkout=40):
+    """Compute the 1 dimensional energy spectrum of yy
     The computation is done by averaging over circles in k space from a 2d spectrum
 
     Parameters
     ----------
-    m : Mdata class instance, or any other object that contains the following fields :
+
+    M : Mdata class instance, or any other object that contains the following fields :
         methods : shape()
         attributes : Ux, Uy
     display : bool. Default False
@@ -382,7 +383,7 @@ def spectrum_1d(yy, M=None, display=False, Dt=5):
     return S_k, kbin[:-1]
 
 
-def energy_spectrum_1d(M, display=False, Dt=10):
+def energy_spectrum_1d(M, nkout=40, display=False, Dt=10):
     """Compute the 1 dimensionnal energy spectrum of a Mdata class instance
     The computation is done by averaging over circles in k space from a 2d spectrum
 
@@ -406,12 +407,12 @@ def energy_spectrum_1d(M, display=False, Dt=10):
     # compute the fft 2d, then divide in slices of [k,k+dk]
     print('Fourier.energy_spectrum_1d(): Compute 2d fft')
     s_e, kx, ky = energy_spectrum_2d(M, display=False, Dt=Dt)
-    S_k, kbin = spectrum_2d_to_1d_convert(s_e, kx, ky, dt=Dt)
+    S_k, kbin = spectrum_2d_to_1d_convert(s_e,  kx, ky, nkout,  dt=Dt)
 
     return S_k, kbin
 
 
-def spectrum_2d_to_1d_convert(s_e, kx, ky, dt=10, nkout=30, verbose=False):
+def spectrum_2d_to_1d_convert(s_e, kx, ky, nkout=40, dt=10, verbose=False):
     """Convert a 2d spectrum s_e computed over a grid of k values kx and ky into a 1d spectrum computed over k
 
     Parameters
@@ -424,6 +425,7 @@ def spectrum_2d_to_1d_convert(s_e, kx, ky, dt=10, nkout=30, verbose=False):
         input wavenumbers' y components, as np.array([[y0, y0, y0, y0, ...], [y1, y1, y1, y1, ...], ...]])
     nkout : int
         approximate length of the k vector for output; will be larger since k values smaller than 1/L will be removed
+        number of bins for the output k vector
 
     Returns
     -------
@@ -714,9 +716,7 @@ def main():
     for i, indice in enumerate(indices):
         label = labels[i]
 
-        M = Mlist2[indice]
-
-        t, E_t = display_fft_vs_t(M, '1d', Dt=20, label=label)
+        # t, E_t = display_fft_vs_t(M, '1d', Dt=20, label=label)
         #
         #    for M in M_log:
         #      energy_spectrum_2d(M,True)

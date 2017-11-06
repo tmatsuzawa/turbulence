@@ -453,9 +453,9 @@ def color_plot(x, y, z, fignum=1, vmin=0, vmax=0, log10=False, show=False, cbar=
     # Note that the cc returned is a matplotlib.collections.QuadMesh
     # print('np.shape(z) = ' + str(np.shape(z)))
     if vmin == vmax == 0:
-        cc = plt.pcolormesh(x, y, z)
+        cc = plt.pcolormesh(x, y, z, cmap='jet')
     else:
-        cc = plt.pcolormesh(x, y, z, vmin=vmin, vmax=vmax)
+        cc = plt.pcolormesh(x, y, z, cmap='jet',vmin=vmin, vmax=vmax)
 
     if cbar:
         colorbar()
