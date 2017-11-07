@@ -1,14 +1,18 @@
+# import cine
 import os.path
-# import h5py
+import h5py
 import dpath
+
 import turbulence.mdata
 import turbulence.mdata.Id as Id
 import turbulence.mdata.param as param
 import turbulence.tools.pickle_m as pickle_m
 import turbulence.hdf5.h5py_convert as to_hdf5
+# You cannot import h5py_convert from /Users/stephane/Documents/git/stephane/turbulence
+# Doing so causes a weird error, and makes impossible for h5py_convert.py to convert Sdata objects to groups and numpy arrays.
+
 import glob
 import turbulence.manager.file_architecture as file_architecture
-import sys
 
 '''Define the Sdata class, which contains
 parameter, id, and association to its physical location
@@ -27,15 +31,15 @@ lots of calls to this class. -npm 20170723
 
 class Sdata(object):
     def __init__(self, generate=True, **kwargs):
-        # Physical location of the raw data, of the measure, and of the present object (in pickle file)
+        ######### Physical location
+        # of the raw data, of the measure, and of the present object (in pickle file)
         # filename of the associated cine file (without the dir!)
         if generate:
-            # initializing attributes outside __init__ is bad form... for now we do it here -npm
             self.gen(**kwargs)
-        else:  # generate an empty object
+        else:  # generate an emppty object
             self.Id = Id.Id(self, index=-1, mindex=0)
             self.param = param.param(self, generate=False)
-            print("initialized")
+            #  print("initialized")
 
     def __name__(self):
         return 'Sdata'
@@ -75,13 +79,13 @@ class Sdata(object):
             except:
                 print("Pickle object cannot be read anymore")
                 pass
-
-        # Parameters
+        #########Parameters
         print '<><><><><><><>Reading Experimental Parameters<><><><><><><>'
         #######Experimental parameters are read from a setup file or manually typed, and these values are stored as a param class object. The param class object is now attributed to the generated Sdata object.
-        self.param = param.param(self)   # Let Sdata class object has an attribute of a param class object.
+        self.param = param.param(self)  # Let Sdata class object has an attribute of a param class object.
         print 'Read from a setup file...'
-        self.param.load_exp_parameters(fileParam)   # Read experimental paramters from a setup file or manual input, and add them as attrubutes of param
+        self.param.load_exp_parameters(
+            fileParam)  # Read experimental paramters from a setup file or manual input, and add them as attrubutes of param
         print '... Done'
 
         print 'Read from a cine filename...'
@@ -94,6 +98,10 @@ class Sdata(object):
         print '<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>'
         self.save_param()
 
+        ###########Measurements
+        # no more measure associated to the Sdata : it contains only the parameter, id, and association to its physical location
+
+        # self.m=measure.M(self,dirData)
 
     def get_filename(self, frmt):
         return self.fileDir + "Sdata_" + self.Id.get_id() + frmt
@@ -110,7 +118,8 @@ class Sdata(object):
         #  print(self.fileCine)
 
     def load_all(self, source=None):
-        """Load the data from various possible sources :
+        """
+        Load the data from various possible sources :
         pickle file
         json file
         h5py
@@ -125,8 +134,8 @@ class Sdata(object):
 
         print 'Sdata.load_all(): Attempting to load from hdf5...'
         f = to_hdf5.open(filename)
-
-
+        # print(f['Sdata'].keys())
+        # names_search = ['mdata.'+name for name in names]
         if 'Id' in f['Sdata'].keys():
             print "Sdata.load_all(): loading with self.load(fi['Sdata']) since key 'Id' is in hdf5['Sdata']..."
             self.load(f['Sdata'])
@@ -136,20 +145,20 @@ class Sdata(object):
             names = ['Sdata', 'param', 'Id']
             for name in names:
                 self.load_rec(f, name)
+
                 #    print(self.param)
         f.close()
 
     def load_measures(self, frmt='.hdf5'):
-        """Look for measurements associated to this cine file, and if so, load them in Mdata objects,
-            and return a list of the Mdata objects.
-            Should it be inserted direcly in the Sdata object ?
-            -> It could be problematic for the storage, but simpler from a coding point of view.
+        import turbulence.mdata.M_manip as M_manip
         """
-
-        fileList_M = glob.glob(
-
-            file_architecture.os_c(self.dirCine) + 'M_' + self.Id.date + '/M_' + self.Id.date + '_' + str(
-                self.Id.index) + '_*' + frmt)
+        Look for measurements associated to this cine file, and if so, load them in Mdata objects, 
+        and return a list of them.
+        Should it be inserted direcly in the Sdata object ? 
+        -> It could be problematic for the storage, but simpler from a coding point of view.
+        """
+        fileList_M = glob.glob(file_architecture.os_c(self.dirCine) + 'M_' + self.Id.date + '/M_'
+                    + self.Id.date + '_' + str(self.Id.index) + '_*' + frmt)
 
         Mlist = []
         # print("Data processed found at : "+str(fileList_M))
@@ -158,21 +167,6 @@ class Sdata(object):
             Mlist.append(M_manip.load_Mdata_file(filename, data=True))
 
         return Mlist
-        # import turbulence.mdata.M_manip as M_manip
-        # searchstr = file_architecture.os_c(self.dirCine) + 'M_' + self.Id.date + '/M_' + self.Id.date + '_' +\
-        #             str(self.Id.index) + '_*' + frmt
-        # print('Sdata.Sdata.load_measures(): Looking for ' + searchstr + '...')'' \
-        #                                                                       ''
-        # filelist_m = glob.glob(searchstr)
-        # if not filelist_m:
-        #     print 'filelist_m is empty'
-        #     sys.exit()
-        #
-        # mlist = []
-        # # print("Data processed found at : "+str(fileList_M))
-        # for filename in filelist_m:
-        #     mlist.append(M_manip.load_Mdata_file(filename, data=True))
-        # return mlist
 
     def load_measure(self, indice=0, frmt='.hdf5'):
         import turbulence.mdata.M_manip as M_manip
@@ -199,7 +193,7 @@ class Sdata(object):
             if name == key_fix:
                 getattr(self, 'load')(f[key_fix + key][keys[0]])
             else:
-                obj = getattr(getattr(turbulence.mdata, name), name)(generate=False)
+                obj = getattr(getattr(stephane.mdata, name), name)(generate=False)
                 setattr(self, name, obj)
                 getattr(getattr(self, name), 'load')(f[key_fix + key][keys[0]])
                 #   print("done")
@@ -225,6 +219,7 @@ class Sdata(object):
         print(self.param.fileParam)
         # look for the param file
         print(self.param.Sdata.fileCine)
+
         # save the experimental parameters in a Ref file (smart !)
         # thwen the param file in pickle format will become obsolete
         #   if not os.path.exists(self.param.fileParam):
@@ -234,10 +229,6 @@ class Sdata(object):
         #       print("already exist, skip")
 
     def read_param(self):
-        """
-        Returns
-        -------
-        """
         print('Reading Parameters from param file')
         # try to read a Sdata and put it in a param object !!
         fileParam = self.param.fileParam
@@ -272,30 +263,22 @@ class Sdata(object):
         self.param.fileParam = fileParam
         print(self.param.fileParam)
 
+    # Write the Sdata in the indicate filename
     def write(self):
-        """Write the Sdata in the hdf5 file
-            The data organization is just a mess right now. Sdata class object stores only experimental parameters,
-            but this method generates a hdf5 file for that. Surely, there is a more straightforward way to organize
-            actual PIV data (velocity field) and experimental parameters.
-            Unfortunately, I do not still have a clear picture how data is transferred to generate a hdf5 files.
-            I will keep trying to understand this "philosophy" of data handling before I make a change to clarify the
-            data handling procedure.  - Takumi
-
-        """
-        # im_ref is a matrix which probably stores grayscale values of a certain frame.
-        # This information at a sample frame IS ACTUALLY STORED in the param class object!!! i.e.- self.param.im_ref  - takumi
+        ############# Depreciated
         print("Writing Sdata in hdf5 file")
+
         self.im_ref = None
         # write the Sdata object in a .txt file using the package pickle
         # The filename is directly determined from the Identification number
         # default name for the file containing the data
-        self.filename = self.fileDir + "Sdata_" + self.Id.get_id()
 
         print '-------------------------'
         print 'Sdata.filename is...'
-        print self.filename     # This filename becomes a name of a hdf5 file
-                                # filename is not a good name of the attribute. Sdata already has attributes like fileParam and filename_param
+        self.filename = self.fileDir + "Sdata_" + self.Id.get_id()
+        print self.filename
         print '-------------------------'
+
         self.write_hdf5()
         #        pickle_m.write(self,self.filename+'.txt')
 
@@ -313,6 +296,7 @@ class Sdata(object):
             #   @staticmethod
             # def load_measure(self):
             #    self.m.loadData()
+
 
             # def update(self,Dir_PIV):
             # compare the current dimensions of the data (must be stored in the parameter file for a better efficiency!)

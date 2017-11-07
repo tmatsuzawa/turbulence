@@ -30,8 +30,10 @@ def Measure_gen_day(date):
 
 
 def Measure_gen_serie(S):
-    """look for every data files associated to this cine. the Dir name must contained explicitly cinefile name
-    sorted by date of creation"""
+    """
+    Look for every data files associated to this cine. the Dir name must contained explicitly cinefile name
+    sorted by date of creation
+    """
     # generate a bunch of M objects
     Dir = os.path.dirname(S.fileCine)
     Dir = file_architecture.os_c(Dir)
@@ -72,7 +74,6 @@ def Measure_gen_serie(S):
                 print('')
                 print('skip')
                 print('')
-
 
 def M_gen(S, dataDir, mindex, typ='Mdata'):
     if typ == 'Mdata':

@@ -449,9 +449,6 @@ class Mdata(object):
         else:
             return None
 
-    def get_cut(self):
-        print("crazy")
-
     def compute(self, field, **kwargs):
         return vgradient.compute(self, field, **kwargs)
 

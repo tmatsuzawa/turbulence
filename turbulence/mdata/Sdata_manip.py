@@ -1,42 +1,48 @@
 import os.path
+# import time
+import sys
+sys.path.append('/Users/stephane/Documents/git/stephane/')
 import turbulence.manager.file_architecture as file_architecture
+
 import turbulence.tools.pickle_m as pickle_m
 import turbulence.tools.browse as browse
-from turbulence.mdata.Sdata import Sdata
+from stephane.mdata.Sdata import Sdata   ### THIS HAS TO BE FIXED SOON!!! - Takumi 9/28/17
+
 import turbulence.tools.rw_data as rw_data
+
 import turbulence.tools.pickle_2json as p2json
 
-"""
-"""
 
-
-# Sdata_gen_day is called by Data_load
 def Sdata_gen_day(date):
     # find the location of the data for a given date
     fileDir = file_architecture.get_dir(date) + '/'
 
     print 'Name of Directory Being Processed: ' + fileDir
     #    print(fileDir)
+
     cineList, n = browse.get_fileList(fileDir, 'cine', display=True)
-    print cineList
-
-    Slist = []  #Why is this called "failure"????? -tmatsu
+    print(cineList)
+    failure = []
     for name in cineList:
-        S = Sdata_gen(name, cineList.index(name))
-        if not S is None:
-            Slist.append(S)
-
+        #  print(name)
+        output = Sdata_gen(name, cineList.index(name))
+        if not output is None:
+            failure.append(output)
 
     n = len(cineList)
     dict_day = {'Names': cineList, 'Index': range(n)}
-    print(dict_day)  #print cine filenames and associated indicies
+    print(dict_day)
     filename = fileDir + 'Sdata_' + date + '/Cine_index_' + date + '.txt'
     rw_data.write_a_dict(filename, dict_day)
 
-    return Slist
+    print '!!!!!!!!!!!!'
+    print(failure)
+    print '!!!!!!!!!!!!'
+
+    return failure
 
 
-def Sdata_gen(cineFile, index):  #Called by
+def Sdata_gen(cineFile, index):
     """
 
     Parameters
@@ -51,36 +57,35 @@ def Sdata_gen(cineFile, index):  #Called by
     """
     failure = None
     # print(cineFile)
-
+    base = browse.get_string(os.path.basename(cineFile), '', end='.cine')
     # find the file where exp. parameters are given
-    base = browse.get_string(os.path.basename(cineFile), '', end='.cine') # Get the name of cineFile like "awesome_video" from "//path/to/.../awesome_video.cine"
 
     fileDir = os.path.dirname(cineFile) + '/'
 
-    fileList, n = browse.get_fileList(fileDir, 'txt', root='Setup_file_Reference_', display=True, sort='date') # Get the Setup_file(s) from the directory, n is the number of Setup files
+    fileList, n = browse.get_fileList(fileDir, 'txt', root='Setup_file_Reference_', display=True, sort='date')
 
-    file_param = os.path.dirname(cineFile) + '/' + 'Setup_file_Ref.txt'  # path of the file where relevant experimental parameters such as fx and sample rate is stored.
+    file_param = os.path.dirname(cineFile) + '/' + 'Setup_file_Ref.txt'
 
     print '----Setup txt file(s)---'
     print fileList
     print '------------------------'
 
-
     for f in fileList:
-        s = browse.get_string(f, 'Setup_file_Reference_', end='.txt')  # name of Setup txt file
-        if browse.contain(base, s): # if cineFile is Setup txt file where experimental parameters are stored, True
+        s = browse.get_string(f, 'Setup_file_Reference_', end='.txt')
+        # print(base)
+        # print('extract :'+s)
+        if browse.contain(base, s):
             file_param = f
             # input()
             #    file = os.path.dirname(cineFile)+'/References/Ref_'+base+'.txt'
             #    file = os.path.dirname(cineFile)+'/'+'Setup_file_Ref.txt' #/Volumes/labshared/Stephane_lab1/25015_09_22/References/Ref_PIV_sv_vp_zoom_Polymer_200ppm_X25mm_fps5000_n18000_beta500mu_H1180mm_S300mm.txt'
-            #    print(fitule)
+            #    print(file)
             # try:
     print '----Cine file being processed:----'
     print cineFile
     print '----------------------------'
 
-    # S is a S_data class object which contains Id, param,fileDir,fileCine,dirCine.
-    S = Sdata(fileCine=cineFile, index=index, fileParam=file_param)  # from turbulence.mdata.Sdata
+    S = Sdata(fileCine=cineFile, index=index, fileParam=file_param)
     print '----------------------------'
     print 'Sdata class object S is created!'
     print 'Attributes of S are...'
@@ -161,6 +166,33 @@ def load_measures(Slist, indices=0):
                 Mlist.append(None)
     return Mlist
 
+def load_measures_single(S, indices=0):
+    """
+
+    Parameters
+    ----------
+    S: Sdata object
+    indices
+
+    Returns
+    -------
+
+    """
+
+    output = S.load_measures()
+    # sort ouput by length
+    # print(output)
+    output = sorted(output, key=lambda s: (s.shape()[2], s.shape()[1]))
+    print(output)
+    if indices is None:
+        M=output
+    else:
+        if not output == []:
+            M=output[indices]
+        else:
+            print('Sdata unprocessed')
+            M=None
+    return M
 
 def load_all():
     # for all the subdir in rootDir, find all the cine files and their associated Sdata.
@@ -181,6 +213,7 @@ def load_Sdata(date, index, mindex=0):
     filename = getloc(date, index, mindex)
     S = load_Sdata_file(filename)
     return S
+
 
 
 def read(filename, data=False):

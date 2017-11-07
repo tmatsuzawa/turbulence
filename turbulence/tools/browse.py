@@ -7,6 +7,7 @@ tweaked by Takumi Matsuzawa 9/14/17
 import glob
 import os.path
 
+
 def get_fileList(fileDir,frmt,root='',display=False,sort='date'):
     """ Returns the list of files with format, frmt with the number of the files
 
