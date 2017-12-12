@@ -220,17 +220,95 @@ def saveDir(file,post=''):
         
     return Dir,root
 
-#file = '/Volumes/labshared/Stephane_lab1/2015_09_22/PIV_sv_vp_zoom_Polymer_200ppm_X25mm_fps5000_n18000_beta500mu_H1180mm_S300mm.cine'
 
-#file='/Volumes/labshared/Stephane_lab1/25015_09_22/PIV_sv_vp_zoom_zoom_Polymer_200ppm_X25mm_fps5000_n18000_beta500mu_H1180mm_S300mm.cine'
-#file='/Volumes/labshared3/Stephane/Experiments/Accelerated_grid/2015_08_03/PIV_bv_hp_zoom_Dt05000fps_n15000_alpha500mu_X0mm_Zm150mm_fps5000_H1180mm_S300mm_2.cine'
-#file='/Volumes/labshared3/Stephane/Experiments/Accelerated_grid/2015_08_03/PIV_bv_hp_zoom_Dt05000fps_n15000_alpha500mu_X0mm_Zm150mm_fps5000_H1180mm_S300mm_1.cine'
-#file='/Volumes/labshared3/Stephane/Experiments/Accelerated_grid/2015_08_03/PIV_bv_hp_zoom_Dt05000fps_n15000_alpha500mu_X0mm_Zm75mm_fps5000_H1180mm_S300mm_1.cine'
-#cine2tiff(file,'File',2,start=17900,stop=18000,post='_File')
-        
-#file='/Volumes/labshared/Stephane_lab1/25015_09_22/PIV_sv_vp_zoom_zoom_Polymer_200ppm_X25mm_fps5000_n18000_beta500mu_H1180mm_S300mm_2.cine'
-#file='/Volumes/labshared3/Stephane/Experiments/Accelerated_grid/2015_08_03/PIV_bv_hp_zoom_Dt05000fps_n15000_alpha500mu_X0mm_Zm150mm_fps5000_H1180mm_S300mm_2.cine'
-#file='/Volumes/labshared3/Stephane/Experiments/Accelerated_grid/2015_08_03/PIV_bv_hp_zoom_Dt05000fps_n15000_alpha500mu_X0mm_Zm150mm_fps5000_H1180mm_S300mm_1.cine'
-#file='/Volumes/labshared3/Stephane/Experiments/Accelerated_grid/2015_08_03/PIV_bv_hp_zoom_Dt05000fps_n15000_alpha500mu_X0mm_Zm75mm_fps5000_H1180mm_S300mm_1.cine'
-#cine2tiff(file,'single',10,post='File')
-        
+def cine2tiff_for_pivstacks(file, mode, step, start=0, stop=0, ctime=1, folder='/Tiff_folder', post=''):
+    """
+    Generate a list of tiff files extracted from a cinefile.
+        Different modes of processing can be used, that are typically useful for PIV processings :
+        test : log samples the i;ages, using the function test_sample. Default is 10 intervals log spaced, every 500 images.
+        Sample : standard extraction from start to stop, every step images, with an interval ctime between images A and B.
+        File : read directly the start, stop and ctime from a external file. Read automatically if the .txt file is in format :
+        'PIV_timestep'+cine_basename+.'txt'
+    INPUT
+    -----
+    file : str
+        filename of the cine file
+    mode : str.
+        Can be either 'test','Sample', 'File'
+        single : list of images specified
+        pair : pair of images, separated by a ctime interval
+    step : int
+        interval between two successive images to processed.
+    start : int. default 0
+        starting index
+    stop : int. default 0.
+        The cine will be processed 'till its end
+    ctime :
+    folder : str. Default '/Tiff_folder'
+        Name of the root folder where the images will be saved.
+    post : str. Default ''
+        post string to add to the title of the tiff folder name
+    OUTPUT
+    OUTPUT
+    None
+    """
+    # file : path of the cine file
+
+    try:
+        c = cine.Cine(file)
+    except:
+        print('Cine file temporary unavailable')
+        return None
+
+    print('cine open')
+    print('Length : ' + str(len(c)))
+
+    # get maximum value according to bit depth
+    #   bitmax = float(2**c.real_bpp)
+    # indexList=sampleCine(c,mode,step,start,stop,ctime)
+    if mode == 'test':
+        post = 'test_logSample'
+        indexList, ndigit = test_sample(c, start, stop)
+
+    if mode == 'Sample':
+        # Use that mode : give the
+        #  indexList,ndigit=manual_sampling([1000],[3000],[1],10)
+        indexList, ndigit = manual_sampling([start], [stop], Dt=[step], step=ctime)
+        print(indexList)
+    if mode == 'File':
+        filename = os.path.dirname(file) + '/PIV_timestep_' + os.path.basename(file)[:-5] + '.txt'
+        # print(filename)
+        indexList, ndigit = sample_from_file(filename, step=step)
+        # print(indexList)
+
+    savefile = os.path.dirname(file) + folder + '/' + os.path.basename(file)
+    Dir, root = saveDir(savefile, post + '')
+    #  Dir='/Users/stephane/Documents/Experiences_local/Accelerated_grid/2015_03_21/PIV_bv_hp_Zm80mm_fps10000_H1000mm_zoom_S100mm/'+post+'/'
+    if not os.path.isdir(Dir):
+        os.makedirs(Dir)
+
+    # print(indexList)
+    for index in indexList:
+        # get frames from cine file
+        filename = Dir + root + browse.digit_to_s(index, ndigit) + '.tiff'
+        # save only if the image does not already exist !
+        if not os.path.exists(filename):
+            print(filename, index)
+
+            # # the following conditions were used for 20171127 data (2pt, 40pt per cycle, duty cycle=85%)
+            # if index < len(c):
+            #     if (35 > index % 40 > 0):
+            #         data = c.get_frame(index)
+            #         misc.imsave(filename, data, 'tiff')
+
+            if index < len(c):
+                a = index % 60
+                if (a % 3 != 0) and (a < 51):
+                    data = c.get_frame(index)
+                    misc.imsave(filename, data, 'tiff')
+
+
+
+
+    c.close()
+

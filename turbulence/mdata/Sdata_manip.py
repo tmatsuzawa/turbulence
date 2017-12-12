@@ -152,8 +152,7 @@ def load_measures(Slist, indices=0):
     Mlist = []
     for S in Slist:
         output = S.load_measures()
-        # sort ouput by length
-        # print(output)
+        # sort output by length
         output = sorted(output, key=lambda s: (s.shape()[2], s.shape()[1]))
         print(output)
         if indices is None:

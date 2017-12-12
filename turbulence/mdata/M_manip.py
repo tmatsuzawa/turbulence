@@ -6,9 +6,12 @@ Created on Wed Mar 18 15:57:41 2015
 """
 
 import os.path
+
 import turbulence.tools.pickle_m as pickle_m
 import turbulence.tools.browse as browse
+
 import turbulence.manager.file_architecture as file_architecture
+
 import turbulence.mdata.Sdata_manip as Sdata_manip
 from turbulence.mdata.Mdata import Mdata
 from turbulence.mdata.Mdata_PIVlab import Mdata_PIVlab
@@ -19,21 +22,13 @@ def Measure_gen_day(date):
     Slist = Sdata_manip.load_Sdata_day(date)
     print(Slist)
 
-    #    print(Slist)
     for S in Slist:
-        # try:
         Measure_gen_serie(S)
-        # except:
-        # print(dir(S))
-        # print("Cine file : "+S.fileCine)
-        # print('Fail to check processed PIV data')
 
 
 def Measure_gen_serie(S):
-    """
-    Look for every data files associated to this cine. the Dir name must contained explicitly cinefile name
-    sorted by date of creation
-    """
+    # look for every data files associated to this cine. the Dir name must contained explicitly cinefile name
+    # sorted by date of creation
     # generate a bunch of M objects
     Dir = os.path.dirname(S.fileCine)
     Dir = file_architecture.os_c(Dir)
@@ -75,6 +70,7 @@ def Measure_gen_serie(S):
                 print('skip')
                 print('')
 
+
 def M_gen(S, dataDir, mindex, typ='Mdata'):
     if typ == 'Mdata':
         m = Mdata(S=S, generate=True, dataDir=dataDir, mindex=mindex)
@@ -83,7 +79,7 @@ def M_gen(S, dataDir, mindex, typ='Mdata'):
     if typ == 'pyPIV':
         m = Mdata_pyPIV(S=S, generate=True, dataDir=dataDir, mindex=mindex)
 
-    #    frmt = '.hdf5'
+    # frmt = '.hdf5'
     #    formats = ['.hdf5','.txt']
     #    for frmt in formats:
     #        filename = m.get_filename(frmt=frmt)
@@ -169,8 +165,8 @@ def load_Mdata_serie(date, index=[], mindex=[], data=True):
                 done = True
             else:
                 done = False
-            #            for i,M in enumerate(Mlist):
-            #                M_gen(S,dataDir,mindex,typ='Mdata')
+                #            for i,M in enumerate(Mlist):
+                #                M_gen(S,dataDir,mindex,typ='Mdata')
         if done:
             Mlist.append(M)
         else:

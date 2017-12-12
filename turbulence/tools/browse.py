@@ -183,7 +183,7 @@ def get_dataDir(cinefile,root='/PIV_',frmat='cine',display=True):
             #print(root)
             #print(display)
             #print(Dir)
-            dataDirL,n=get_dirList(Dir,root,display)
+            dataDirL,n = get_dirList(Dir,root,display)
 
             #check if the associated dir is not empty
             keep_indices=[]

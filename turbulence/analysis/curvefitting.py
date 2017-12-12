@@ -1,8 +1,10 @@
 from scipy.optimize import curve_fit
 
+import numpy as np
+import matplotlib.pyplot as plt
+
 '''Shell of a module which echos scipy commands
 '''
-
 
 def fit_data_curvefit(function, xdata, ydata, yerr=None, **kwargs):
     """
@@ -192,6 +194,57 @@ def linear_fit(xdata, ydata, yerr=None):
 
     popt, pcov = fit_data_curvefit(linear, xdata, ydata, yerr)
     return popt, pcov
+
+
+def power_func(x, a, b):
+    y = a * x ** b
+    return y
+
+def power_fit_with_cutoff(xxdata, yydata, cutoff=None):
+    """
+    Power-law fitting (Least Squares Method): convert xdata and ydata to log first, and then do linear fit
+    Note that the `logyerr` term here is ignoring a constant prefactor.
+
+
+    Parameters
+    ----------
+    xdata:
+    ydata:
+    yerr : float, n x 1 float array, or None
+        The error associated with each y data point
+    cutoff: fit data above cutoff
+
+    Returns
+    -------
+    popt : best fit
+    pcov : covariance for fit
+    """
+    xdata = xxdata[cutoff:]
+    ydata = yydata[cutoff:]
+
+
+    logx = np.log10(xdata)
+    logy = np.log10(ydata)
+
+    popt, pcov = linear_fit(logx, logy, yerr=None)
+
+
+    print 'Power fit result (a,b), y=a*x**b: '
+    print popt
+
+    return popt, pcov
+
+def plot_fit_func(x, popt, func='power'):
+    a, b =popt[0], popt[1]
+
+    if func=='power':
+        # Define function for calculating a power law
+        powerlaw = lambda x, a, b:  (x ** a) * (10**b)
+        y = powerlaw(x,a,b)
+        plt.plot(x, y)
+        plt.xlabel('X')
+        plt.ylabel('Y')
+
 
 
 def fit_log_with_cutoff(xx, yy, intensities, intensity_err=None, rlower=0.):
