@@ -15,7 +15,7 @@ import turbulence.tools.browse as browse
 def position(M, field='omega', indices=None, step=1, sigma=1.):
     """
     Measure the position of the min and max of vorticity over time, + their value, + the associated circulation
-    Return a dictionary containing all the values
+    Return a dictionnary containing all the values
     """
 
     Y = access.get_all(M, field)

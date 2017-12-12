@@ -423,57 +423,45 @@ def plot_axes(fig, num):
     # draw_fieldofview(M.Sdata,ax3,view='front')
     return ax
 
-def color_plot(x,y,Z,fignum=1,vmin=0,vmax=0,log10=False,show=False,cbar=False,subplot=111):
-    """
-    Color coded plot
-    INPUT
-    -----
+
+def color_plot(x, y, z, fignum=1, vmin=0, vmax=0, log10=False, show=False, cbar=False):
+    """Color coded plot
+
+    Parameters
+    ----------
     x : 2d numpy array
     y : 2d numpy array
     Z : 2d numpy array
-    OUTPUT
-    ------
-    None
-    	"""
-    fig,ax = set_fig(fignum,subplot=subplot)
-    #ax.axis('off')
+    fignum : int
+    vmin : float
+    vmax : float
+    log10 : bool
+    show : bool
+    cbar : bool
+
+    Returns
+    -------
+    fig
+    ax
+    cc
+    """
+    fig, ax = set_fig(fignum, subplot=111)
 
     if log10:
-        Z = np.log10(Z)
+        z = np.log10(z)
 
-   # vmin=-3
- #   vmax=max([1,log(np.std(Z)*2)])
-  #  Z=np.log(Z)
-#    ax = plot_axes(fig,111)
-#   #  ax.axis('off')
-#     if vmin==vmax==0:
-#         c=plt.pcolormesh(x,y,Z)#,shading='gouraud')
-#     else:
-#         c=plt.pcolormesh(x,y,Z,vmin=vmin,vmax=vmax)
-
+    # Note that the cc returned is a matplotlib.collections.QuadMesh
+    # print('np.shape(z) = ' + str(np.shape(z)))
     if vmin == vmax == 0:
-        c = plt.pcolormesh(x, y, Z, cmap='jet')
+        cc = plt.pcolormesh(x, y, z, cmap='jet')
     else:
-        c = plt.pcolormesh(x, y, Z, cmap='jet',vmin=vmin, vmax=vmax)
+        cc = plt.pcolormesh(x, y, z, cmap='jet',vmin=vmin, vmax=vmax)
 
     if cbar:
         colorbar()
     if show:
         refresh()
-    return fig,ax,c
-
-def get_axis_coord(M,direction='v'):
-    X = M.x
-    Y = M.y
-
-    if hasattr(M,'param'):
-        if M.param.angle==90:
-            Xb = X
-            Yb = Y
-            X = Yb
-            Y = Xb
-
-    return X,Y
+    return fig, ax, cc
 
 
 def get_axis_coord(M, direction='v'):
@@ -602,7 +590,6 @@ def Mplot(M, field, frame, auto_axis=False, step=1, W=None, Dt=None, fignum=1, s
     if n != 0:
         X = X[n:-n, n:-n]
         Y = Y[n:-n, n:-n]
-
     color_plot(X, Y, data[..., 0], show=show, fignum=fignum, vmin=vmin, vmax=vmax, log10=False, cbar=cbar)
     #    time_stamp(M,frame)
     if colorbar == True:
@@ -675,73 +662,6 @@ def movie(M, field, indices=None, compute=False, label='', Dirname='./', trackin
         save_figs(figs, savedir=Dirname, suffix='_' + str(frame), dpi=100, frmt='png', data_save=False)
 
         plt.cla()
-
-
-
-def movie_pivstacks(M, field, indices=None, compute=False, label='', Dirname='./', tracking=False, **kwargs):
-    """
-    Generates png files of heatmap of specified field in specified directory
-
-    Parameters
-    ----------
-    M : M class object
-    field : E, omega, enstrophy
-    indices : tuple
-              e.g. indices=range(500,1000) saves the image files of the specified heatmap between 500-th and 999-th frame
-    compute :
-    label :
-    Dirname : string
-              name of the directory where the image files will be stored
-    tracking :
-    kwargs : keys are vmin, vmax, and possibly more.
-
-    Returns
-    -------
-    """
-    figs = {}
-    if indices == None:
-        nx, ny, nt = M.shape()
-        indices = range(1, nt - 1)
-    if tracking:
-        import turbulence.vortex.track as track
-
-    Dirname = Dirname + 'Movie_' + field + M.Id.get_id() + '/'
-
-
-    fignum = 1
-    fig, ax = set_fig(fignum, subplot=111)
-    plt.clf()
-
-    start = True
-    for frame in indices:
-        #figs.update(Mplot(M, field, frame, compute=compute, **kwargs))
-        fig = Mplot(M, field, frame, compute=compute, **kwargs)
-
-        if tracking:
-            tup = track.positions(M, frame, field='omega', display=False, sigma=3., fignum=fignum)
-            # print(tup)
-            graph([tup[0]], [tup[2]], label='ro', linewidth=3, fignum=fignum)
-            graph([tup[1]], [tup[3]], label='bo', linewidth=3, fignum=fignum)
-
-        if start:
-            colorbar(label=label)
-            start = False
-
-        Mplot(M, 'E', frame, vmin=0, vmax=1 * 10 ** 5, fignum=1)
-        colorbar()
-
-        # print(Dirname)
-        slicenumber = frame % 17
-        Dirname_new = Dirname + 'slice' + str(slicenumber) + '/'
-        filename = Dirname_new + 'E_' + str(frame) + '.png'
-        save_figs(figs, savedir=Dirname_new, suffix='_' + str(frame), dpi=100, frmt='png', data_save=False)
-
-        plt.cla()
-
-
-
-
-
 
 
 def time_stamp(M, ii, x0=-80, y0=50, fignum=None):
