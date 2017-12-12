@@ -26,7 +26,7 @@ Eventually we will roll these into methods of a vortex_collision class, but for 
 date = '2017_06_30'
 # savedir = '/Users/stephane/Documents/Experiences_local/Results/Vortex_collision/'+date+'/'
 #rootdir = '/Users/stephane/Documents/Experiences_local/Results/Vortex_collision/'
-rootdir = '/Users/npmitchell/Desktop/data_local/vortex_collision/'
+rootdir = '/Users//Desktop/data_local/vortex_collision/'
 datadir = rootdir + 'sample_data/'
 savedir = rootdir + date + '/'
 subdir = 'summary/'
