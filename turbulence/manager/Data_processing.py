@@ -5,7 +5,6 @@ Generates :
 - generate the tiff files following the instruction given in timestep
 - These tiff images will be used to calculate velocity field on Matlab.
 
-@author: stephane
 """
 
 
@@ -35,6 +34,9 @@ parser.add_argument('-s',dest='start',default=None,type=int, help='start process
 parser.add_argument('-e',dest='end',default=None,type=int, help='end processing index of the cinefile List')
 parser.add_argument('-n',dest='n',default=10,type=int, help='Number of images for the ref movie (optionnal)')
 parser.add_argument('-step',dest='step',default=2,type=int, help='Under sampling of the data. Default value is 2')
+parser.add_argument('-stacks',dest='stacks',default=False,type=bool, help='if True, make images for stacks of piv')
+parser.add_argument('-cinetype',dest='cinetype',default='' ,type=str, help='Provide a header of cinefiles you would like to process')
+parser.add_argument('-offset',dest='offset',default=0 ,type=int, help='Provide a cinefile you would like to process')
 args = parser.parse_args()
 
 def  main(date):
@@ -50,11 +52,12 @@ def  main(date):
     None    
     """
 #    date = args.date
-    #if the directory is not specified, look automatticlly in grid_turbulence folders
+    #if the directory is not specified, look automatically in grid_turbulence folders
     if args.folder is None:
         args.folder = file_architecture.get_dir(date)
 
     process(args.folder)
+
     list_item = glob.glob(args.folder+'/*')
     
     #Recursive search
@@ -89,7 +92,47 @@ def process(directory):
 #            caller(fileList_ref,step)
     #    step = caller(fileList,step)
         step = caller(fileList_other,step)
-        
+
+
+
+def process_pivstacks(directory, cinelist):
+    """
+    Generate tiff image folders for cine files located in a specified directory
+    INPUT
+    -----
+    folder : string
+        path of the folder where cines live
+    OUTPUT
+    -----
+    """
+
+    fileList, n = browse.get_fileList(directory, frmt='cine', root='/PIV_')
+    fileList_ref, n = browse.get_fileList(directory, frmt='cine', root='/Reference_')
+    fileList_bubble, n = browse.get_fileList(directory, frmt='cine', root='/Bubble')
+    fileList_all, n = browse.get_fileList(directory, frmt='cine', root='/')
+    offset = args.offset
+
+    if args.stacks==True:
+        fileList_stacks, n = cinelist, len(cinelist)
+        print (fileList_stacks, n)
+
+    # print (fileList_all)
+    #  print(fileList)
+    # print(fileList_ref)
+
+    step = 0
+    while step >= 0:
+        if step == 0:
+            ref_movie.make_ref(fileList_ref)
+            ref_movie.make_ref(fileList_bubble)
+        # caller(fileList_ref,step)
+        #    step = caller(fileList,step)
+
+        if args.stacks == True:
+            step = caller(fileList_stacks, step)
+        else:
+            step = caller(fileList_all, step)
+
 
         
 def caller(fileList,step):
@@ -179,14 +222,21 @@ def make_piv_folders(fileList,step=None):
     -----
     None
     """
-    
+
     if step==None:
         step=args.step
     #from a dirname corresponding to a particular date, 
     #generate folders containing individual TIFF for PIV processing (no matter the PIV software used)
-    for file in fileList[args.start:args.end]:
-        print(file)
-        cine2pic.cine2tiff(file,'File',step,post='_File')    
+    if args.stacks==True:
+        for file in fileList[args.start:args.end]:
+            print(file)
+            cine2pic.cine2tiff_for_pivstacks(file, 'File', step, post='_File', offset=args.offset)
+
+
+    else:
+        for file in fileList[args.start:args.end]:
+            print(file)
+            cine2pic.cine2tiff(file,'File',step,post='_File')
     print(str(len(fileList))+' cine files to be processed')
 
 def make_result_folder(fileList,type_analysis='Sample',algo='PIVlab',W=32,ratio=None):
@@ -209,7 +259,7 @@ def make_result_folder(fileList,type_analysis='Sample',algo='PIVlab',W=32,ratio=
     OUTPUT
     ------
     None
-    0	"""    
+    0	"""
     types = dict(Sample=ratio,Full_double=2,Full_single=1)
     if type_analysis in types.keys():
         ratio = types[type_analysis]
@@ -231,7 +281,18 @@ def make_result_folder(fileList,type_analysis='Sample',algo='PIVlab',W=32,ratio=
 #date = '2015_09_28'
 #main(date)    
 if __name__ == '__main__':
-    main(args.date)
+    if args.stacks==False:
+        main(args.date)
+    else:
+        if args.folder is None:
+            args.folder = file_architecture.get_dir(args.date)
+        cinelist = glob.glob(args.folder + '/' + args.cinetype +'*')
+        print ('The following files will be processed')
+        for item in cinelist:
+            print (item)
+        process_pivstacks(args.folder, cinelist)
+
+    print 'Done'
 # By hand, measure the parameters associated to the cine file. Generate a .txt parameter file for each movie
 # The ref files could bve generated automatically with 0 values (?!)
 

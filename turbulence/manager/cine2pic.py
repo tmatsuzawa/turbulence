@@ -13,6 +13,7 @@ import math
 import turbulence.tools.browse as browse
 import turbulence.tools.rw_data as rw_data
 # Convert cine file to a list of .TIFF images
+import glob
 
 import sys
 sys.path.append('/Users/stephane/Documents/git/takumi/turbulence')
@@ -221,10 +222,10 @@ def saveDir(file,post=''):
     return Dir,root
 
 
-def cine2tiff_for_pivstacks(file, mode, step, start=0, stop=0, ctime=1, folder='/Tiff_folder', post=''):
+def cine2tiff_for_pivstacks(file, mode, step, start=0, stop=0, ctime=1, offset=0, folder='/Tiff_folder', post=''):
     """
     Generate a list of tiff files extracted from a cinefile.
-        Different modes of processing can be used, that are typically useful for PIV processings :
+        Different modes of processing can be used, that are typically useful for PIV processing :
         test : log samples the i;ages, using the function test_sample. Default is 10 intervals log spaced, every 500 images.
         Sample : standard extraction from start to stop, every step images, with an interval ctime between images A and B.
         File : read directly the start, stop and ctime from a external file. Read automatically if the .txt file is in format :
@@ -253,6 +254,7 @@ def cine2tiff_for_pivstacks(file, mode, step, start=0, stop=0, ctime=1, folder='
     None
     """
     # file : path of the cine file
+
 
     try:
         c = cine.Cine(file)
@@ -303,7 +305,7 @@ def cine2tiff_for_pivstacks(file, mode, step, start=0, stop=0, ctime=1, folder='
 
             if index < len(c):
                 a = index % 60
-                if (a % 3 != 0) and (a < 51):
+                if (a % 3 != 0 + offset) and (a < 51):
                     data = c.get_frame(index)
                     misc.imsave(filename, data, 'tiff')
 
