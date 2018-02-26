@@ -1,11 +1,11 @@
 import Hough_track as ht
-import Experiment_movies.movie_new_format as mnf
+import experiment_movies.experiment_movie as mnf
 import numpy as np
 import time
 from mode_drawing_functions.get_speed_and_plot import get_speed_and_plot_withresolution
 import argparse
-import motor_tracking.mode_drawing_functions.mode_movie as modemov
-import motor_tracking.mode_drawing_functions.new_mode_functions as nmf
+import mode_drawing_functions.mode_movie as modemov
+import mode_drawing_functions.new_mode_functions as nmf
 
 parser = argparse.ArgumentParser(description='Track videos of gyros.')
 parser.add_argument('-check', '--check', help='Display intermediate results', action='store_true')
