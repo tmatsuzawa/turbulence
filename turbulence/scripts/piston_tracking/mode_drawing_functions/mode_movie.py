@@ -3,8 +3,8 @@ import numpy as np
 import os
 import sys
 # import matplotlib.pyplot as plt
-import motor_tracking.mode_drawing_functions.normal_mode_functions as nmf
-import motor_tracking.mode_drawing_functions.new_mode_functions as new_mf
+import normal_mode_functions as nmf
+import new_mode_functions as new_mf
 import lepm.plotting.science_plot_style as sps
 import lepm.data_handling as dh
 import lepm.dataio as dio

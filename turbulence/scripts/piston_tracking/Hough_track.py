@@ -11,7 +11,7 @@ import Experiment_movies
 from settings import tracking_settings
 import matplotlib.pyplot as plt
 # from click_pts import ImagePoint
-from lepm.build.roipoly import RoiPoly
+from basics.roipoly import RoiPoly
 import glob
 import cPickle as pkl
 

@@ -14,7 +14,7 @@ import matplotlib.image as mpimg
 import tracking_helper_functions as thf
 import lepm.data_handling as dh
 import copy
-from lepm.build.roipoly import RoiPoly
+from basics.roipoly import RoiPoly
 import lepm.data_handling as dh
 import lepm.plotting.plotting as leplt
 from click_pts import ImagePoint
