@@ -641,7 +641,7 @@ def project(U, eigen, d=3):
 
 def vorticity(tau, d=3, norm=False):
     """
-    Compute the vorticity from the asymetric part of the strain tensor matrix tau
+    Compute the vorticity from the asymmetric part of the strain tensor matrix tau
     
     Parameters
     ----------

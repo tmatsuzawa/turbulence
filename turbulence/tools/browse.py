@@ -35,7 +35,7 @@ def get_fileList(fileDir,frmt,root='',display=False,sort='date'):
         number of files in the filelist
 
     """
-    print ('-------Checking the number of ' + frmt + ' files in ' + fileDir + '-------')
+    print ('-------Checking the number of ' + root + '...' + frmt + ' files in ' + fileDir + '-------')
 
     fileName = fileDir + root + '*.' + frmt   #e.g. /Volumes/labshared3-1/takumi/2017_09_14/*.cine
     fileList = glob.glob(fileName)
@@ -48,7 +48,7 @@ def get_fileList(fileDir,frmt,root='',display=False,sort='date'):
 
     n=len(fileList)
     if display:
-        print('Number of ' + frmt + ' files : ' + str(n))
+        print('Number of ' + root + '...' + frmt + ' files : ' + str(n))
         print(fileName)
     print ('-------------------------------------------------------------------------')
     return fileList, n

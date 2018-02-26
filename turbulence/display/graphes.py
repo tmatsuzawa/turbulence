@@ -127,7 +127,7 @@ def subplot(i, j, k):
     plt.subplot(i, j, k)
 
 
-def legende(x_legend, y_legend, title, display=False, cplot=False, show=True, fontsize=__fontsize__):
+def legende(x_legend, y_legend, title, display=False, cplot=False, show=False, fontsize=__fontsize__):
     """
     Add a legend to the current figure
         Contains standard used font and sizes
@@ -150,15 +150,14 @@ def legende(x_legend, y_legend, title, display=False, cplot=False, show=True, fo
         one element dictionary with key the current figure number
         contain a default filename generated from the labels
     """
+    plt.gcf()
     plt.rc('font', family='Times New Roman')
     plt.xlabel(x_legend, fontsize=fontsize)
     plt.ylabel(y_legend, fontsize=fontsize)
     plt.title(title, fontsize=fontsize)
 
-    if show:
-        refresh()
 
-    # fig is a dictionary where the key corresponds to the fig number and the element to the automatic title
+    ## figdict is a dictionary where the key corresponds to the fig number and the element to the automatically generated title
     fig = figure_label(x_legend, y_legend, title, display=display, cplot=cplot)
     fig = get_data(fig)
 
