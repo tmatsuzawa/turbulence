@@ -23,6 +23,8 @@ parser.add_argument('-method', '--method',
                     type=int, default=0)
 parser.add_argument('-dx', '--dx', help='Grid spacing in mm for image',
                     type=float, default=5.0)
+parser.add_argument('-dz', '--dz', help='Grid spacing in mm for image in z',
+                    type=float, default=-1.0)
 parser.add_argument('-res', '--resolution', help='Resolution in dpi for image',
                     type=int, default=600)
 args = parser.parse_args()
@@ -56,6 +58,11 @@ nslices = 17
 dtheta = angle_swept / float(nslices - 1)
 # Define width of the FOV
 pix2mm = 1.0
+# Define resolution in z
+if args.dz < 0.:
+    dz = dx
+else:
+    dz = args.dz
 
 seriesdir = '/Users/npmitchell/Dropbox/Soft_Matter/turbulence/stacks_3d/small_tank_t1/'
 
@@ -91,11 +98,11 @@ if not glob.glob(interpfn) or overwrite:
             frame_extent = (np.max(xy.ravel()) - np.min(xy.ravel())) * pix2mm
             xextent = np.max(xx) - np.min(xx)
             yextent = np.max(yy) - np.min(yy)
-            zextent = angle_swept * (ll + np.max(np.abs(xx)))
+            zextent = 2. * np.tan(angle_swept * 0.5) * (ll + np.max(np.abs(xx)))
             maxextent = max(angle_swept * ll, frame_extent)
             gxarr = 0.5 * np.arange(-xextent, xextent + dx, dx)
             gyarr = 0.5 * np.arange(-yextent, yextent + dx, dx)
-            gzarr = 0.5 * np.arange(-zextent, zextent + dx, dx)
+            gzarr = 0.5 * np.arange(-zextent, zextent + dz, dz)
             # take x->x, y->z, z->y
             xgrid, ygrid, zgrid = np.meshgrid(gxarr, gzarr, gyarr)
             points = xyz
