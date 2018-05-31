@@ -19,6 +19,7 @@ import lepm.data_handling as dh
 import lepm.plotting.plotting as leplt
 from click_pts import ImagePoint
 from scipy.ndimage import filters
+import matplotlib.pyplot as plt
 
 
 '''
@@ -791,6 +792,8 @@ class GyroMovie:
                 # print 'pt[1] - self._pix = ', (pt[1] - self._pix)
                 # print 'pt[1] + self._pix = ', (pt[1] + self._pix)
                 # print 'np.shape(self.current_frame) = ', np.shape(self.current_frame)
+                if int(pt[1] - pix) < 0:
+                    pt[1] = pix
                 bf = self.current_frame[int(pt[1] - pix):int(pt[1] + pix)]
                 bf = bf[:, int(pt[0] - pix):int(pt[0] + pix)]
                 # bf_comp = bf.copy()
@@ -938,9 +941,31 @@ class GyroMovie:
         fig = plt.figure()
         ax = plt.axes([0, 0, 1, 1])
         img = cine.asimage(self.current_frame)
-        plt.imshow(img, cmap=cm.Greys_r)
-        plt.savefig(name + '.png')
+        # plt.imshow(img, cmap=cm.Greys_r)
+        # plt.savefig(name + '.png')
+        img.save(name + '.png')
         plt.close()
+
+    def save_frame_with_tracking_path(self, frame=0, centroid_arr=[], name='frame'):
+        fig = plt.figure()
+        ax = plt.axes([0, 0, 1, 1])
+        img = cine.asimage(self.current_frame)
+        img_arr = np.array(img)
+        plt.imshow(img_arr, cmap='gray')
+
+        # im = plt.imread(img)
+        # plt.imshow(im)
+        plt.plot(centroid_arr[0], centroid_arr[1], color='r')
+        if len(centroid_arr[0])>1:
+            plt.scatter(centroid_arr[0][-2], centroid_arr[1][-2], color='b', marker='x')
+        plt.scatter(centroid_arr[0][-1], centroid_arr[1][-1], color='r', marker='x')
+
+        # plt.imshow(img, cmap=cm.Greys_r)
+        plt.savefig(name + '.png')
+        #img.save(name + '.png')
+
+        plt.close()
+
 
     def save_variance_frame(self, name='variance_frame'):
         fig, ax, cax = leplt.initialize_1panel_cbar_cent(Wfig=180, Hfig=200, wsfrac=1.0)
@@ -976,8 +1001,8 @@ class GyroMovie:
         return cine.asimage(self.current_frame)
 
     def save_frame_with_boxes(self, name='frame', pix=None):
-        fig = plt.figure()
-        ax = plt.axes([0, 0, 1, 1])
+        # fig = plt.figure()
+        # ax = plt.axes([0, 0, 1, 1])
         img = np.array(self.current_frame)
 
         # get the pixel size used to find centroids if not supplied
@@ -1003,10 +1028,12 @@ class GyroMovie:
 
         # cine.asimage(img).save('image_kernel.png')
         img = cine.asimage(img)
-
-        plt.imshow(img, cmap=cm.Greys_r)
-
-        plt.savefig(name + '.png')
+        print img
+        # plt.figure()
+        # plt.imshow(img, cmap=cm.Greys_r)
+        print ('Saving a reference....')
+        #plt.savefig(name + '.png')
+        img.save(name + '.png')
         plt.close()
 
     def find_point_convolve(self, img_ker):
