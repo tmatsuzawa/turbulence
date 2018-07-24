@@ -57,7 +57,7 @@ dtheta = angle_swept / float(nslices - 1)
 # Define width of the FOV
 pix2mm = 1.0
 
-seriesdir = '/Users/npmitchell/Dropbox/Soft_Matter/turbulence/stacks_3d/small_tank_t0/'
+seriesdir = '/Volumes/labshared3-1/takumi/2018_02_20_stacks1/AnalysisResults/Time_averaged_Plots_0/'
 
 # If the interpolation object does not exist, create it here
 interpfn = seriesdir + 'slices_interp3d_dx' + sf.float2pstr(dx) + '.pkl'

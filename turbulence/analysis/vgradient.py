@@ -168,7 +168,7 @@ def compute_frame(M, name, frame, step=1, filter=False, Dt=1, display=False, **k
 
 
 def get_E(M, i, step=1, **kwargs):
-    return (np.power(M.Ux[..., i], 2) + np.power(M.Uy[..., i], 2)) / 2, 'E'
+    return (np.power(M.Ux[..., i], 2) + np.power(M.Uy[..., i], 2)) / 2., 'E'
 
 
 def strain_maps(M, i):

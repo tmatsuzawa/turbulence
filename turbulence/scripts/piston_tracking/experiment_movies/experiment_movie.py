@@ -14,11 +14,13 @@ from matplotlib.collections import LineCollection, PatchCollection
 from matplotlib.patches import Circle, Wedge, Polygon, Rectangle
 from subprocess import call
 import lepm.dataio as dio
+import sys
+sys.path.append('/Users/stephane/Documents/git/takumi/turbulence/turbulence/scripts/')
 try:
     import Motor_tracking.movie_instance as mi
 except:
-    import motor_tracking.movie_instance as mi
-
+#    import motor_tracking.movie_instance as mi
+    import movie_instance as mi
 from scipy.signal import savgol_filter
 
 '''functions for plotting experiments and coverting to movie'''

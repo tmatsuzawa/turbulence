@@ -169,8 +169,8 @@ def spatial_decay(M, field='E', indices=None):
     ax2.scatter(R_flat, Z_flat, marker='o', facecolor=color, alpha=0.3, lw=0, cmap=cmap)
 
     Rth = np.arange(10 ** 1, 10 ** 2, 1.)
-    graphes.graphloglog(Rth, 10 ** 5 * (Rth / R0) ** -3.2, label='k--')
-    graphes.graphloglog(Rth, 5 * 10 ** 4 * (Rth / R0) ** -4.5, label='k--')
+    # graphes.graphloglog(Rth, 10 ** 5 * (Rth / R0) ** -3.2, label='k--')
+    # graphes.graphloglog(Rth, 5 * 10 ** 4 * (Rth / R0) ** -4.5, label='k--')
     graphes.set_axis(10 ** 0, 10 ** 2, 10 ** 2, 8 * 10 ** 4)
     figs = graphes.legende('$R$ (mm)', 'Energy (mm$^2$/s$^{2}$)', 'Spatial decay')
 

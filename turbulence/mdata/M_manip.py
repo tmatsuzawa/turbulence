@@ -34,7 +34,6 @@ def Measure_gen_serie(S):
     Dir = file_architecture.os_c(Dir)
     fileCine = Dir + '/' + os.path.basename(S.fileCine)
 
-    print(fileCine)
     dataDirList, n = browse.get_dataDir(fileCine, root='/PIV_*data/PIV', display=True)
     #    dataDirList2,n=browse.get_dataDir(fileCine,root='/PIV_step1_data/PIV',display=True)
     #    dataDirList3,n=browse.get_dataDir(fileCine,root='/PIV_step10_data/PIV',display=True)
@@ -45,7 +44,7 @@ def Measure_gen_serie(S):
     #  print(dataDirList)
     if n == 0:
         #  print(S.fileCine)
-        print('This cinefile have not been analyzed')
+        print('No PIV data found for this cine: %s' % fileCine)
     else:
         print(dataDirList)
         # input()
@@ -53,16 +52,12 @@ def Measure_gen_serie(S):
         for name in dataDirList:
             # browse.get_string()
             if True:  # '/PIV_W32_data/' in name: ### to generate only a subset of the Mdata (in particular in case of processing in progress)
-                print(name, dataDirList.index(name))
-
                 # How to find with which software the data have been analysed ?
                 # M_gen(S,name,dataDirList.index(name),'pyPIV')
                 # launch the appropriate M_gen options based on the name of the dataDirList
 
                 print('')
-                print('generate Mdata')
-                print(dataDirList.index(name))
-                print(name)
+                print('generate Mdata for %s, %d' (dataDirList.index(name), name))
                 print('')
                 M_gen(S, name, dataDirList.index(name), 'PIVlab')
             else:

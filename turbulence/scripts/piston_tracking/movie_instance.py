@@ -1018,13 +1018,29 @@ class GyroMovie:
             pt = [int(pt[0]), int(pt[1])]
             # Invert the part inside the centroid capturing region
             # First grab the square
-            boximg = img[pt[1] - pix:pt[1] + pix, pt[0] - pix: pt[0] + pix]
+            miny = max(0, int(pt[1] - pix))
+            minx = max(0, int(pt[0] - pix))
+            maxy, maxx = int(pt[1] + pix), int(pt[0] + pix)
+            # check it out
+            # print 'pt = ', pt
+            # print 'np.shape(img) = ', np.shape(img)
+            # plt.imshow(img)
+            # plt.plot(pt[0], pt[1], 'ro')
+            # plt.plot([minx, minx, maxx, maxx, minx], [miny, maxy, maxy, miny, miny], 'r-')
+            # plt.show()
+            plt.imshow(img[miny:maxy, minx:maxx])
+            boximg = img[miny:maxy, minx:maxx]
             # Now invert within the centroid-finding radius
             # Set all pixels further than pix from the center to dark
-            yy, xx = np.ogrid[-pix + 0.5:pix + 0.5, -pix + 0.5:pix + 0.5]
+            # wyn --> width in y negative, wyp --> width in y positive, etc
+            wyn = miny - pt[1]
+            wyp = maxy - pt[1]
+            wxn = minx - pt[0]
+            wxp = maxx - pt[0]
+            yy, xx = np.ogrid[wyn + 0.5:wyp + 0.5, wxn + 0.5:wxp + 0.5]
             mask = xx * xx + yy * yy <= pix * pix
             boximg[mask] = imgmax - boximg[mask]
-            img[pt[1] - pix:pt[1] + pix, pt[0] - pix: pt[0] + pix] = boximg
+            img[miny:int(pt[1] + pix), minx:int(pt[0] + pix)] = boximg
 
         # cine.asimage(img).save('image_kernel.png')
         img = cine.asimage(img)

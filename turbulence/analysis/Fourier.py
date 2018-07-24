@@ -79,15 +79,16 @@ def switch_field(M, field):
     return theory
 
 
-def compute_spectrum_2d(M, Dt=10):
-    S_E, kx, ky = energy_spectrum_2d(M, display=False, Dt=Dt)
+
+def compute_spectrum_2d(M, Dt=10, x0=None, x1=None, y0=None, y1=None):
+    S_E, kx, ky = energy_spectrum_2d(M, display=False, Dt=Dt, x0=x0, x1=x1, y0=y0, y1=y1)
     setattr(M, 'kx', kx)
     setattr(M, 'ky', ky)
     setattr(M, 'S_E', S_E)
     return S_E, kx, ky
 
 
-def compute_spectrum_1d(M, Dt=10, nkout=40):
+def compute_spectrum_1d(M, Dt=10, nkout=40, x0=None, x1=None, y0=None, y1=None):
     """
 
     Parameters
@@ -98,7 +99,7 @@ def compute_spectrum_1d(M, Dt=10, nkout=40):
     Returns
     -------
     """
-    S_k, k = energy_spectrum_1d(M, nkout, display=False, Dt=Dt)
+    S_k, k = energy_spectrum_1d(M, nkout, display=False, Dt=Dt, x0=x0, x1=x1, y0=y0, y1=y1)
     setattr(M, 'k', k)
     setattr(M, 'S_k', S_k)
     return S_k, k
@@ -199,7 +200,7 @@ def compute_spectrum_1d_within_region(mm, radius=None, polygon=None, display=Fal
     return s_k, k
 
 
-def energy_spectrum_2d(mm, display=False, field='E', Dt=10):
+def energy_spectrum_2d(mm, display=False, field='E', Dt=10, x0=None, x1=None, y0=None, y1=None):
     """Compute the 2 dimensional energy spectrum of a Mdata class instance
 
     Parameters
@@ -223,11 +224,12 @@ def energy_spectrum_2d(mm, display=False, field='E', Dt=10):
         wave-vector along y
     """
     data = access.get_all(mm, field)  #data is a 3d numpy array (x,y,t) which contains energy values
-    S_E, kx, ky = spectrum_2d(data, mm, Dt=Dt)
+    S_E, kx, ky = spectrum_2d(data, mm, Dt=Dt, x0=x0, x1=x1, y0=y0, y1=y1)
     return S_E, kx, ky
 
 
-def spectrum_2d(yy, M=None, dx=None, Dt=5, display=False, display_frames=None):
+def spectrum_2d(yy, M=None, dx=None, Dt=5, display=False, display_frames=None
+                , x0=None, x1=None, y0=None, y1=None):
     """
     Compute 2d spatial spectrum of yy. If a Mdata object is specified, use the spatial scale of M.x
     to scale the spectrum
@@ -251,6 +253,12 @@ def spectrum_2d(yy, M=None, dx=None, Dt=5, display=False, display_frames=None):
     """
     # cropping for the 2016_08_03
     #    yy = yy[:,5:]
+
+    if x0 is not None:
+        #x0, x1, y0, y1 = 15, 35, 15, 49     # cropping for 04242018
+        print yy.shape
+        yy = yy[y0:y1, x0:x1]
+        print yy.shape, x0, x1, y0, y1
 
     nx, ny, nt = yy.shape
     # kx=np.arange(-(nx-1)/2,(nx-1)/2+1,1)
@@ -299,7 +307,7 @@ def spectrum_2d(yy, M=None, dx=None, Dt=5, display=False, display_frames=None):
     return s_e, kx, ky
 
 
-def spectrum_1d(yy, M=None, display=False, Dt=5, nkout=40):
+def spectrum_1d(yy, M=None, display=False, Dt=5, nkout=40, x0=None, x1=None, y0=None, y1=None):
     """Compute the 1 dimensional energy spectrum of yy
     The computation is done by averaging over circles in k space from a 2d spectrum
 
@@ -321,6 +329,12 @@ def spectrum_1d(yy, M=None, display=False, Dt=5, nkout=40):
     kbin : 1d np array
         wave-vector
     """
+
+    #cropping for 042418 data
+    if x0 is not None:
+        #x0, x1, y0, y1 = 15, 35, 15, 49
+        yy = yy[x0:x1, y0:y1]
+
     # compute the fft 2d, then divide in slices of [k,k+dk]
     print('Fourier.spectrum_1d(): Compute 2d fft')
     S_E, kx, ky = spectrum_2d(yy, M, display=False, Dt=Dt)
@@ -383,8 +397,8 @@ def spectrum_1d(yy, M=None, display=False, Dt=5, nkout=40):
     return S_k, kbin[:-1]
 
 
-def energy_spectrum_1d(M, nkout=40, display=False, Dt=10):
-    """Compute the 1 dimensionnal energy spectrum of a Mdata class instance
+def energy_spectrum_1d(M, nkout=40, display=False, Dt=10, x0=None, x1=None, y0=None, y1=None):
+    """Compute the 1 dimensional energy spectrum of a Mdata class instance
     The computation is done by averaging over circles in k space from a 2d spectrum
 
     Parameters
@@ -406,7 +420,8 @@ def energy_spectrum_1d(M, nkout=40, display=False, Dt=10):
     """
     # compute the fft 2d, then divide in slices of [k,k+dk]
     print('Fourier.energy_spectrum_1d(): Compute 2d fft')
-    s_e, kx, ky = energy_spectrum_2d(M, display=False, Dt=Dt)
+    #s_e, kx, ky = energy_spectrum_2d(M, display=False, Dt=Dt, x0=x0, x1=x1, y0=y0, y1=y1)
+    s_e, kx, ky = compute_spectrum_2d(M, Dt=Dt, x0=x0, x1=x1, y0=y0, y1=y1)
     S_k, kbin = spectrum_2d_to_1d_convert(s_e,  kx, ky, nkout,  dt=Dt)
 
     return S_k, kbin
@@ -444,8 +459,8 @@ def spectrum_2d_to_1d_convert(s_e, kx, ky, nkout=40, dt=10, verbose=False):
     #    s_e=s_e[indices]
 
     nk, nbin = np.histogram(kk, bins=nkout)
-    print 'Fourier.spectrum_2d_to_1d_convert(): nkout = ', nkout
-    print 'Fourier.spectrum_2d_to_1d_convert(): nbin = ', nbin
+    # print 'Fourier.spectrum_2d_to_1d_convert(): nkout = ', nkout
+    # print 'Fourier.spectrum_2d_to_1d_convert(): nbin = ', nbin
     nn = len(nbin) - 1
 
     # remove too small values of kx or ky (components aligned with the mesh directions)
@@ -455,7 +470,7 @@ def spectrum_2d_to_1d_convert(s_e, kx, ky, nkout=40, dt=10, verbose=False):
     jj = 0
     okinds_nn = []
     for ii in range(nn):
-        print 'ii = ', ii
+        # print 'ii = ', ii
         indices[:, ii] = np.logical_and(np.logical_and(kk >= nbin[ii], kk < nbin[ii + 1]),
                                         np.logical_and(np.abs(kx_1d) >= epsilon, np.abs(ky_1d) >= epsilon))
 
@@ -475,11 +490,11 @@ def spectrum_2d_to_1d_convert(s_e, kx, ky, nkout=40, dt=10, verbose=False):
         # print 'epsilon = ', epsilon
         # sys.exit()
 
-    print 'Fourier.spectrum_2d_to_1d_convert(): np.shape(kbin) = ', np.shape(kbin)
+    # print 'Fourier.spectrum_2d_to_1d_convert(): np.shape(kbin) = ', np.shape(kbin)
     s_k = np.zeros((nn, nt))
     # s_part = np.zeros(nx * ny)
 
-    print('Fourier.spectrum_2d_to_1d_convert(): Compute 1d fft from 2d')
+    # print('Fourier.spectrum_2d_to_1d_convert(): Compute 1d fft from 2d')
     for t in range(nt):
         s_part = s_e[:, t]
         jj = 0
@@ -491,8 +506,8 @@ def spectrum_2d_to_1d_convert(s_e, kx, ky, nkout=40, dt=10, verbose=False):
     # averaged in time ??
     s_k = basics.smooth(s_k, dt)
 
-    print('Fourier.spectrum_2d_to_1d_convert(): np.shape(kbin) = ', np.shape(kbin))
-    print('Fourier.spectrum_2d_to_1d_convert(): np.shape(s_k) = ', np.shape(s_k))
+    # print('Fourier.spectrum_2d_to_1d_convert(): np.shape(kbin) = ', np.shape(kbin))
+    # print('Fourier.spectrum_2d_to_1d_convert(): np.shape(s_k) = ', np.shape(s_k))
     return s_k, kbin
 
 

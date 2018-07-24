@@ -29,7 +29,9 @@ Dir_data.append(distant_root + 'labshared2/takumi/')
 Dir_data.append(distant_root + 'labshared2/noah/')
 
 Dir_data.append(distant_root + 'labshared3-1/takumi/')
+Dir_data.append(distant_root + 'labshared3-1/takumi/2018_07_17_resolution_check/')
 Dir_data.append(distant_root + 'labshared3-1/noah/')
+Dir_data.append(distant_root + 'labshared3-1/kris/')
 #Dir_data.append(distant_root + 'labshared3-1/bob/')
 
 # Dir_data.append(distant_root+'Stephane/Vortices/Stephane/')

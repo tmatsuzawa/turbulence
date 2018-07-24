@@ -142,7 +142,7 @@ def test_sample(c,start=0,stop=0):
     ndigit=len(str(N))
     return indexList,ndigit
     
-def manual_sampling(start,end,Dt=[1],step=1):
+def manual_sampling(start,end,Dt=[1],step=1, piv=False):
     #start : start image, list format 
     #end :  end image list format
     #Dt : time step between images A and B for PIV analysis. list format
@@ -161,8 +161,11 @@ def manual_sampling(start,end,Dt=[1],step=1):
         pas=Dt[i]
 
 #       index=[d+j for j in np.arange(0,f-d,pas)]     
-        indexA=[d+j for j in np.arange(0,f-d-pas,step*pas)]     
-        indexB=[d+j for j in np.arange(pas,f-d,step*pas)]     
+        indexA=[d+j for j in np.arange(0,f-d-pas,step*pas)]
+        if piv:
+            indexB=[d+j for j in np.arange(pas,f-d,step*pas)]
+        else:
+            indexB=[]
         
         #store the new indexes in a list
         indexList=indexList+indexA+indexB
@@ -182,7 +185,7 @@ def sample_from_file(filename,step=1):
     start=[int(p) for p in data['start']]
     end=[int(p) for p in data['end']]
     Dt=[int(p) for p in data['Dt']]
-    
+
     return manual_sampling(start,end,Dt,step)
         
 def sampleCine(c,mode,step,start=0,stop=0,ctime=1):

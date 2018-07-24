@@ -119,7 +119,7 @@ def link_points(root_dir, skip_savepath=False, verbose=False, cutoff_distance=No
 
         dset = new.create_dataset(key_name, np.shape(single_data), dtype='float', data=single_data)
 
-        image_path = os.path.join(root_dir, 'gyro_path_images/')
+        image_path = os.path.join(root_dir, 'piston_path_images/')
         if not os.path.exists(image_path):
             os.mkdir(image_path)
 

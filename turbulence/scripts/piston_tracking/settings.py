@@ -1,5 +1,21 @@
-input_dir = '/Volumes/labshared3/noah/turbulence/midsize_box_motor_calibration/'
-rootdir = '/Users/npmitchell/Dropbox/Soft_Matter/'
+# input_dir = '/Volumes/labshared3-1/takumi/2018_02_20_midsizedbox_motor_calib'
+# input_dir = '/Volumes/labshared3-1/takumi/2018_03_07_smallbox_motor_calib'
+
+# input_dir = '/Volumes/labshared3-1/takumi/Similar_flows/2018_03_22/pistontracking'  # dx=0.2016/px 3/22//18
+
+# # input_dir = '/Volumes/labshared3-1/takumi/Similar_flows/2018_03_27/pistontracking' #dx=0.1153mm/px 4/2/18
+# input_dir = '/Volumes/labshared3-1/takumi/Similar_flows/pistontuning/dx0.0125autophased_polarityfixed2'  #dx=0.1744
+# # input_dir = '/Volumes/labshared3-1/takumi/2018_03_13_midsizedbox_motor_calib_2'
+#
+# input_dir = '/Volumes/labshared3-1/takumi/Similar_flows/pistontuning/no_movement_test'  #dx=??
+
+#Test
+# input_dir = '/Volumes/labshared3-1/takumi/Similar_flows/pistontuning/plot_tracking_path/'
+# rootdir = input_dir
+
+input_dir = '/Volumes/labshared3-1/takumi/Similar_flows/pistontuning/tracking_comparison'
+rootdir = input_dir
+
 
 # Notes
 # roi is for selecting initial identification of particles only

@@ -17,7 +17,7 @@ def func1(x, a, b,c):
 def autocorrelation(M, plot=True, fit=False):
     Nlags = int(np.floor((M.Ux.shape[2] - 1) / 2.))
 
-    # Compute the autocorrelation function at each position, rho(x,y)
+    # Compute the temporal autocorrelation function at each position, rho(x,y)
     lag = np.zeros((M.Uy.shape[0], M.Uy.shape[1], Nlags * 2 + 1))
     rho = np.zeros((M.Uy.shape[0], M.Uy.shape[1], Nlags * 2 + 1))
     Dt = np.mean(np.diff(M.t))

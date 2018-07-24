@@ -81,6 +81,20 @@ def save(path, ext='png', close=False, verbose=True, fignum=None, **kwargs):
 
 ## Create a figure and axes
 def set_fig(fignum, subplot=None, dpi=100, **kwargs):
+    """
+    Make a plt.figure instance and adds an attribute ax to the figure instance
+    Returns the fig instance as well as the ax object for convenience
+    Parameters
+    ----------
+    fignum
+    subplot
+    dpi
+    kwargs
+
+    Returns
+    -------
+
+    """
     if fignum == -1:
         fig = plt.figure(dpi, **kwargs)
     if fignum == 0:
@@ -209,13 +223,13 @@ def errorfill(x, y, yerr, fignum=1, color=None, subplot=None, alpha_fill=0.3, ax
     return fig, ax, color_patch
 
 
-## 2D plots
+## Heatmaps
 def color_plot(x, y, z, subplot=None, fignum=1, vmin=0, vmax=0, figsize=__figsize__, log10=False, show=False, cbar=False, cmap='jet'):
     """  Color plot of 2D array
     Parameters
     ----------
-    x 2d array eg. x = np.mgrid[slice(1, 5, dx), slice(1, 5, dy)]
-    y 2dd array
+    x
+    y
     z 2d array
     subplot
     fignum
@@ -238,7 +252,7 @@ def color_plot(x, y, z, subplot=None, fignum=1, vmin=0, vmax=0, figsize=__figsiz
     if log10:
         z = np.log10(z)
 
-    # Note that the cc returned is a matplotlib.collections.QuadMesh
+    # Note that the cc returned is a matplotlib.collections.QuadMesh object
     # print('np.shape(z) = ' + str(np.shape(z)))
     if vmin == vmax == 0:
         # plt.pcolormesh returns a QuadMesh class object.
@@ -274,7 +288,36 @@ def legend():
     return
 
 # Colorbar
-def colorbar(fignum=plt.gcf().number, label=None, fontsize=__fontsize__):
+def add_colorbar(mappable, fig=None, ax=None, fignum=1, subplot=None, label=None, fontsize=__fontsize__, **kwargs):
+    """
+
+    Parameters
+    ----------
+    mappable : image like QuadMesh object to which the color bar applies (NOT a plt.figure instance)
+    ax : Parent axes from which space for a new colorbar axes will be stolen
+    label :
+
+    Returns
+    -------
+    """
+    # Get fig
+    if fig is None and ax is None:
+        fig = plt.gcf()
+        ax = plt.gca()
+    else:
+        fig, ax = set_fig(fignum=fignum, subplot=subplot)
+
+    cb = fig.colorbar(mappable, ax)
+    if not label==None:
+        cb.set_label(label, fontsize=fontsize)
+    # if vmin is None and vmax is None:
+    #     vmin, vmax = 0,  1
+    #     cb.set_clim( vmin=0, vmax=1)
+    # else:
+    #     cb.set_clim(vmin=vmin, vmax=vmax)
+    return cb
+
+def colorbar(fignum=plt.gcf().number, subplot=plt.gca() ,label=None, fontsize=__fontsize__, **kwargs):
     """
 
     Parameters
@@ -285,11 +328,11 @@ def colorbar(fignum=plt.gcf().number, label=None, fontsize=__fontsize__):
     Returns
     -------
     """
-    fig, ax = set_fig(fignum)
-    c = plt.colorbar()
+    fig, ax = set_fig(fignum, subplot)
+    cb = plt.colorbar(**kwargs)
     if not label==None:
-        c.set_label(label, fontsize=fontsize)
-    return c
+        cb.set_label(label, fontsize=fontsize)
+    return cb
 
 
 ### Axes

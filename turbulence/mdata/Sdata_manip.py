@@ -9,6 +9,7 @@ import turbulence.tools.browse as browse
 from stephane.mdata.Sdata import Sdata   ### THIS HAS TO BE FIXED SOON!!! - Takumi 9/28/17
 
 import turbulence.tools.rw_data as rw_data
+import os
 
 import turbulence.tools.pickle_2json as p2json
 
@@ -35,11 +36,7 @@ def Sdata_gen_day(date):
     filename = fileDir + 'Sdata_' + date + '/Cine_index_' + date + '.txt'
     rw_data.write_a_dict(filename, dict_day)
 
-    print '!!!!!!!!!!!!'
-    print(failure)
-    print '!!!!!!!!!!!!'
-
-    return failure
+    return
 
 
 def Sdata_gen(cineFile, index):
@@ -76,6 +73,7 @@ def Sdata_gen(cineFile, index):
         # print('extract :'+s)
         if browse.contain(base, s):
             file_param = f
+            print 'file_param: ' + file_param
             # input()
             #    file = os.path.dirname(cineFile)+'/References/Ref_'+base+'.txt'
             #    file = os.path.dirname(cineFile)+'/'+'Setup_file_Ref.txt' #/Volumes/labshared/Stephane_lab1/25015_09_22/References/Ref_PIV_sv_vp_zoom_Polymer_200ppm_X25mm_fps5000_n18000_beta500mu_H1180mm_S300mm.txt'
@@ -128,14 +126,17 @@ def load_Sdata_file(filename):
         # print(S.fileCine)
         return S
     else:
-        print('No data found for ' + S.filename)
+        print('No data found for ' + filename)
         return None
 
 
 def load_serie(date, indices):
     n = len(indices)
     Slist = [None for i in range(n)]
-    c = 0
+    c = 0 # counter
+
+    Dir = getDir(date)
+    print Dir
     for i in indices:
         Slist[c] = load_Sdata(date, i)
         c += 1
@@ -147,6 +148,7 @@ def load_measures(Slist, indices=0):
     Load the measures associated to each element of Slist.
     by default, only load the first set.
     if indices = None, load all the Measures associated to each Sdata
+    Slist : list of Sdata instances
     """
 
     Mlist = []
@@ -154,7 +156,6 @@ def load_measures(Slist, indices=0):
         output = S.load_measures()
         # sort output by length
         output = sorted(output, key=lambda s: (s.shape()[2], s.shape()[1]))
-        print(output)
         if indices is None:
             Mlist.append(output)
         else:
@@ -210,7 +211,17 @@ def load_all():
 def load_Sdata(date, index, mindex=0):
     # load a Sdata using its Id
     filename = getloc(date, index, mindex)
-    S = load_Sdata_file(filename)
+    print 'Possible Sdata location: ' + filename
+    if os.path.exists(filename):
+        print 'Sdata was there. Loading Sdata...'
+        S = load_Sdata_file(filename)
+    else:
+        print 'Sdata was not there. Try...'
+        filename = getloc2(date, index, mindex)
+        print 'getloc2- Sdata location: ' + filename
+        if os.path.exists(filename):
+            print 'Sdata was there. Loading Sdata...'
+        S = load_Sdata_file(filename)
     return S
 
 
@@ -224,9 +235,32 @@ def read(filename, data=False):
 
 
 def getloc(date, index, mindex, frmt='.hdf5'):
+    """
+    Returns a full path to Sdata (This should usually work. If it does not, try getloc2)
+    Parameters
+    ----------
+    date
+    index
+    mindex
+    frmt
+
+    Returns
+    -------
+
+    """
     Dir = getDir(date)
     filename = Dir + "Sdata_" + date + "_" + str(index) + "_" + str(mindex) + frmt
     return filename
+
+def getloc2(date, index, mindex, frmt='.hdf5'):
+    # get rootdir + Sdata_date/''
+    rootdir = getRootDir(date)
+    print rootdir
+    date = date.split('/')[0]
+    filename = rootdir +  "/Sdata_freq5Hz/" + "Sdata_" + date + "_" + str(index) + "_" + str(mindex) + frmt
+    print filename
+    return filename
+
 
 
 def getloc_S(S, frmt='.hdf5'):
@@ -239,6 +273,10 @@ def getDir(date):
     rootdir = file_architecture.get_dir(date)
     Dir = rootdir + "/Sdata_" + date + "/"
     return Dir
+
+def getRootDir(date):
+    rootdir = file_architecture.get_dir(date)
+    return rootdir
 
 
 def main():

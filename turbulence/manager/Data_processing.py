@@ -32,7 +32,7 @@ parser.add_argument('-d',dest='date',default='1987_03_19',type=str,help='date to
 parser.add_argument('-f',dest='folder',default=None,type=str,help='base folder to be processed. Python will look for cine files inside this specified folder')
 parser.add_argument('-s',dest='start',default=None,type=int, help='start processing index of the cinefile List')
 parser.add_argument('-e',dest='end',default=None,type=int, help='end processing index of the cinefile List')
-parser.add_argument('-n',dest='n',default=10,type=int, help='Number of images for the ref movie (optionnal)')
+parser.add_argument('-n',dest='n',default=10,type=int, help='Number of images for the ref movie (optional)')
 parser.add_argument('-step',dest='step',default=2,type=int, help='Under sampling of the data. Default value is 2')
 parser.add_argument('-stacks',dest='stacks',default=False,type=bool, help='if True, make images for stacks of piv')
 parser.add_argument('-cinetype',dest='cinetype',default='' ,type=str, help='Provide a header of cinefiles you would like to process')

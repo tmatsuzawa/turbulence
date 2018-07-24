@@ -27,7 +27,7 @@ from scipy.signal import savgol_filter
 from scipy import integrate
 
 parser = argparse.ArgumentParser(description='Track motion of motor')
-parser.add_argument('-inputdir', '--inputdir', help='input dir', type=str)
+#parser.add_argument('-inputdir', '--inputdir', help='input dir', type=str)
 # Experimental parameters
 parser.add_argument('-fx', '--fx', help='Conversion factor: ', type=float, default=1.)
 parser.add_argument('-freq', '--freq', help='Frequency of piston motion: ', type=float, default=1.)
@@ -154,7 +154,7 @@ def get_position_from_step_hdf5(root_dir, skip_savepath=False, verbose=False, cu
         cutoff_distance = 1e10
     elif cutoff_distance is None:
         # Measure interparticle distance to get cutoff distance for which a particle is linked between two timesteps
-        # Grab point in the middle of the lattice
+        # Grab a point in the middle of the lattice
         xytmp = compare[:, 1:3]
         midind = np.argmin(np.sum(np.abs(xytmp - np.mean(xytmp, axis=0)), axis=1))
         nbrs = np.setdiff1d(np.arange(len(xytmp)), np.array([midind]))
@@ -277,7 +277,7 @@ if __name__ == '__main__':
     data_dict, vmin_dict = {}, {}
 
     for i in range(len(outputs)):
-        # Initialization
+        # Initialize
         x_pos_2d, y_pos_2d, u_2d, v_2d = [], [], [], []
 
         # Get a path to a file that stores the centroid position vs time

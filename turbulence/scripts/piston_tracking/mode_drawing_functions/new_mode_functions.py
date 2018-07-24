@@ -7,14 +7,13 @@ from matplotlib.collections import PatchCollection
 import os
 import lepm.plotting.colormaps as lecmaps
 import pdb
-import motor_tracking.mode_drawing_functions.normal_mode_functions as nmf
+import mode_drawing_functions.normal_mode_functions as nmf
 import lepm.dataio as dio
 import cPickle
 import glob
 import sys
 import lepm.stringformat as sf
 
-''''''
 
 
 def load_linked_data_and_window(path_to_data):

@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 """
+DEPRECIATED. Use PIVLab_plot_eight_ver2.py instead.
+
 Finds up to four vortex rings and compute circulation, vring, and diameter of each ring
 - Computes and plots circulation at every args.plot_spacing frames
-= Computes and plots circulation velocity and radius of vortex rings over time
+- Computes and plots circulation velocity and radius of vortex rings over time
+
+... Note that PIVLab outputs x,y in pixels!
 """
 import argparse
 import os
@@ -13,6 +17,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.path as path
 import pickle
 from matplotlib import cm
 from scipy import ndimage, interpolate
@@ -30,6 +35,7 @@ import library.tools.process_data as process
 import library.display.graph as graph
 import library.basics.formatstring as fs
 import library.basics.formatarray as fa
+import library.basics.roipoly as roipoly
 
 
 cmap = cm.spectral
@@ -39,17 +45,41 @@ colorcycle = graph.get_default_color_cycle()
 cx_lim = 100
 cy_lim = 100
 
-threshold = .08
+# Extract a fraction of vorticity data around a position of maximum/minimum vorticity
+# Unless the cores are near the edge, it gets grids with dimension (nx_frac * 2 + 1, ny_frac * 2 + 1)
+nx_frac, ny_frac = 7, 7
+
+# thresholds
+gamma_thd = 1000.0 # in mm^2/s
+d_thd = 15 # in mm;  threshold to stop the circulation computation
 
 # cutoff values for cleaning raw data
-cutoffu = 4.  #px/frame
-cutoffomega = 0.1 #/frame
+cutoffu = 5.  #px/frame
+cutoffomega = 0.2 #/frame
 
-# new grid spacing in px
+# new grid spacing in mm
 __xint__, __yint__ = 1., 1.
+
+# ratios used to divide a window into quadrants (See a figure below)
+rx, ry = 0.5, 0.4
+global rx_list, ry_list
+rx_list = [rx, rx, rx, rx]
+ry_list = [ry, ry, ry, ry]
 
 # Frequencey of computing ring velocity
 vrtimestep = 2  # compute vr every n steps
+
+# bool to terminate computations for a cine file
+global terminate
+terminate = False
+#
+global roi_bool, polylines
+roi_bool = False
+
+global reject
+reject = False
+
+
 
 
 def load_matlab_data(datapath):
@@ -111,6 +141,7 @@ def interp_flow_component(x, y, ux, xint=__xint__, yint=__yint__, method='linear
     # grid_ind0, grid_ind1 = mgrid[0:imsize[0], 0:imsize[1]]
     # griddata = interpolate.griddata(uxindicies, ux, (grid_ind0, grid_ind1), method=method, fill_value=0.)
     xmin, xmax, ymin, ymax = np.min(x), np.max(x), np.min(y), np.max(y)
+
     xnew, ynew = np.arange(xmin, xmax + xint, xint), np.arange(ymin, ymax + yint, yint)
     Xnew, Ynew = np.meshgrid(xnew, ynew)
     griddata = interpolate.griddata(uxindicies, ux, (Xnew, Ynew), method=method, fill_value=0.)
@@ -211,7 +242,7 @@ def find_center_of_arr2d(arr):
 
 def compute_dist(x1, y1, x2, y2):
     """Compute distance between two points (x1,y1) and (x2,y2)"""
-    return np.sqrt((x1-x2)**2. + (y1-y2)**2.)
+    return float(np.sqrt((x1-x2)**2. + (y1-y2)**2.))
 
 def compute_circulation(iuxgrid, iuygrid, cx, cy, radii, phi, cm_shift, scale):
     for r in radii:
@@ -255,7 +286,248 @@ def update_data_dict(dict, key, subkey, data=[]):
     dict[key][subkey] = data
     return dict
 
+def draw_quadrants(ax, rx, ry):
+    """
+    Draw two lines to show quadrants
+    Parameters
+    ----------
+    ax
+    rx
+    ry
 
+    Returns
+    -------
+
+    """
+    xmin, xmax = ax.get_xlim()
+    ymax, ymin = ax.get_ylim()
+    width, height = xmax - xmin, ymax - ymin
+    ax.axhline(ymin + height * ry)
+    ax.axvline(xmin + width * rx)
+
+def make_quadrants(xmin, xmax, ymin, ymax, rx, ry):
+    """
+    Make quadrants as matplotlib.path objects
+    Return a list of quadrants as path objects
+
+    Parameters
+    ----------
+    ax
+    rx
+    ry
+
+    Returns
+    -------
+
+    """
+    width, height = xmax - xmin, ymax - ymin
+    # Quadrant 1
+    verts1 = [
+        (xmin, ymin),
+        (xmin + width * rx, ymin),
+        (xmin + width * rx, ymin + height * ry),
+        (xmin, ymin + height * ry),
+        (xmin, ymin)
+    ]
+    # Quadrant 2
+    verts2 = [
+        (xmin, ymin + height * ry),
+        (xmin + width * rx, ymin + height * ry),
+        (xmin + width * rx, ymax),
+        (xmin, ymax),
+        (xmin, ymin + height * ry)
+    ]
+    # Quadrant 3
+    verts3 = [
+        (xmin + width * rx, ymin),
+        (xmax, ymin),
+        (xmax, ymin + height * ry),
+        (xmin + width * rx, ymin + height * ry),
+        (xmin + width * rx, ymin)
+    ]
+    # Quadrant 4
+    verts4 = [
+        (xmin + width * rx, ymin + height * ry),
+        (xmax, ymin + height * ry),
+        (xmax, ymax),
+        (xmin + width * rx, ymax),
+        (xmin + width * rx, ymin + height * ry),
+    ]
+    codes = [path.Path.MOVETO,
+             path.Path.LINETO,
+             path.Path.LINETO,
+             path.Path.LINETO,
+             path.Path.CLOSEPOLY,
+             ]
+    quad1, quad2, quad3, quad4 = path.Path(verts1, codes), path.Path(verts2, codes), path.Path(verts3, codes), path.Path(verts4, codes)
+    quads = [quad1, quad2, quad3, quad4]
+    return quads
+
+def get_proper_indices_for_x(a, ncolumns):
+    if a < 0:
+        return 0
+    elif a >= ncolumns:
+        return int(ncolumns - 1)
+    else:
+        return int(a)
+
+def get_proper_indices_for_y(a, nrows):
+    if a < 0:
+        return 0
+    elif a >= nrows:
+        return int(nrows - 1)
+    else:
+        return int(a)
+
+def get_small_grids_around_coord(griddata, xgrid, ygrid, x, y, nx, ny):
+    nrows, ncolumns = griddata.shape
+    griddata_around_coord = griddata[get_proper_indices_for_y(y - ny, nrows): get_proper_indices_for_y(y + ny, nrows),
+                            get_proper_indices_for_x(x - nx, ncolumns): get_proper_indices_for_x(x + nx, ncolumns)]
+    xgrid_around_coord = xgrid[get_proper_indices_for_y(y - ny, nrows): get_proper_indices_for_y(y + ny, nrows),
+                         get_proper_indices_for_x(x - nx, ncolumns): get_proper_indices_for_x(x + nx, ncolumns)]
+    ygrid_around_coord = ygrid[get_proper_indices_for_y(y - ny, nrows): get_proper_indices_for_y(y + ny, nrows),
+                         get_proper_indices_for_x(x - nx, ncolumns): get_proper_indices_for_x(x + nx, ncolumns)]
+    return xgrid_around_coord, ygrid_around_coord, griddata_around_coord
+
+
+def redefine_rx(event):
+    """
+    Click a point to redefine rx
+    Click outside the image to apply the change
+    Parameters
+    ----------
+    event
+
+    Returns
+    -------
+
+    """
+    print 'CLICK A POINT TO REDEFINE rx. CLICK OUTSIDE THE PLOT TO CLOSE THE PLOT'
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+
+    if event.xdata is not None and event.ydata is not None:
+        print 'redefine_rx: %.2f. %.2f' % (event.xdata, event.ydata)
+        plt.axvline(x=event.xdata)
+        global rx, terminate
+        rx = (event.xdata - xmin) / xmax
+        print 'rx: %.2f' % rx
+        if event.key == 't':
+            print 'You pressed %s. Terminating computations after this step...' % event.key
+            terminate = True
+            fig.canvas.mpl_disconnect(cid)
+            plt.close()
+    else:
+        if event.key == 't':
+            print 'You pressed %s. Terminating computations after this step...' % event.key
+            terminate = True
+            fig.canvas.mpl_disconnect(cid)
+            plt.close()
+        print 'Exitting... rx = %.2f' % rx
+        fig.canvas.mpl_disconnect(cid)
+        plt.close()
+
+def redefine_ry(event):
+    """
+    Click a point to redefine ry
+    Click outside the image to apply the change
+    Parameters
+    ----------
+    event
+
+    Returns
+    -------
+
+    """
+    print 'CLICK A POINT TO REDEFINE ry. CLICK OUTSIDE THE PLOT TO CLOSE THE PLOT.'
+    xmin, xmax = ax.get_xlim()
+    ymax, ymin = ax.get_ylim()
+
+
+    if event.xdata is not None and event.ydata is not None:
+        print 'redefine_ry: %.2f. %.2f' % (event.xdata, event.ydata)
+        global ry, terminate, roi_bool, polylines, reject
+        plt.axvline(x=event.xdata)
+        global ry, terminate
+        ry = (event.xdata - xmin) / xmax
+        print 'ry: %.2f' % ry
+
+        if event.key == 't':
+            print 'You pressed %s. Terminating computations after this step...' % event.key
+            terminate = True
+            fig.canvas.mpl_disconnect(cid)
+            plt.close()
+        elif event.key == 'r':
+            # Under development
+            print 'You pressed %s. Draw ROI' % event.key
+            roi_bool = True
+            roi = roipoly.RoiPoly(ax=plt.gca(), roicolor='r')
+            roi = np.dstack((roi.allxpoints, roi.allypoints))[0]
+            print roi
+            print '????????'
+            polylines = path.Path(roi)
+            fig.canvas.mpl_disconnect(cid)
+            plt.close()
+        elif event.key == 'n':
+            print 'You pressed %s. Reject the detected core position' % event.key
+            reject = True
+            plt.axhline(y=event.ydata)
+            ry = (event.ydata - ymin) / ymax
+            print 'ry: %.2f' % ry
+            fig.canvas.mpl_disconnect(cid)
+            plt.close()
+    else:
+        if event.key == 't':
+            print 'You pressed %s. Terminating computations after this step...' % event.key
+            terminate = True
+            fig.canvas.mpl_disconnect(cid)
+            plt.close()
+        elif event.key == 'n':
+            print 'You pressed %s. Reject the detected core position' % event.key
+            reject = True
+            plt.axhline(y=event.ydata)
+            ry = (event.ydata - ymin) / ymax
+            print 'ry: %.2f' % ry
+            fig.canvas.mpl_disconnect(cid)
+            plt.close()
+
+
+        print 'Exitting... ry = %.2f' % ry
+        fig.canvas.mpl_disconnect(cid)
+        plt.close()
+
+def draw_trajectory(data_dict, show=True):
+    fig3, ax31 = graph.set_fig(fignum=3, subplot=111, figsize=(16, 10))
+    for domain_num in range(1, 5):
+        # these are lists of core positions
+        cxmax = data_dict["domain{0}".format(domain_num)]["cxmaxlist"]
+        cymax = data_dict["domain{0}".format(domain_num)]["cymaxlist"]
+        cxmin = data_dict["domain{0}".format(domain_num)]["cxminlist"]
+        cymin = data_dict["domain{0}".format(domain_num)]["cyminlist"]
+
+        core_positions = [[cxmax, cymax], [cxmin, cymin]]
+
+        # For plot
+        marker = ['v', '^', 's', 'o']  # makers corresponding to domains
+        fillstyle = ['full', 'none']  # Positive core: fill, Negative core: no fill
+        colors = graph.get_first_n_colors_from_color_cycle(4)
+
+        for j, core_position in enumerate(core_positions):
+            print core_position
+            cx, cy = core_position[0], core_position[1]
+            ax31.plot(cx, cy, color=colors[domain_num - 1], marker=marker[domain_num - 1],
+                      alpha=0.7, fillstyle=fillstyle[j])
+            graph.setaxes(ax31, 0, imsize[1] * scale, 0, imsize[0] * scale)
+            graph.labelaxes(ax31, 'x [mm]', 'y [mm]')
+            ax31.invert_yaxis()
+        if show:
+            graph.show()
+
+def initialize_good_core_bools(data_dict):
+    for domain_num in range(1,5):
+        data_dict["domain{0}".format(domain_num)]['good_corePos'] = False
+        data_dict["domain{0}".format(domain_num)]['good_coreNeg'] = False
+    return data_dict
 
 
 
@@ -264,7 +536,17 @@ if __name__ == '__main__':
     Pass a absolute path of the cine files through '-input' e.g. -input '/absolute/path/to/cineDir/*.cine'
     """
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('-input', metavar='input', type=str, nargs='*', default=None, help='')
+    # Parameter to specify a data location
+    parser.add_argument('-input', metavar='input', type=str, nargs='*', default=None, help='e.g. -input /absolute/path/to/cineDir/*.cine')
+    # Parameters to specify the region in which the analysis is conducted
+    parser.add_argument('-start', dest='start', type=int, default=0, help='Frame number to start the analysis')
+    parser.add_argument('-stop', dest='stop', type=int, default=0, help='Frame number to end the analysis')
+    parser.add_argument('-skip', dest='skip', type=int, default=10, help='Use every "skip" frames for analysis. default=10')
+    parser.add_argument('-process_all', dest='process_all', action='store_true', default=False,
+                        help='If added, compute circulation for ALL frames in cine. It should be unnecessary for most of times. Default is false. ')
+
+
+    # Parameters about how to compute ciruclation
     parser.add_argument('-NP', dest='NP', type=int, default=800,
                         help='Number of points to sample along the circulation contour')
     parser.add_argument('-min_radius', dest='min_radius', type=float, default=10,
@@ -274,28 +556,30 @@ if __name__ == '__main__':
     parser.add_argument('-sample_pts', dest='sample_pts', type=int, default=10,
                         help='number of points between min and max radius at which to sample the circulation')
     parser.add_argument('-cm_shift', dest='cm_shift', type=int, default=10,
-                        help='Largest amount to shift the center of the circulation contour')
+                        help='Largest amount to shift the center of the circulation contour in px')
 
-    parser.add_argument('-scale', dest='scale', type=float, default=None)
-    parser.add_argument('-rate', dest='rate', type=float, default=None)
 
+    # Parameters related to videos
+    parser.add_argument('-scale', dest='scale', type=float, default=None, help='mm/px')
+    parser.add_argument('-rate', dest='rate', type=float, default=None, help='fps')
+
+    # Parameters related to PIV
     parser.add_argument('-image_spacing', dest='image_spacing', type=float, default=1,
                         help='number of frames between a image pair')
     parser.add_argument('-frame_spacing', dest='frame_spacing', type=float, default=10,
                         help='number of frames between successive image pairs')
+    parser.add_argument('-box_size', dest='box_size', type=int, default=32,
+                        help='width of the box to compute correlation')
+    parser.add_argument('-omegabool', dest='omegabool', action='store_false', default=True,
+                        help='If added, it does not read vorticity values computed by PIVLab')
+
+    # Parameters related to outputs
     parser.add_argument('-plot_spacing', dest='plot_spacing', type=int, default=50,
                         help='spacing between circulation curves are plotted and saved')
-    parser.add_argument('-box_size', dest='box_size', type=int, default=32)
+    parser.add_argument('-save_circ', dest='save_circ', action='store_true', default=False,
+                        help='If added, save the png of the circulation vs contour radius plot, JSON is saved regardless the value of -save_circ')
 
-    parser.add_argument('-start', dest='start', type=int, default=0)
-    parser.add_argument('-stop', dest='stop', type=int, default=0)
-    parser.add_argument('-skip', dest='skip', type=int, default=10)
 
-    parser.add_argument('-omegabool', dest='omegabool', default=True)
-
-    parser.add_argument('--summarize', dest='summarize', action='store_true', default=False,
-                        help='Plot only the aggregate data, assuming that the .json files have already been generated')
-    parser.add_argument('--save_circ', dest='save_circ', action='store_true', default=False)
 
     # PARSE COMMAND LINE INPUTS
     args = parser.parse_args()
@@ -306,7 +590,6 @@ if __name__ == '__main__':
     max_radius = args.max_radius
     sample_pts = args.sample_pts
     cm_shift = args.cm_shift
-    summarize = args.summarize
     save_circ = args.save_circ
     scale = args.scale
     rate = args.rate
@@ -314,22 +597,28 @@ if __name__ == '__main__':
     frame_spacing = args.frame_spacing
     plot_spacing = args.plot_spacing
     omegabool = args.omegabool
+    process_all = args.process_all
     dt = frame_spacing/rate
     box_size = args.box_size
 
     # SETUP SOME VARIABLES FOR PLOTTING TO BE USED THROUGHOUT SCRIPT
-    radii = np.linspace(min_radius * scale, max_radius * scale, num=sample_pts, endpoint=True)
+    radii = np.linspace(min_radius * scale, max_radius * scale, num=sample_pts, endpoint=True) # in mm
     radii_diff = (max_radius * scale - min_radius * scale) / float(sample_pts - 1)
     phi = np.arange(NP) * 2 * np.pi / float(NP)
 
     gammar_all, vr_all, dr_all = [], [], []
     span = []
 
-    data_dict = {}
     # for plots
     gammar_lim, vr_lim, dr_lim = 0, 0, 0
     colors = graph.get_first_n_colors_from_color_cycle(4)  # colors corresponding to domains
+    # Bounds for color bars in the velocity / vorticity heat map
+    ux_limit = cutoffu * scale * rate / 1.4
+    uy_limit = cutoffu * scale * rate / 1.4
+    w_limit = cutoffomega * rate / 1.4
 
+
+    # PROCESS CINES
     for cnum, cine_file in enumerate(cine_inputs):
         # Ring velocity, ring diameter, circulation, vortex rsssing core position(x, y)
         trForVr, vxr, vyr, vr =[], [], [], []
@@ -337,6 +626,11 @@ if __name__ == '__main__':
         trForGammarPos, gammarPos, gammarPos_err, cxmaxlist, cymaxlist, cxminlist, cyminlist = [], [], [], [], [], [], []
         cxlist, cylist = [], []
         time = []
+        d12_list, d13_list, d24_list, d34_list = [], [], [], []
+        # reset rx_list and ry_list every cine
+        rx_list = [0.5, 0.5, 0.5, 0.5]
+        ry_list = [0.5, 0.5, 0.5, 0.5]
+
 
         # LOAD CINE FILE AND GRUB IMAGE SIZE
         movie = cine.open(cine_file)
@@ -357,7 +651,7 @@ if __name__ == '__main__':
             span = float(browse.replace_letter_in_string(span, 'p', '.'))
 
 
-
+        print '-----------------------------------------------------------'
         print 'Working on Cine file: ', name
 
         # # CREATE A DIRECTORY TO STORE RESULTS
@@ -372,8 +666,6 @@ if __name__ == '__main__':
         # GRAB A DIRECTORY NAME WHERE PIVLAB-GENERATED txt FILES ARE STORED
         data_dir = date_dir + '/PIV_W%s_step%s_data' % (box_size, int(image_spacing)) + \
                    '/PIVlab_ratio2_W%spix_Dt_%s_' % (box_size, int(image_spacing)) + name
-
-        print movie.len
 
 
 
@@ -397,11 +689,11 @@ if __name__ == '__main__':
             frames = range(args.start, args.stop, args.skip)
         print 'Working on frame range: (%d:%d)' % (frames[0], frames[-1])
 
-        # Counters for velocity computation
-        # counter = 0
-        counter_dict = {'domain1Pos':0, 'domain2Pos':0, 'domain3Pos':0, 'domain4Pos':0,
+        # Initialize counters for velocity computation
+        counter_dict = {'domain1Pos': 0, 'domain2Pos': 0, 'domain3Pos': 0, 'domain4Pos': 0,
                         'domain1Neg': 0, 'domain2Neg': 0, 'domain3Neg': 0, 'domain4Neg': 0}
-        # Initialize data dictionaries
+        # Initialize data dictionary
+        data_dict = {}
         for domain_num in range(1, 5):
             data_dict = update_data_dict(data_dict, "domain{0}".format(domain_num), 'trForGammarPos', [])
             data_dict = update_data_dict(data_dict, "domain{0}".format(domain_num), 'trForGammarNeg', [])
@@ -419,14 +711,19 @@ if __name__ == '__main__':
             data_dict = update_data_dict(data_dict, "domain{0}".format(domain_num), 'vrPos', [])
             data_dict = update_data_dict(data_dict, "domain{0}".format(domain_num), 'vrNeg', [])
             data_dict = update_data_dict(data_dict, "domain{0}".format(domain_num), 'dr', [])
+            data_dict = update_data_dict(data_dict, "domain{0}".format(domain_num), 'terminatePos', False)
+            data_dict = update_data_dict(data_dict, "domain{0}".format(domain_num), 'terminateNeg', False)
+            data_dict = update_data_dict(data_dict, "domain{0}".format(domain_num), 'good_corePos', False)
+            data_dict = update_data_dict(data_dict, "domain{0}".format(domain_num), 'good_coreNeg', False)
 
         # Read PIVLab data of the corresponding cine, and compute circulation, ring vel, and diameter
         for i, f in enumerate(frames):
             # Convert frame to sec
             time.append(f / float(rate))
 
-
+            # Compute circulation/velocity/diameter every plot_spacing frames
             if f % plot_spacing == 0:
+                print '-----------------------------------------------------------'
                 print 'Processing frame %d' % f
                 print 'image size in px (y,x): ', imsize
                 try:
@@ -437,7 +734,14 @@ if __name__ == '__main__':
                 print 'Attempting to read the txt data from...:'
                 print os.path.join(data_dir, 'D%04d.txt' % f)
 
-                if os.path.exists(os.path.join(data_dir, 'D%05d.txt' % f)):
+                # READ PIVLab OUTPUT
+                if os.path.exists(os.path.join(data_dir, 'D%06d.txt' % f)):
+                    if omegabool:
+                        x, y, ux, uy, omega = load_matlab_data(os.path.join(data_dir, 'D%06d.txt' % f))
+                    else:
+                        x, y, ux, uy = load_matlab_data(os.path.join(data_dir, 'D%06d.txt' % f))
+                    print 'Loaded D%06d.txt' % f
+                elif os.path.exists(os.path.join(data_dir, 'D%05d.txt' % f)):
                     if omegabool:
                         x, y, ux, uy, omega = load_matlab_data(os.path.join(data_dir, 'D%05d.txt' % f))
                     else:
@@ -480,26 +784,28 @@ if __name__ == '__main__':
                 print 'Cleaning omega... cutoff is ' + str(cutoffomega * rate) + '1/s'
                 omega = process.clean_multi_dim_array(omega, cutoff=cutoffomega, verbose=False)
                 print '---------------'
-                # Figure out the number of voxels (nx, ny)
+
+                # Figure out the dimension of 2D data (nx, ny)
                 nx, ny = (x[-1] - x[0]) * 2 / box_size + 1, (y[-1] - y[0]) * 2 / box_size + 1
 
-                # Reshape omega into nx x ny array
-                xgrid = np.array(x).reshape((nx, ny))
-                ygrid = np.array(y).reshape((nx, ny))
-                omegagrid = np.array(omega).reshape((nx, ny))
-                uxgrid = np.array(ux).reshape((nx, ny))
-                uygrid = np.array(uy).reshape((nx, ny))
+                # Reshape data into 2d array(ny, nx)
+                xgrid = np.array(x).reshape((ny, nx))
+                ygrid = np.array(y).reshape((ny, nx))
+                omegagrid = np.array(omega).reshape((ny, nx))
+                uxgrid = np.array(ux).reshape((ny, nx))
+                uygrid = np.array(uy).reshape((ny, nx))
 
                 # COMPUTE INTERPOLATED VELOCITY AND VORTICITY
                 # CONVERT PX -> MM AND FRAME -> SEC
                 Xgrid, Ygrid, iuxgrid = interp_flow_component(x * scale, y * scale, ux * scale * rate)
                 Xgrid, Ygrid, iuygrid = interp_flow_component(x * scale, y * scale, uy * scale * rate)
                 Xgrid, Ygrid, iomegagrid = interp_flow_component(x * scale, y * scale, omega * rate)
-
+                nrows, ncolumns = Xgrid.shape
                 xmin, xmax, ymin, ymax = min(Xgrid.flatten()), max(Xgrid.flatten()),\
                                          min(Ygrid.flatten()), max(Ygrid.flatten())
+                width, height = xmax - xmin, ymax - ymin
                 print 'Window dimension in mm: (xmin, xmax, ymin, ymax)=(%.2f, %.2f, %.2f, %.2f)'\
-                      %(xmin, xmax, ymin, ymax)
+                      % (xmin, xmax, ymin, ymax)
 
                 # # # Divide the interpolated grids into four domains
                 ################################
@@ -513,135 +819,101 @@ if __name__ == '__main__':
                 #  1-ry  | |          |          |
                 #        v | Domain 2 | Domain 4 |
                 ################################
-                Xgrid1, Xgrid2, Xgrid3, Xgrid4 = fa.divide_2d_array_into_four_domains(Xgrid, rx=0.5, ry=0.6)
-                Ygrid1, Ygrid2, Ygrid3, Ygrid4 = fa.divide_2d_array_into_four_domains(Ygrid, rx=0.5, ry=0.6)
-                iomegagrid1, iomegagrid2, iomegagrid3, iomegagrid4 = fa.divide_2d_array_into_four_domains(iomegagrid, rx=0.5, ry=0.6)
+                good_core = False
+                while not good_core:
+                    data_dict = initialize_good_core_bools(data_dict)
+
+                    Xgrid1, Xgrid2, Xgrid3, Xgrid4 = fa.divide_2d_array_into_four_domains(Xgrid, rx=rx, ry=ry)
+                    Ygrid1, Ygrid2, Ygrid3, Ygrid4 = fa.divide_2d_array_into_four_domains(Ygrid, rx=rx, ry=ry)
+                    iomegagrid1, iomegagrid2, iomegagrid3, iomegagrid4 = fa.divide_2d_array_into_four_domains(iomegagrid, rx=rx, ry=ry)
 
 
-                # Find the center of vorticity (ignore the edges)]
-                nxedges = int(np.abs((xgrid[1][0] - xgrid[0][0])) / __xint__)
-                nyedges = int(np.abs((ygrid[0][1] - ygrid[0][0])) / __yint__)
-                print 'Number of points ignored from the horizontal and vertical edges: ', nxedges, nyedges
+                    # Find how many points in the interpolated velocity/vorticity field correspond to the data at the edges
+                    nxedges = 1 + int(np.abs(xgrid[1][0] - xgrid[0][0]) / 2 * scale / __xint__)
+                    nyedges = 1 + int(np.abs(ygrid[0][1] - ygrid[0][0]) / 2 * scale / __yint__)
+                    print 'Number of points ignored from the horizontal and vertical edges: ', nxedges, nyedges
 
-                # Exclude vorticity data at the edges
-                iomegagrid_no_edges = iomegagrid[nxedges:-nxedges, nyedges:-nyedges]
-                iomegagrid1_no_edges, iomegagrid2_no_edges = iomegagrid1[nxedges:, nyedges:], iomegagrid2[nxedges:, :-nyedges]
-                iomegagrid3_no_edges, iomegagrid4_no_edges = iomegagrid3[:-nxedges, nyedges:], iomegagrid4[:-nxedges, :-nyedges]
-                Xgrid_no_edges = Xgrid[nxedges:-nxedges, nyedges:-nyedges]
-                Ygrid_no_edges = Ygrid[nxedges:-nxedges, nyedges:-nyedges]
+                    # Exclude vorticity data at the edges
+                    iomegagrid_no_edges = iomegagrid[nyedges:-nyedges, nxedges:-nxedges]
+                    Xgrid_no_edges = Xgrid[nyedges:-nyedges, nxedges:-nxedges]
+                    Ygrid_no_edges = Ygrid[nyedges:-nyedges, nxedges:-nxedges]
 
-
-                # Divide the grids into four domains
-                # iomegagrid1_no_edges, iomegagrid2_no_edges,\
-                # iomegagrid3_no_edges, iomegagrid4_no_edges = fa.divide_2d_array_into_four_domains(iomegagrid_no_edges, rx=0.5, ry=0.6)
-                iomegagrid1_no_edges, iomegagrid2_no_edges = iomegagrid1[nxedges:, nyedges:], iomegagrid2[nxedges:, :-nyedges]
-                iomegagrid3_no_edges, iomegagrid4_no_edges = iomegagrid3[:-nxedges, nyedges:], iomegagrid4[:-nxedges, :-nyedges]
-
-                # Find the maximum/minimum value of vorticity in each domain
-                iomegamax1 = max(iomegagrid1_no_edges.flatten())
-                iomegamin1 = min(iomegagrid1_no_edges.flatten())
-                iomegamax2 = max(iomegagrid2_no_edges.flatten())
-                iomegamin2 = min(iomegagrid2_no_edges.flatten())
-                iomegamax3 = max(iomegagrid3_no_edges.flatten())
-                iomegamin3 = min(iomegagrid3_no_edges.flatten())
-                iomegamax4 = max(iomegagrid4_no_edges.flatten())
-                iomegamin4 = min(iomegagrid4_no_edges.flatten())
+                    iomegagrid1_no_edges, iomegagrid2_no_edges = iomegagrid1[nyedges:, nxedges:], iomegagrid2[:-nyedges, nxedges:]
+                    iomegagrid3_no_edges, iomegagrid4_no_edges = iomegagrid3[nyedges:, :-nxedges], iomegagrid4[:-nyedges,: -nxedges]
+                    Xgrid1_no_edges, Xgrid2_no_edges = Xgrid1[nyedges:, nxedges:], Xgrid2[:-nyedges, nxedges:]
+                    Xgrid3_no_edges, Xgrid4_no_edges = Xgrid3[nyedges:, :-nxedges], Xgrid4[:-nyedges, :-nxedges]
+                    Ygrid1_no_edges, Ygrid2_no_edges = Ygrid1[nyedges:, nxedges:], Ygrid2[:-nyedges, nxedges:]
+                    Ygrid3_no_edges, Ygrid4_no_edges = Ygrid3[nyedges:, :-nxedges], Ygrid4[:-nyedges, :-nxedges]
 
 
-                # Find a position of maximum/minimum vorticity
-                max_x1, max_y1 = np.where(iomegagrid1 == iomegamax1)   # these are indices
-                min_x1, min_y1 = np.where(iomegagrid1 == iomegamin1)   # these are indices
-                max_x2, max_y2 = np.where(iomegagrid2 == iomegamax2)   # these are indices
-                min_x2, min_y2 = np.where(iomegagrid2 == iomegamin2)   # these are indices
-                max_x3, max_y3 = np.where(iomegagrid3 == iomegamax3)   # these are indices
-                min_x3, min_y3 = np.where(iomegagrid3 == iomegamin3)   # these are indices
-                max_x4, max_y4 = np.where(iomegagrid4 == iomegamax4)   # these are indices
-                min_x4, min_y4 = np.where(iomegagrid4 == iomegamin4)   # these are indices
+                    # VORTEX CORE DETECTION
+
+                    # Find the maximum/minimum value of vorticity in each domain
+                    iomegamax1 = max(iomegagrid1_no_edges.flatten())
+                    iomegamin1 = min(iomegagrid1_no_edges.flatten())
+                    iomegamax2 = max(iomegagrid2_no_edges.flatten())
+                    iomegamin2 = min(iomegagrid2_no_edges.flatten())
+                    iomegamax3 = max(iomegagrid3_no_edges.flatten())
+                    iomegamin3 = min(iomegagrid3_no_edges.flatten())
+                    iomegamax4 = max(iomegagrid4_no_edges.flatten())
+                    iomegamin4 = min(iomegagrid4_no_edges.flatten())
+
+
+                    # Find a position of maximum/minimum vorticity in each quadrant
+                    max_y1, max_x1 = np.where(iomegagrid == iomegamax1)
+                    min_y1, min_x1 = np.where(iomegagrid == iomegamin1)
+                    max_y2, max_x2 = np.where(iomegagrid == iomegamax2)
+                    min_y2, min_x2 = np.where(iomegagrid == iomegamin2)
+                    max_y3, max_x3 = np.where(iomegagrid == iomegamax3)
+                    min_y3, min_x3 = np.where(iomegagrid == iomegamin3)
+                    max_y4, max_x4 = np.where(iomegagrid == iomegamax4)
+                    min_y4, min_x4 = np.where(iomegagrid == iomegamin4)
+
+
+                    print 'Quadrant1: Position of maximum/minimum omega in mm: (%.2f, %.2f), (%.2f, %.2f)'\
+                        % (Xgrid[int(max_y1), int(max_x1)], Ygrid[int(max_y1), int(max_x1)],
+                           Xgrid[int(min_y1), int(min_x1)], Ygrid[int(min_y1), int(min_x1)])
+                    print 'Quadrant2: Position of maximum/minimum omega in mm: (%.2f, %.2f), (%.2f, %.2f)'\
+                        % (Xgrid[int(max_y2), int(max_x2)], Ygrid[int(max_y2), int(max_x2)],
+                           Xgrid[int(min_y2), int(min_x2)], Ygrid[int(min_y2), int(min_x2)])
+                    print 'Quadrant3: Position of maximum/minimum omega in mm: (%.2f, %.2f), (%.2f, %.2f)'\
+                        % (Xgrid[int(max_y3), int(max_x3)], Ygrid[int(max_y3), int(max_x3)],
+                           Xgrid[int(min_y3), int(min_x3)], Ygrid[int(min_y3), int(min_x3)])
+                    print 'Quadrant4: Position of maximum/minimum omega in mm: (%.2f, %.2f), (%.2f, %.2f)'\
+                        % (Xgrid[int(max_y4), int(max_x4)], Ygrid[int(max_y4), int(max_x4)],
+                           Xgrid[int(min_y4), int(min_x4)], Ygrid[int(min_y4), int(min_x4)])
 
 
 
-                print 'Vortex ring core positions1(maximum/minimum omega) in mm: (%.2f, %.2f), (%.2f, %.2f)'\
-                    % (Xgrid1[int(max_x1), int(max_y1)], Ygrid1[int(max_x1), int(max_y1)],
-                       Xgrid1[int(min_x1), int(min_y1)], Ygrid1[int(min_x1), int(min_y1)])
-                print 'Vortex ring core positions2(maximum/minimum omega) in mm: (%.2f, %.2f), (%.2f, %.2f)'\
-                    % (Xgrid2[int(max_x2), int(max_y2)], Ygrid2[int(max_x2), int(max_y2)],
-                       Xgrid2[int(min_x2), int(min_y2)], Ygrid2[int(min_x2), int(min_y2)])
-                print 'Vortex ring core positions3(maximum/minimum omega) in mm: (%.2f, %.2f), (%.2f, %.2f)'\
-                    % (Xgrid3[int(max_x3), int(max_y3)], Ygrid3[int(max_x3), int(max_y3)],
-                       Xgrid3[int(min_x3), int(min_y3)], Ygrid3[int(min_x3), int(min_y3)])
-                print 'Vortex ring core positions4(maximum/minimum omega) in mm: (%.2f, %.2f), (%.2f, %.2f)'\
-                    % (Xgrid4[int(max_x4), int(max_y4)], Ygrid4[int(max_x4), int(max_y4)],
-                       Xgrid4[int(min_x4), int(min_y4)], Ygrid4[int(min_x4), int(min_y4)])
+                    # Extract a fraction of vorticity data around a position of maximum/minimum vorticity
+                    # Unless the cores are near the edge, it gets grids with dimension (nx_frac * 2 + 1, ny_frac * 2 + 1)
 
-                # Extract a fraction of vorticity data around a position of maximum/minimum vorticity
-                nx_frac, ny_frac = int(nxedges / 2.), int(nyedges / 2.)
-                iomegagrid_around_max1 = iomegagrid1[int(max_x1 - nx_frac):int(max_x1 + nx_frac + 1),
-                                        int(max_y1 - ny_frac):int(max_y1 + ny_frac + 1)]
-                iomegagrid_around_min1 = iomegagrid1[int(min_x1 - nx_frac):int(min_x1 + nx_frac + 1),
-                                        int(min_y1 - ny_frac):int(min_y1 + ny_frac + 1)]
-                iomegagrid_around_max2 = iomegagrid2[int(max_x2 - nx_frac):int(max_x2 + nx_frac + 1),
-                                        int(max_y2 - ny_frac):int(max_y2 + ny_frac + 1)]
-                iomegagrid_around_min2 = iomegagrid2[int(min_x2 - nx_frac):int(min_x2 + nx_frac + 1),
-                                        int(min_y2 - ny_frac):int(min_y2 + ny_frac + 1)]
-                iomegagrid_around_max3 = iomegagrid3[int(max_x3 - nx_frac):int(max_x3 + nx_frac + 1),
-                                        int(max_y3 - ny_frac):int(max_y3 + ny_frac + 1)]
-                iomegagrid_around_min3 = iomegagrid3[int(min_x3 - nx_frac):int(min_x3 + nx_frac + 1),
-                                        int(min_y3 - ny_frac):int(min_y3 + ny_frac + 1)]
-                iomegagrid_around_max4 = iomegagrid4[int(max_x4 - nx_frac):int(max_x4 + nx_frac + 1),
-                                        int(max_y4 - ny_frac):int(max_y4 + ny_frac + 1)]
-                iomegagrid_around_min4 = iomegagrid4[int(min_x4 - nx_frac):int(min_x4 + nx_frac + 1),
-                                        int(min_y4 - ny_frac):int(min_y4 + ny_frac + 1)]
-                # Make a small region around the max and min of vorticity in each domain
-                Xgrid_around_max1 = Xgrid1[int(max_x1 - nx_frac):int(max_x1 + nx_frac + 1),
-                                   int(max_y1 - ny_frac):int(max_y1 + ny_frac + 1)]
-                Ygrid_around_max1 = Ygrid1[int(max_x1 - nx_frac):int(max_x1 + nx_frac + 1),
-                                   int(max_y1 - ny_frac):int(max_y1 + ny_frac + 1)]
-                Xgrid_around_min1 = Xgrid1[int(min_x1 - nx_frac):int(min_x1 + nx_frac + 1),
-                                   int(min_y1 - ny_frac):int(min_y1 + ny_frac + 1)]
-                Ygrid_around_min1 = Ygrid1[int(min_x1 - nx_frac):int(min_x1 + nx_frac + 1),
-                                   int(min_y1 - ny_frac):int(min_y1 + ny_frac + 1)]
-                Xgrid_around_max2 = Xgrid2[int(max_x2 - nx_frac):int(max_x2 + nx_frac + 1),
-                                   int(max_y2 - ny_frac):int(max_y2 + ny_frac + 1)]
-                Ygrid_around_max2 = Ygrid2[int(max_x2 - nx_frac):int(max_x2 + nx_frac + 1),
-                                   int(max_y2 - ny_frac):int(max_y2 + ny_frac + 1)]
-                Xgrid_around_min2 = Xgrid2[int(min_x2 - nx_frac):int(min_x2 + nx_frac + 1),
-                                   int(min_y2 - ny_frac):int(min_y2 + ny_frac + 1)]
-                Ygrid_around_min2 = Ygrid2[int(min_x2 - nx_frac):int(min_x2 + nx_frac + 1),
-                                   int(min_y2 - ny_frac):int(min_y2 + ny_frac + 1)]
-                Xgrid_around_max3 = Xgrid3[int(max_x3 - nx_frac):int(max_x3 + nx_frac + 1),
-                                   int(max_y3 - ny_frac):int(max_y3 + ny_frac + 1)]
-                Ygrid_around_max3 = Ygrid3[int(max_x3 - nx_frac):int(max_x3 + nx_frac + 1),
-                                   int(max_y3 - ny_frac):int(max_y3 + ny_frac + 1)]
-                Xgrid_around_min3 = Xgrid3[int(min_x3 - nx_frac):int(min_x3 + nx_frac + 1),
-                                   int(min_y3 - ny_frac):int(min_y3 + ny_frac + 1)]
-                Ygrid_around_min3 = Ygrid3[int(min_x3 - nx_frac):int(min_x3 + nx_frac + 1),
-                                   int(min_y3 - ny_frac):int(min_y3 + ny_frac + 1)]
-                Xgrid_around_max4 = Xgrid4[int(max_x4 - nx_frac):int(max_x4 + nx_frac + 1),
-                                   int(max_y4 - ny_frac):int(max_y4 + ny_frac + 1)]
-                Ygrid_around_max4 = Ygrid4[int(max_x4 - nx_frac):int(max_x4 + nx_frac + 1),
-                                   int(max_y4 - ny_frac):int(max_y4 + ny_frac + 1)]
-                Xgrid_around_min4 = Xgrid4[int(min_x4 - nx_frac):int(min_x4 + nx_frac + 1),
-                                   int(min_y4 - ny_frac):int(min_y4 + ny_frac + 1)]
-                Ygrid_around_min4 = Ygrid4[int(min_x4 - nx_frac):int(min_x4 + nx_frac + 1),
-                                   int(min_y4 - ny_frac):int(min_y4 + ny_frac + 1)]
+                    Xgrid_around_max1, Ygrid_around_max1, iomegagrid_around_max1 = get_small_grids_around_coord(iomegagrid, Xgrid, Ygrid, max_x1, max_y1, nx_frac, ny_frac)
+                    Xgrid_around_min1, Ygrid_around_min1, iomegagrid_around_min1 = get_small_grids_around_coord(iomegagrid, Xgrid, Ygrid, min_x1, min_y1,nx_frac, ny_frac)
+                    Xgrid_around_max2, Ygrid_around_max2, iomegagrid_around_max2 = get_small_grids_around_coord(iomegagrid, Xgrid, Ygrid, max_x2, max_y2, nx_frac, ny_frac)
+                    Xgrid_around_min2, Ygrid_around_min2, iomegagrid_around_min2 = get_small_grids_around_coord(iomegagrid, Xgrid, Ygrid, min_x2, min_y2,nx_frac, ny_frac)
+                    Xgrid_around_max3, Ygrid_around_max3, iomegagrid_around_max3 = get_small_grids_around_coord(iomegagrid, Xgrid, Ygrid, max_x3, max_y3, nx_frac, ny_frac)
+                    Xgrid_around_min3, Ygrid_around_min3, iomegagrid_around_min3 = get_small_grids_around_coord(iomegagrid, Xgrid, Ygrid, min_x3, min_y3,nx_frac, ny_frac)
+                    Xgrid_around_max4, Ygrid_around_max4, iomegagrid_around_max4 = get_small_grids_around_coord(iomegagrid, Xgrid, Ygrid, max_x4, max_y4, nx_frac, ny_frac)
+                    Xgrid_around_min4, Ygrid_around_min4, iomegagrid_around_min4 = get_small_grids_around_coord(iomegagrid, Xgrid, Ygrid, min_x4, min_y4,nx_frac, ny_frac)
 
 
-                # Find ring core positions weighted by normalized vorticity
-                max_xw1, max_yw1 = ndimage.measurements.center_of_mass(iomegagrid_around_max1)   # these are indices (decimal)
-                min_xw1, min_yw1 = ndimage.measurements.center_of_mass(iomegagrid_around_min1)   # these are indices (decimal)
-                max_xw2, max_yw2 = ndimage.measurements.center_of_mass(iomegagrid_around_max2)   # these are indices (decimal)
-                min_xw2, min_yw2 = ndimage.measurements.center_of_mass(iomegagrid_around_min2)   # these are indices (decimal)
-                max_xw3, max_yw3 = ndimage.measurements.center_of_mass(iomegagrid_around_max3)   # these are indices (decimal)
-                min_xw3, min_yw3 = ndimage.measurements.center_of_mass(iomegagrid_around_min3)   # these are indices (decimal)
-                max_xw4, max_yw4 = ndimage.measurements.center_of_mass(iomegagrid_around_max4)   # these are indices (decimal)
-                min_xw4, min_yw4 = ndimage.measurements.center_of_mass(iomegagrid_around_min4)   # these are indices (decimal)
 
-                print max_xw1, max_yw1, min_xw1, min_yw1
+                    # Find ring core positions through the center of vorticity algorithm
+                    # Note that assigning the center of vorticity fails if the region contains the opposite voriticity
+                    # In such a case, the core position is recorded as (0, 0)
+                    max_xw1, max_yw1 = ndimage.measurements.center_of_mass(iomegagrid_around_max1)   # these are indices (decimal)
+                    min_xw1, min_yw1 = ndimage.measurements.center_of_mass(iomegagrid_around_min1)   # these are indices (decimal)
+                    max_xw2, max_yw2 = ndimage.measurements.center_of_mass(iomegagrid_around_max2)   # these are indices (decimal)
+                    min_xw2, min_yw2 = ndimage.measurements.center_of_mass(iomegagrid_around_min2)   # these are indices (decimal)
+                    max_xw3, max_yw3 = ndimage.measurements.center_of_mass(iomegagrid_around_max3)   # these are indices (decimal)
+                    min_xw3, min_yw3 = ndimage.measurements.center_of_mass(iomegagrid_around_min3)   # these are indices (decimal)
+                    max_xw4, max_yw4 = ndimage.measurements.center_of_mass(iomegagrid_around_max4)   # these are indices (decimal)
+                    min_xw4, min_yw4 = ndimage.measurements.center_of_mass(iomegagrid_around_min4)   # these are indices (decimal)
 
 
-                try:
                     # Track a position of vortex ring core of positive/negative vorticity
-                    print max_xw1, max_yw1, Xgrid_around_max1.shape
+                    # When the center of vorticity calculation fails, it assigns (0, 0) as
                     cx_max_dict, cy_max_dict, cx_min_dict, cy_min_dict = {}, {}, {}, {}
                     cx_max_dict["domain1"] = fa.get_values_from_multidim_array_at_coord(Xgrid_around_max1, max_xw1, max_yw1)
                     cy_max_dict["domain1"] = fa.get_values_from_multidim_array_at_coord(Ygrid_around_max1, max_xw1, max_yw1)
@@ -659,48 +931,297 @@ if __name__ == '__main__':
                     cy_min_dict["domain3"] = fa.get_values_from_multidim_array_at_coord(Ygrid_around_min3, min_xw3, min_yw3)
                     cx_min_dict["domain4"] = fa.get_values_from_multidim_array_at_coord(Xgrid_around_min4, min_xw4, min_yw4)
                     cy_min_dict["domain4"] = fa.get_values_from_multidim_array_at_coord(Ygrid_around_min4, min_xw4, min_yw4)
-                    print 'Vortex ring core position(Center of Vorticity) in mm: (%.2f, %.2f)' % (cx_max_dict["domain1"], cy_max_dict["domain1"])
+                    cy_min_dict["domain4"] = fa.get_values_from_multidim_array_at_coord(Ygrid_around_min4, min_xw4, min_yw4)
+                    print 'Quadrant1: Vortex ring core position (+,-) in mm: (%.2f, %.2f), (%.2f, %.2f)' % (cx_max_dict["domain1"], cy_max_dict["domain1"], cx_min_dict["domain1"], cy_min_dict["domain1"])
+                    print 'Quadrant2: Vortex ring core position (+,-) in mm: (%.2f, %.2f), (%.2f, %.2f)' % (cx_max_dict["domain2"], cy_max_dict["domain2"], cx_min_dict["domain2"], cy_min_dict["domain2"])
+                    print 'Quadrant3: Vortex ring core position (+,-) in mm: (%.2f, %.2f), (%.2f, %.2f)' % (cx_max_dict["domain3"], cy_max_dict["domain3"], cx_min_dict["domain3"], cy_min_dict["domain3"])
+                    print 'Quadrant4: Vortex ring core position (+,-) in mm: (%.2f, %.2f), (%.2f, %.2f)' % (cx_max_dict["domain4"], cy_max_dict["domain4"], cx_min_dict["domain4"], cy_min_dict["domain4"])
+
+
+
+                    # Check if the cores were detected properly
+                    # Test 1: Are the detected cores in the proper quadrant?
+                    good_core = True
+                    # terminate_list = []
+                    # for domain_num in range(1,5):
+                    #     terminate_list.append(data_dict["domain{0}".format(domain_num)]["terminatePos"])
+                    #     terminate_list.append(data_dict["domain{0}".format(domain_num)]["terminateNeg"])
+                    #
+                    # for domain_num in range(1, 5):
+                    #     quads = make_quadrants(xmin, xmax, ymin, ymax, rx, ry)
+                    #
+                    #     # Get positions of detected cores at current frame
+                    #     cxmax = cx_max_dict["domain{0}".format(domain_num)]
+                    #     cymax = cy_max_dict["domain{0}".format(domain_num)]
+                    #     cxmin = cx_min_dict["domain{0}".format(domain_num)]
+                    #     cymin = cy_min_dict["domain{0}".format(domain_num)]
+                    #     core_positions = [[cxmax, cymax], [cxmin, cymin]]
+                    #     vorticity_sign = ['+', '-']
+                    #
+                    #
+                    #     x_quad = xmin + width * rx
+                    #     y_quad = ymin + height * ry
+                    #
+                    #     if any(terminate_list):
+                    #         # decide whether you would like to terminate the process
+                    #         for j, core_position in enumerate(core_positions):
+                    #             ###############################################################
+                    #             # CHECK IF QUADRANTS ARE GOOD
+                    #             cx, cy = core_position[0], core_position[1]
+                    #
+                    #             if j == 0:
+                    #                 print 'Terminate- Quadrant%d(%s): %r' % (domain_num, vorticity_sign[j],
+                    #                                                  data_dict["domain{0}".format(domain_num)]['terminatePos'])
+                    #                 teminate_local = data_dict["domain{0}".format(domain_num)]['terminatePos']
+                    #             if j == 1:
+                    #                 print 'Terminate- Quadrant%d(%s): %r' % (domain_num, vorticity_sign[j],
+                    #                                                  data_dict["domain{0}".format(domain_num)]['terminateNeg'])
+                    #                 teminate_local = data_dict["domain{0}".format(domain_num)]['terminatePos']
+                    #             if not teminate_local:
+                    #                 if not quads[domain_num - 1].contains_point(core_position):
+                    #                     # if the detected core is not in the quadrant, ignore that
+                    #                     print 'Detected core is outside the proper quadrant. Ignore them.'
+                    #                     if j == 0:
+                    #                         cx_max_dict["domain{0}".format(domain_num)], cy_max_dict[
+                    #                             "domain{0}".format(domain_num)] = np.nan, np.nan
+                    #                         data_dict["domain{0}".format(domain_num)]['good_corePos'] = True
+                    #                     if j == 1:
+                    #                         cx_min_dict["domain{0}".format(domain_num)], cy_min_dict[
+                    #                             "domain{0}".format(domain_num)] = np.nan, np.nan
+                    #                         data_dict["domain{0}".format(domain_num)]['good_coreNeg'] = True
+                    #                 else:
+                    #                     plt.imshow(iomegagrid, cmap=cmap2, vmin=-w_limit, vmax=w_limit,
+                    #                                interpolation='gaussian',
+                    #                                extent=(xmin, xmax, ymax, ymin))
+                    #                     plt.scatter(core_position[0], core_position[1], marker='x', c='k')
+                    #                     plt.title('f=%d, Quadrant%d (%s): Click a point to redefine ry' % (
+                    #                     f, domain_num, vorticity_sign[j]))
+                    #                     fig, ax = plt.gcf(), plt.gca()
+                    #                     draw_quadrants(ax, rx, ry)
+                    #
+                    #                     cid = fig.canvas.mpl_connect('button_press_event', redefine_ry)
+                    #                     plt.show()
+                    #
+                    #                     if j == 0:
+                    #                         data_dict["domain{0}".format(domain_num)]['terminatePos'] = terminate
+                    #                         terminate = False
+                    #                     if j == 1:
+                    #                         data_dict["domain{0}".format(domain_num)]['terminateNeg'] = terminate
+                    #                         terminate = False
+                    #
+                    #     else:
+                    #         for j, core_position in enumerate(core_positions):
+                    #             ###############################################################
+                    #             # CHECK IF QUADRANTS ARE GOOD
+                    #             if (j==0 and not data_dict["domain{0}".format(domain_num)]['terminatePos'])\
+                    #                     or (j==1 and not data_dict["domain{0}".format(domain_num)]['terminateNeg']):
+                    #                 cx, cy = core_position[0], core_position[1]
+                    #                 if not quads[domain_num-1].contains_point(core_position):
+                    #                     # # if the detected core is not in the quadrant, ignore that
+                    #                     # print 'Detected core is outside the proper quadrant. Ignore them.'
+                    #                     # if j == 0:
+                    #                     #     cx_max_dict["domain{0}".format(domain_num)], cy_max_dict[
+                    #                     #         "domain{0}".format(domain_num)] = np.nan, np.nan
+                    #                     #     data_dict["domain{0}".format(domain_num)]['good_corePos'] = True
+                    #                     # elif j == 1:
+                    #                     #     cx_min_dict["domain{0}".format(domain_num)], cy_min_dict[
+                    #                     #         "domain{0}".format(domain_num)] = np.nan, np.nan
+                    #                     #     data_dict["domain{0}".format(domain_num)]['good_coreNeg'] = True
+                    #                     # if the detected core is not in the quadrant, redefine the quadrant
+                    #                     print 'Core detected in the wrong quadrant. REDEFINE QUADRANTS: ry'
+                    #                     print quads[domain_num - 1].contains_point(core_position)
+                    #                     plt.imshow(iomegagrid, cmap=cmap2, vmin=-w_limit, vmax=w_limit,
+                    #                                interpolation='gaussian',
+                    #                                extent=(xmin, xmax, ymax, ymin))
+                    #                     plt.scatter(core_position[0], core_position[1], marker='x', c='k')
+                    #                     plt.title('f=%d, Quadrant%d (%s): Click a point to redefine ry' % (
+                    #                     f, domain_num, vorticity_sign[j]))
+                    #                     fig, ax = plt.gcf(), plt.gca()
+                    #                     draw_quadrants(ax, rx, ry)
+                    #
+                    #                     cid = fig.canvas.mpl_connect('button_press_event', redefine_ry)
+                    #                     plt.show()
+                    #
+                    #                 else:
+                    #                     if np.abs(x_quad - cx) < width*0.05:
+                    #                         print 'REDEFINE QUADRANTS: rx!'
+                    #                         print quads[domain_num - 1].contains_point(core_position)
+                    #                         #redefine quadrants
+                    #                         plt.imshow(iomegagrid, cmap=cmap2, vmin=-w_limit, vmax=w_limit, interpolation='gaussian',
+                    #                                   extent=(xmin, xmax, ymax, ymin))
+                    #                         plt.scatter(core_position[0], core_position[1], marker='x', c='k')
+                    #                         plt.title('f=%d, Quadrant%d (%s): Click a point to redefine rx' % (f, domain_num, vorticity_sign[j]))
+                    #                         fig, ax = plt.gcf(), plt.gca()
+                    #                         draw_quadrants(ax, rx, ry)
+                    #
+                    #                         cid = fig.canvas.mpl_connect('button_press_event', redefine_rx)
+                    #                         plt.show()
+                    #
+                    #                         if roi_bool:
+                    #                             print polylines.contains_point(core_position)
+                    #                             print '#######################'
+                    #                             roi_bool = False
+                    #
+                    #                         if j == 0:
+                    #                             data_dict["domain{0}".format(domain_num)]['terminatePos'] = terminate
+                    #                             terminate = False
+                    #                             # detected core position was rejected by eye inspection
+                    #                             if reject:
+                    #                                 cx_max_dict["domain{0}".format(domain_num)] = np.nan
+                    #                                 cy_max_dict["domain{0}".format(domain_num)] = np.nan
+                    #                                 reject = False
+                    #                             else:
+                    #                                 data_dict["domain{0}".format(domain_num)]['good_corePos'] = True
+                    #                         if j == 1:
+                    #                             data_dict["domain{0}".format(domain_num)]['terminateNeg'] = terminate
+                    #                             terminate = False
+                    #                             # detected core position was rejected by eye inspection
+                    #                             if reject:
+                    #                                 cx_min_dict["domain{0}".format(domain_num)] = np.nan
+                    #                                 cy_min_dict["domain{0}".format(domain_num)] = np.nan
+                    #                                 reject = False
+                    #                             else:
+                    #                                 data_dict["domain{0}".format(domain_num)]['good_coreNeg'] = True
+                    #
+                    #                     elif np.abs(y_quad - cy) < height*0.05:
+                    #                         print 'REDEFINE QUADRANTS: ry'
+                    #                         print quads[domain_num - 1].contains_point(core_position)
+                    #                         plt.imshow(iomegagrid, cmap=cmap2, vmin=-w_limit, vmax=w_limit, interpolation='gaussian',
+                    #                                   extent=(xmin, xmax, ymax, ymin))
+                    #                         plt.scatter(core_position[0], core_position[1], marker='x', c='k')
+                    #                         plt.title('f=%d, Quadrant%d (%s): Click a point to redefine ry' % (f, domain_num, vorticity_sign[j]))
+                    #                         fig, ax = plt.gcf(), plt.gca()
+                    #                         draw_quadrants(ax, rx, ry)
+                    #
+                    #                         cid = fig.canvas.mpl_connect('button_press_event', redefine_ry)
+                    #                         plt.show()
+                    #
+                    #                         if j == 0:
+                    #                             data_dict["domain{0}".format(domain_num)]['terminatePos'] = terminate
+                    #                             terminate = False
+                    #                             print 'THERE'
+                    #                             print reject, domain_num, j
+                    #                             # detected core position was rejected by eye inspection
+                    #                             if reject:
+                    #                                 cx_max_dict["domain{0}".format(domain_num)] = np.nan
+                    #                                 cy_max_dict["domain{0}".format(domain_num)] = np.nan
+                    #                                 reject = False
+                    #                                 print 'THERE2'
+                    #                             else:
+                    #                                 data_dict["domain{0}".format(domain_num)]['good_corePos'] = True
+                    #                         if j == 1:
+                    #                             data_dict["domain{0}".format(domain_num)]['terminateNeg'] = terminate
+                    #                             terminate = False
+                    #                             print 'THERE3'
+                    #                             # detected core position was rejected by eye inspection
+                    #                             if reject:
+                    #                                 cx_min_dict["domain{0}".format(domain_num)] = np.nan
+                    #                                 cy_min_dict["domain{0}".format(domain_num)] = np.nan
+                    #                                 reject = False
+                    #                                 print 'THERE4'
+                    #                             else:
+                    #                                 data_dict["domain{0}".format(domain_num)]['good_coreNeg'] = True
+                    #
+                    #                     else:
+                    #                         if j == 0:
+                    #                             data_dict["domain{0}".format(domain_num)]['good_corePos'] = True
+                    #                         if j == 1:
+                    #                             data_dict["domain{0}".format(domain_num)]['good_coreNeg'] = True
+                    #                 print 'j = %d' % j
+                    #
+                    #             if j == 0:
+                    #                 print 'Terminate- Quadrant%d(%s): %r' % (domain_num, vorticity_sign[j],data_dict["domain{0}".format(domain_num)]['terminatePos'])
+                    #                 good_core *= data_dict["domain{0}".format(domain_num)]['good_corePos']
+                    #                 print 'Quadrant%d(%s): %r %r' % (domain_num, vorticity_sign[j], good_core, data_dict["domain{0}".format(domain_num)]['good_corePos'])
+                    #             if j == 1:
+                    #                 print 'Terminate- Quadrant%d(%s): %r' % (domain_num, vorticity_sign[j],data_dict["domain{0}".format(domain_num)]['terminateNeg'])
+                    #                 good_core *= data_dict["domain{0}".format(domain_num)]['good_coreNeg']
+                    #                 print 'Quadrant%d(%s): %r %r' %(domain_num, vorticity_sign[j], good_core, data_dict["domain{0}".format(domain_num)]['good_coreNeg'])
+                    # print 'good cores?: %r' % good_core
+
                     # Compute distances between counterrotating cores
-                    d12 = compute_dist(cx_max_dict["domain1"], cy_max_dict["domain1"], cx_min_dict["domain2"], cy_min_dict["domain2"])
-                    d13 = compute_dist(cx_min_dict["domain1"], cy_min_dict["domain1"], cx_max_dict["domain3"], cy_max_dict["domain3"])
-                    d24 = compute_dist(cx_max_dict["domain2"], cy_max_dict["domain2"], cx_min_dict["domain4"], cy_min_dict["domain4"]) # these are not usually measured correctly
-                    d34 = compute_dist(cx_min_dict["domain3"], cy_min_dict["domain3"], cx_max_dict["domain4"], cy_max_dict["domain4"]) # these are not usually measured correctly
+                    if not cx_max_dict["domain1"] == 0 and not cx_min_dict["domain2"] == 0:
+                        d12 = compute_dist(cx_max_dict["domain1"], cy_max_dict["domain1"],
+                                           cx_min_dict["domain2"], cy_min_dict["domain2"])
+                    else:
+                        d12 = np.nan
+                    if not cx_min_dict["domain1"] == 0 and not cx_max_dict["domain3"] == 0:
+                        d13 = compute_dist(cx_min_dict["domain1"], cy_min_dict["domain1"],
+                                           cx_max_dict["domain3"], cy_max_dict["domain3"])
+                    else:
+                        d13 = np.nan
+                    if not cx_max_dict["domain2"] == 0 and not cx_min_dict["domain4"] == 0:
+                        d24 = compute_dist(cx_max_dict["domain2"], cy_max_dict["domain2"],
+                                           cx_min_dict["domain4"], cy_min_dict["domain4"])
+                    else:
+                        d24 = np.nan
+                    if not cx_min_dict["domain3"] == 0 and not cx_max_dict["domain4"] == 0:
+                        d34 = compute_dist(cx_min_dict["domain3"], cy_min_dict["domain3"],
+                                           cx_max_dict["domain4"], cy_max_dict["domain4"])
+                    else:
+                        d34 = np.nan
 
-                except IndexError:
-                    print 'Tracking vortex ring core is too close to the the edge. SKIPPING...'
-                    print '------------------------------'
-                    continue
+                    d12_list.append(d12)
+                    d13_list.append(d13)
+                    d24_list.append(d24)
+                    d34_list.append(d34)
 
 
+
+                # SHOW ALL CORES (DEBUGGING PURPOSE)
+                # colors2 = ['k', 'c', 'm', 'y']
+                # if good_core:
+                #     plt.imshow(iomegagrid, cmap=cmap2, vmin=-w_limit, vmax=w_limit, interpolation='gaussian',
+                #                extent=(xmin, xmax, ymax, ymin))
+                #     plt.title('f=%d: Check all cores detected' % f)
+                #     for domain_num in range(1, 5):
+                #         # Get positions of detected cores at current frame
+                #         cxmax = cx_max_dict["domain{0}".format(domain_num)]
+                #         cymax = cy_max_dict["domain{0}".format(domain_num)]
+                #         cxmin = cx_min_dict["domain{0}".format(domain_num)]
+                #         cymin = cy_min_dict["domain{0}".format(domain_num)]
+                #         core_positions = [[cxmax, cymax], [cxmin, cymin]]
+                #         for j, core_position in enumerate(core_positions):
+                #             print core_position
+                #             if (j == 0 and not data_dict["domain{0}".format(domain_num)]['terminatePos']) or (j == 1 and not data_dict["domain{0}".format(domain_num)]['terminateNeg']):
+                #                 plt.scatter(core_position[0], core_position[1], marker='x', c=colors2[domain_num-1])
+                #     plt.show()
+
+
+
+                ###############################################################
+                # UPDATE DATADICT ABOUT CORE POSITIONS IN THE CURRENT FRAME
                 for domain_num in range(1, 5):
-                    # Compute circulation with cores with positive/negative vorticity
+                    # Get positions of detected cores at current frame
                     cxmax = cx_max_dict["domain{0}".format(domain_num)]
                     cymax = cy_max_dict["domain{0}".format(domain_num)]
                     cxmin = cx_min_dict["domain{0}".format(domain_num)]
                     cymin = cy_min_dict["domain{0}".format(domain_num)]
+                    core_positions = [[cxmax, cymax], [cxmin, cymin]]
+                    if j == 0:  # Positive core
+                        # Refer to lists of core positions
+                        cxmaxlist = data_dict["domain{0}".format(domain_num)]["cxmaxlist"]
+                        cymaxlist = data_dict["domain{0}".format(domain_num)]["cymaxlist"]
+                        # Append core positions in the current frame to the list
+                        cxmaxlist.append(cx_max_dict["domain{0}".format(domain_num)])
+                        cymaxlist.append(cy_max_dict["domain{0}".format(domain_num)])
+                    elif j == 1:  # Negative core
+                        # Refer to lists of core positions
+                        cxminlist = data_dict["domain{0}".format(domain_num)]["cxminlist"]
+                        cyminlist = data_dict["domain{0}".format(domain_num)]["cyminlist"]
+                        # Append core positions in the current frame to the list
+                        cxminlist.append(cx_min_dict["domain{0}".format(domain_num)])
+                        cyminlist.append(cy_min_dict["domain{0}".format(domain_num)])
+                ###############################################################
 
-                    # Plot the circulation curve for positive core
-                    # CONFIRM THAT CIRCULATION CURVES ARE ALL IN THE FRAME
-                    bad_x_path = False
-                    path_x_limits = radii[-1] * np.cos(phi) + cxmax   #in mm
-                    bad_y_path = False
-                    path_y_limits = radii[-1] * np.sin(phi) + cymax   # in mm
-                    cutoff = ((box_size / 2) + 1) * scale
-                    # print imsize[0], imsize[1]
-                    if (path_y_limits <= cutoff).any() or (path_y_limits >= (imsize[0]*scale - cutoff)).any():
-                        bad_y_path = True
-                    if (path_x_limits <= cutoff).any() or (path_x_limits >= (imsize[1]*scale - cutoff)).any():
-                        bad_x_path = True
-                    # print bad_x_path, bad_y_path
-                    if bad_x_path or bad_y_path:
-                        print 'CIRCULATION CURVE NOT IN FRAME, SKIPPING'
-                        print '------------------------------'
-                        continue
-
-                    # SET BOUNDS FOR COLOR BARS
-                    w_limit = cutoffomega * rate / 1.2
-                    ux_limit = cutoffu * scale * rate / 1.2
-                    uy_limit = cutoffu * scale * rate / 1.2
+                ###### CIRCULATION COMPUTATION ###########
+                gammas_for_check = []
+                for domain_num in range(1, 5):
+                    # Get detected core positions in each domain
+                    cxmax = cx_max_dict["domain{0}".format(domain_num)]
+                    cymax = cy_max_dict["domain{0}".format(domain_num)]
+                    cxmin = cx_min_dict["domain{0}".format(domain_num)]
+                    cymin = cy_min_dict["domain{0}".format(domain_num)]
 
                     # Plot
                     # Method1-3 has issues with the axes. Data should be rotated by 180, and -90 deg.
@@ -735,489 +1256,851 @@ if __name__ == '__main__':
                     # graph.title('imshow + interpolation- gaussian', fignum=4)
                     # cc.set_label('$\omega_z [1/s]$')
 
-                    fig = plt.figure(figsize=(18, 14))
-                    gs = gridspec.GridSpec(3, 3, width_ratios=[1, 1, 1], height_ratios=[1.5, 1, 2])
-                    img1 = fig.add_subplot(gs[0])
-                    for r in radii:
-                        img1.plot(r * np.cos(phi) + cxmax, r * np.sin(phi) + cymax, color=cmap(float(r) / float(max(radii))))
-                    ax1 = img1.imshow(iuxgrid, cmap=cmap2, vmin=-ux_limit, vmax=ux_limit, interpolation='gaussian', \
-                                      extent=(xmin, xmax, ymax, ymin))
-                    img1.set_xlabel('X $[mm]$')
-                    img1.set_ylabel('Y $[mm]$')
-                    colorbar(ax1)
+                    core_positions = [[cxmax, cymax], [cxmin, cymin]]
+                    vorticity_sign = ['positive', 'negative']
+                    for j, core_position in enumerate(core_positions):  #j=0: positive core, j=1: negative core
+                        if (j == 0 and not data_dict["domain{0}".format(domain_num)]['terminatePos']) or (j == 1 and not data_dict["domain{0}".format(domain_num)]['terminateNeg']):
+                            cx, cy = core_position[0], core_position[1]
 
-                    # iUy Plot
-                    img2 = fig.add_subplot(gs[1])
-                    for r in radii:
-                        img2.plot(r * np.cos(phi) + cxmax, r * np.sin(phi) + cymax, color=cmap(float(r) / float(max(radii))))
-                    ax2 = img2.imshow(iuygrid, cmap=cmap2, vmin=-uy_limit, vmax=uy_limit, interpolation='gaussian', \
-                                      extent=(xmin, xmax, ymax, ymin))
-                    img2.set_xlabel('X $[mm]$')
-                    img2.set_ylabel('Y $[mm]$')
-                    colorbar(ax2)
+                            # Check if integral paths are inside the image
+                            bad_x_path = False
+                            path_x_limits = radii[-1] * np.cos(phi) + cx  # in mm
+                            bad_y_path = False
+                            path_y_limits = radii[-1] * np.sin(phi) + cy  # in mm
+                            cutoff = ((box_size / 2) + 1) * scale
+                            # print '!!!!!!!!!!!!!!!!'
+                            # print domain_num
+                            # print cxmax, cymax
+                            # print imsize[0], imsize[1]
+                            # print imsize[0] * scale, cutoff
+                            # print '!!!!!!!!!!!!!!!!'
+                            if (path_y_limits <= cutoff).any() or (path_y_limits >= (imsize[0] * scale - cutoff)).any():
+                                bad_y_path = True
+                            if (path_x_limits <= cutoff).any() or (path_x_limits >= (imsize[1] * scale - cutoff)).any():
+                                bad_x_path = True
+                            if bad_x_path or bad_y_path:
+                                print 'Quadrant %d (%s): CIRCULATION CURVE NOT IN FRAME, SKIPPING' %(domain_num, vorticity_sign[j])
+                                print '------------------------------'
+                                continue
 
-                    # iOmega Plot
-                    img3 = fig.add_subplot(gs[2])
-                    for r in radii:
-                        img3.plot(r * np.cos(phi) + cxmax, r * np.sin(phi) + cymax, color=cmap(float(r) / float(max(radii))))
-                    ax3 = img3.imshow(iomegagrid, cmap=cmap2, vmin=-w_limit, vmax=w_limit, interpolation='gaussian', \
-                                      extent=(xmin, xmax, ymax, ymin))
-                    img3.set_xlabel('X $[mm]$')
-                    img3.set_ylabel('Y $[mm]$')
-                    colorbar(ax3)
+                            fig = plt.figure(figsize=(18, 14))
+                            gs = gridspec.GridSpec(3, 3, width_ratios=[1, 1, 1], height_ratios=[1.5, 1, 2])
 
-                    imgs = [img1, img2, img3]
-                    titles = ['$u_x$ velocity $(mm/s)$', '$u_y$ velocity $(mm/s)$', '$\omega_z$ $(1/s)$']
-                    for img, text in zip(imgs, titles):
-                        # img.set_xlim([x[0], imsize[1] - x[0]])
-                        # img.set_ylim([y[0], imsize[0] - y[0]])
-                        # img.set_xticks([])
-                        # img.set_yticks([])
-                        img.set_title(text)
+                            # iUx Plot
+                            img1 = fig.add_subplot(gs[0])
+                            #for r in radii:
+                                #img1.plot(r * np.cos(phi) + cx, r * np.sin(phi) + cy, color=cmap(float(r) / float(max(radii))))
+                            ax1 = img1.imshow(iuxgrid, cmap=cmap2, vmin=-ux_limit, vmax=ux_limit, interpolation='gaussian', \
+                                              extent=(xmin, xmax, ymax, ymin))
+                            draw_quadrants(img1, rx, ry)
+                            img1.set_xlabel('X $[mm]$')
+                            img1.set_ylabel('Y $[mm]$')
+                            colorbar(ax1)
 
-                        ax4 = plt.subplot(gs[3])
-                        ax5 = plt.subplot(gs[4])
-                        ax6 = plt.subplot(gs[5])
-                        ax4.set_ylabel('velocity $(mm/s)$')
+                            # iUy Plot
+                            img2 = fig.add_subplot(gs[1])
+                            #for r in radii:
+                                #img2.plot(r * np.cos(phi) + cx, r * np.sin(phi) + cy, color=cmap(float(r) / float(max(radii))))
+                            ax2 = img2.imshow(iuygrid, cmap=cmap2, vmin=-uy_limit, vmax=uy_limit, interpolation='gaussian', \
+                                              extent=(xmin, xmax, ymax, ymin))
+                            draw_quadrants(img2, rx, ry)
+                            img2.set_xlabel('X $[mm]$')
+                            img2.set_ylabel('Y $[mm]$')
+                            colorbar(ax2)
 
-                    mean_gs = []
-                    std_gs = []
-                    for r in radii:
-                        path_x, path_y = r * np.cos(phi) + cxmax, r * np.sin(phi) + cymax
-                        iux_p = ndimage.map_coordinates(iuxgrid, (path_y / __yint__, path_x / __xint__), order=1)
-                        iuy_p = ndimage.map_coordinates(iuygrid, (path_y / __yint__, path_x / __xint__), order=1)
+                            # iOmega Plot
+                            img3 = fig.add_subplot(gs[2])
+                            for r in radii:
+                                img3.plot(r * np.cos(phi) + cx, r * np.sin(phi) + cy, color=cmap(float(r) / float(max(radii))))
+                            ax3 = img3.imshow(iomegagrid, cmap=cmap2, vmin=-w_limit, vmax=w_limit, interpolation='gaussian', \
+                                              extent=(xmin, xmax, ymax, ymin))
+                            draw_quadrants(img3, rx, ry)
+                            img3.set_xlabel('X $[mm]$')
+                            img3.set_ylabel('Y $[mm]$')
+                            colorbar(ax3)
 
-                        ax4.plot(phi, iux_p, color=cmap(float(r) / float(max(radii))))
-                        ax5.plot(phi, iuy_p, color=cmap(float(r) / float(max(radii))))
-                        ax6.plot(phi, -iux_p * np.sin(phi) + iuy_p * np.cos(phi),
-                                 color=cmap(float(r) / float(max(radii))))
+                            imgs = [img1, img2, img3]
+                            titles = ['$u_x$ velocity $(mm/s)$', '$u_y$ velocity $(mm/s)$', '$\omega_z$ $(1/s)$']
+                            for img, text in zip(imgs, titles):
+                                # img.set_xlim([x[0], imsize[1] - x[0]])
+                                # img.set_ylim([y[0], imsize[0] - y[0]])
+                                # img.set_xticks([])
+                                # img.set_yticks([])
+                                img.set_title(text)
+                                ax4 = plt.subplot(gs[3])
+                                ax5 = plt.subplot(gs[4])
+                                ax6 = plt.subplot(gs[5])
+                                ax4.set_ylabel('velocity $(mm/s)$')
 
-                        # CALCULATE AND PLOT CIRCULATIONS AND STATISTICS
-                        gammas = []
-                        ax7 = plt.subplot(gs[6:])
-                        cm_shift_list = np.linspace(-cm_shift * scale, cm_shift * scale, num=10)
-                        for off_i in cm_shift_list:
-                            for off_j in cm_shift_list:
-                                ds = 2 * np.pi * r / float(NP)
-                                path_x, path_y = r * np.cos(phi) + cxmax + off_i, r * np.sin(phi) + cymax + off_j
-                                iux_p = ndimage.map_coordinates(iuxgrid, (path_y / __yint__, path_x / __xint__),
-                                                                order=1)
-                                iuy_p = ndimage.map_coordinates(iuygrid, (path_y / __yint__, path_x / __xint__),
-                                                                order=1)
-                                gammas.append(sum((-iux_p * np.sin(phi) + iuy_p * np.cos(phi)) * ds))
+                            mean_gs = []
+                            std_gs = []
+                            for r in radii:
+                                path_x, path_y = r * np.cos(phi) + cx, r * np.sin(phi) + cy
+                                iux_p = ndimage.map_coordinates(iuxgrid, (path_y / __yint__, path_x / __xint__), order=1)
+                                iuy_p = ndimage.map_coordinates(iuygrid, (path_y / __yint__, path_x / __xint__), order=1)
 
-                        mean_g = np.mean(np.asarray(gammas))
-                        mean_gs.append(mean_g)
-                        std_g = np.std(np.asarray(gammas))
-                        std_gs.append(std_g)
+                                ax4.plot(phi, iux_p, color=cmap(float(r) / float(max(radii))))
+                                ax5.plot(phi, iuy_p, color=cmap(float(r) / float(max(radii))))
+                                ax6.plot(phi, -iux_p * np.sin(phi) + iuy_p * np.cos(phi),
+                                         color=cmap(float(r) / float(max(radii))))
 
-                        ax7.scatter(r, mean_g, color=cmap(float(r) / float(max(radii))), marker='o')
-                        ax7.errorbar(r, mean_g, yerr=std_g, ecolor=cmap(float(r) / float(max(radii))),
-                                     elinewidth=2)
+                                # CALCULATE AND PLOT CIRCULATIONS AND STATISTICS
+                                gammas = []
+                                ax7 = plt.subplot(gs[6:])
+                                cm_shift_list = np.linspace(-cm_shift * scale, cm_shift * scale, num=10)
+                                for off_i in cm_shift_list:
+                                    for off_j in cm_shift_list:
+                                        ds = 2 * np.pi * r / float(NP)
+                                        path_x, path_y = r * np.cos(phi) + cx + off_i, r * np.sin(phi) + cy + off_j
+                                        iux_p = ndimage.map_coordinates(iuxgrid, (path_y / __yint__, path_x / __xint__),
+                                                                        order=1)
+                                        iuy_p = ndimage.map_coordinates(iuygrid, (path_y / __yint__, path_x / __xint__),
+                                                                        order=1)
+                                        gammas.append(sum((-iux_p * np.sin(phi) + iuy_p * np.cos(phi)) * ds))
 
-                        axes = [ax4, ax5, ax6]
-                        titles = ['$u_x$', '$u_y$', r'$u_\theta$']
-                        for ax, text in zip(axes, titles):
-                            ax.set_title(text)
-                            ax.set_xlim([0, 2 * np.pi])
-                            ax.set_ylim([-ux_limit, ux_limit])
-                            ax.set_xticks((0, np.pi, 2 * np.pi))
-                            ax.set_xticklabels(('$0$', '$\pi$', '$2\pi$'))
+                                mean_g = np.mean(np.asarray(gammas))
+                                mean_gs.append(mean_g)
+                                std_g = np.std(np.asarray(gammas))
+                                std_gs.append(std_g)
 
-                        # STORE ROBUST AND WEIGHTED AVERAGE CIRCULATION DATA
-                        robust_g = mean_gs[np.argmin(np.asarray(std_gs))]
-                        robust_r = radii[np.argmin(np.asarray(std_gs))]
-                        weighted_avg = weighted_mean(mean_gs, std_gs)
-                        weighted_avg_std = weighted_mean_std(std_gs)
+                                ax7.scatter(r, mean_g, color=cmap(float(r) / float(max(radii))), marker='o')
+                                ax7.errorbar(r, mean_g, yerr=std_g, ecolor=cmap(float(r) / float(max(radii))),
+                                             elinewidth=2)
 
-                        ax7.set_xlabel('countour radius $(mm)$')
-                        ax7.set_ylabel('circulation $(mm^2/s)$')
-                        ax7.set_title('time: %.4f s' % (f / rate))
-                        ax7.set_xlim([0, np.max(radii) + radii_diff])
+                                axes = [ax4, ax5, ax6]
+                                titles = ['$u_x$', '$u_y$', r'$u_\theta$']
+                                for ax, text in zip(axes, titles):
+                                    ax.set_title(text)
+                                    ax.set_xlim([0, 2 * np.pi])
+                                    ax.set_ylim([-ux_limit, ux_limit])
+                                    ax.set_xticks((0, np.pi, 2 * np.pi))
+                                    ax.set_xticklabels(('$0$', '$\pi$', '$2\pi$'))
 
-                        # STORE CIRCULATION DATA IN JSON FORMAT AND SAVE PLOT
-                        circulation_data = {'mean_gamma': list(mean_gs),
-                                            'std_gamma': list(std_gs),
-                                            'radii': list(radii),
-                                            'weighted_avg': weighted_avg,
-                                            'weighted_avg_std': weighted_avg_std}
+                                # STORE ROBUST AND WEIGHTED AVERAGE CIRCULATION DATA
+                                robust_g = mean_gs[np.argmin(np.asarray(std_gs))]
+                                robust_r = radii[np.argmin(np.asarray(std_gs))]
+                                weighted_avg = weighted_mean(mean_gs, std_gs)
+                                weighted_avg_std = weighted_mean_std(std_gs)
 
+                                ax7.set_xlabel('countour radius $(mm)$')
+                                ax7.set_ylabel('circulation $(mm^2/s)$')
+                                ax7.set_title('time: %.4f s' % (f / rate))
+                                ax7.set_xlim([0, np.max(radii) + radii_diff])
 
-                    print 'Circulation (weighted avg) in mm2/s: ' + str(weighted_avg)
-
-                    # Show results on plot
-                    gammaavg = np.mean(mean_gs[-5:])
-                    gammastd = np.mean(std_gs[-5:])
-                    gammaplusstd = [mean_gs[i] + std_gs[i] for i in range(len(mean_gs))]
-                    gammaminusstd = [mean_gs[i] - std_gs[i] for i in range(len(mean_gs))]
-                    ybottom, ytop = ax7.get_ylim()
-                    textposystep = np.abs(ytop-ybottom) / 10.
-
-                    ax7.set_ylim([np.min(gammaminusstd), np.max(gammaplusstd)])
-                    text = 'highest $\Gamma_{avg}$: ' + str(np.max(mean_gs)) + ' $mm^2/s$'
-                    ax7.text(radii[-int(0.4 * sample_pts)], ybottom + textposystep * 4, text, fontsize=12)
-                    text = 'average of last 5 values: ' + str(gammaavg) + ' $mm^2/s$'
-                    ax7.text(radii[-int(0.4 * sample_pts)], ybottom + textposystep * 3, text, fontsize=12)
-                    text = 'average of last 5 std : ' + str(gammastd) + ' $mm^2/s$'
-                    ax7.text(radii[-int(0.4 * sample_pts)], ybottom + textposystep * 2, text, fontsize=12)
-
-                    # Save data in json format
-                    circulation_data_name = 'circulation_%06d_domain%d.json' % (f,domain_num)
-                    circulation_data_file = os.path.join(circulation_dir, circulation_data_name)
-                    with open(circulation_data_file, 'w') as fyle:
-                        json.dump(circulation_data, fyle, sort_keys=True, indent=1, separators=(',', ': '))
-                        fyle.close()
-                    # Save a plot in png
-                    fig_name = 'circulation_%06d_domain%d.png' % (f, domain_num)
-                    fig_file = os.path.join(circulation_dir, fig_name)
-                    plt.savefig(fig_file)
-                    print 'Saved...' + fig_file
-
-                    #plt.show()
-                    plt.close()
+                            # Prepare a dictionary with computed results. Save this file as a json file later
+                            circulation_data = {'mean_gamma': list(mean_gs),
+                                                'std_gamma': list(std_gs),
+                                                'radii': list(radii),
+                                                'weighted_avg': weighted_avg,
+                                                'weighted_avg_std': weighted_avg_std}
 
 
+                            print 'Circulation (weighted avg) in mm2/s (%s): %s' %(vorticity_sign[j], str(weighted_avg))
 
-                    # Refer these lists to lists stored in the data_dict  (NOTICE THAT THEY ARE NOT BEING COPIED!)
-                    trForGammar = data_dict["domain{0}".format(domain_num)]["trForGammarPos"]
-                    trForVr = data_dict["domain{0}".format(domain_num)]["trForVrPos"]
+                            # Show results on plot
+                            gammaavg = np.mean(mean_gs[-5:])
+                            gammastd = np.mean(std_gs[-5:])
+                            gammaplusstd = [mean_gs[i] + std_gs[i] for i in range(len(mean_gs))]
+                            gammaminusstd = [mean_gs[i] - std_gs[i] for i in range(len(mean_gs))]
+                            ybottom, ytop = ax7.get_ylim()
+                            textposystep = np.abs(ytop-ybottom) / 10.
+
+                            ax7.set_ylim([np.min(gammaminusstd), np.max(gammaplusstd)])
+                            if j == 0:
+                                text = 'highest $\Gamma_{avg}$: ' + str(np.max(mean_gs)) + ' $mm^2/s$'
+                            elif j == 1:
+                                text = 'lowest $\Gamma_{avg}$: ' + str(np.min(mean_gs)) + ' $mm^2/s$'
+                            ax7.text(radii[-int(0.4 * sample_pts)], ybottom + textposystep * 4, text, fontsize=12)
+                            text = 'average of last 5 values: ' + str(gammaavg) + ' $mm^2/s$'
+                            ax7.text(radii[-int(0.4 * sample_pts)], ybottom + textposystep * 3, text, fontsize=12)
+                            text = 'average of last 5 std : ' + str(gammastd) + ' $mm^2/s$'
+                            ax7.text(radii[-int(0.4 * sample_pts)], ybottom + textposystep * 2, text, fontsize=12)
+
+                            # Save data in json format
+                            circulation_data_name = 'circulation_%06d_domain%d_%s.json' % (f, domain_num, vorticity_sign[j])
+                            circulation_data_file = os.path.join(circulation_dir, circulation_data_name)
+                            with open(circulation_data_file, 'w') as fyle:
+                                print 'Saving... ' + circulation_data_file
+                                json.dump(circulation_data, fyle, sort_keys=True, indent=1, separators=(',', ': '))
+                                fyle.close()
+
+                            # Save a plot in png
+                            fig_name = 'circulation_%06d_domain%d_%s.png' % (f, domain_num, vorticity_sign[j])
+                            fig_file = os.path.join(circulation_dir, fig_name)
+
+                            if save_circ:
+                                plt.savefig(fig_file)
+                                print 'Saving...' + fig_file
+                            #plt.show()
+                            plt.close()
+
+
+                            # Store values for time-revolution plot
+                            # Refer these lists to lists stored in the data_dict  (NOTICE THAT THEY ARE NOT BEING COPIED!)
+                            if j == 0: # j=0: Positive vorticity, j=1: Negative vorticity
+                                trForGammar = data_dict["domain{0}".format(domain_num)]["trForGammarPos"]
+                                trForVr = data_dict["domain{0}".format(domain_num)]["trForVrPos"]
+                                gammar = data_dict["domain{0}".format(domain_num)]["gammarPos"]
+                                gammar_err = data_dict["domain{0}".format(domain_num)]["gammarPos_err"]
+                                cxmaxlist = data_dict["domain{0}".format(domain_num)]["cxmaxlist"]
+                                cymaxlist = data_dict["domain{0}".format(domain_num)]["cymaxlist"]
+                                vr = data_dict["domain{0}".format(domain_num)]['vrPos']
+
+                                # # Append core positions
+                                # cxmaxlist.append(cx_max_dict["domain{0}".format(domain_num)][0])
+                                # cymaxlist.append(cy_max_dict["domain{0}".format(domain_num)][0])
+
+                                ### Core with Positive Vorticity
+                                # Append only if the magnitude of circulation is greater than a threshold
+                                gammar_max_ind, gammar_max = fa.find_max(mean_gs)
+                                if gammar_max > gamma_thd:
+                                    # Time array for Ciruclation
+                                    trForGammar.append(f / float(rate))
+                                    # Append a maximum circulation value
+                                    gammar.append(gammar_max)
+                                    gammar_err.append(std_gs[gammar_max_ind])
+                                    gammas_for_check.append(gammar_max)  # used to decide whether the code should stop calculating circulation
+
+
+                                    # Calculate ring velocity
+                                    counter = counter_dict["domain{0}Pos".format(domain_num)]
+                                    if counter % vrtimestep == 0 and len(cxmaxlist) > vrtimestep:
+                                        trForVr.append(f / float(rate))
+                                        if len(trForVr) > 1:
+                                            # Calculate ring velocity
+                                            vr.append(compute_dist(cxmaxlist[counter], cymaxlist[counter], cxmaxlist[counter-vrtimestep], cymaxlist[counter-vrtimestep])
+                                                      / (trForVr[counter/vrtimestep-1]-trForVr[counter/vrtimestep-2]))
+                                            #print 'Ring velocity (Pos): %.2f, %d, %d' % (vr[-1], f, domain_num)
+                                    # Update counter
+                                    counter_dict["domain{0}Pos".format(domain_num)] = counter_dict["domain{0}Pos".format(domain_num)] + 1
+
+
+                            if j == 1: # negative vorticity
+                                # Refer these lists to lists stored in the data_dict  (NOTICE THAT THEY ARE NOT BEING COPIED!)
+                                trForGammar = data_dict["domain{0}".format(domain_num)]["trForGammarNeg"]
+                                trForVr = data_dict["domain{0}".format(domain_num)]["trForVrNeg"]
+                                trForDr = data_dict["domain{0}".format(domain_num)]['trForDr']
+                                gammar = data_dict["domain{0}".format(domain_num)]["gammarNeg"]
+                                gammar_err = data_dict["domain{0}".format(domain_num)]["gammarNeg_err"]
+                                cxminlist = data_dict["domain{0}".format(domain_num)]["cxminlist"]
+                                cyminlist = data_dict["domain{0}".format(domain_num)]["cyminlist"]
+                                vr = data_dict["domain{0}".format(domain_num)]['vrNeg']
+                                dr = data_dict["domain{0}".format(domain_num)]['dr']
+
+                                ## Append core positions
+                                # cxminlist.append(cx_min_dict["domain{0}".format(domain_num)][0])
+                                # cyminlist.append(cy_min_dict["domain{0}".format(domain_num)][0])
+
+                                # Append only if the magnitude of circulation is greater than a threshold
+                                gammar_min_ind, gammar_min = fa.find_min(mean_gs)
+                                if gammar_min < -gamma_thd:
+                                    # Time array for circulation
+                                    trForGammar.append(f / float(rate))
+                                    # Append a minimum circulation value
+                                    gammar.append(gammar_min)
+                                    gammar_err.append(std_gs[gammar_min_ind])
+                                    gammas_for_check.append(gammar_min)  # used to decide whether the code should stop calculating circulation
+                                    # Calculate ring velocity
+                                    counter = counter_dict["domain{0}Neg".format(domain_num)]
+                                    if counter % vrtimestep == 0 and len(cxminlist) > vrtimestep:
+                                        trForVr.append(f / float(rate))
+                                        if len(trForVr) > 1:
+                                            # Calculate ring velocity
+                                            vr.append(compute_dist(cxminlist[counter], cyminlist[counter], cxminlist[counter - vrtimestep], cyminlist[counter - vrtimestep])
+                                                      / (trForVr[counter / vrtimestep - 1] - trForVr[counter / vrtimestep - 2]))
+                                            #print 'Ring velocity (Neg): %.2f, %d, %d' % (vr[-1], f, domain_num)
+
+                                    # Update counter
+                                    counter_dict["domain{0}Neg".format(domain_num)] = counter_dict["domain{0}Neg".format(domain_num)] + 1
+
+                                    # Calculate ring diameter
+                                    try:
+                                        dri = compute_dist(cx_max_dict["domain{0}".format(domain_num)], cy_max_dict["domain{0}".format(domain_num)],
+                                                          cx_min_dict["domain{0}".format(domain_num)], cy_min_dict["domain{0}".format(domain_num)])
+                                        # Update diameter and time arrays
+                                        trForDr.append(f/float(rate))
+                                        dr.append(dri)
+                                        # print trForDr, dr
+                                        # print 'Diameter: %.2f, %d, %d' % (dri, f, domain_num)
+                                    except IndexError:
+                                        print 'Vortex ring core with negative vorticity was not detected!'
+                                        continue
+
+
+
+                    # Now, circulation is computed around detected cores!
+
+                    # Quit computing circulation if...
+                        # shortest distance between rings is shorter than a threshold d_thd (default: 25mm)
+                        # AND circulation around each core is greater than a threshold gamma_thd (default: 1000mm^2/s)
+
+                ds = [d12, d13, d24, d34]
+
+                gammas_for_check = [x for x in gammas_for_check if x != []]  # remove empty arrays
+                gammas_for_check = map(abs, gammas_for_check) # make all elements positive
+
+            # Terminate tracking cores in specific domains before they collide
+            if d12 < d_thd:
+                data_dict["domain1"]["terminatePos"] = True
+                data_dict["domain2"]["terminateNeg"] = True
+            elif d13 < d_thd:
+                data_dict["domain1"]["terminateNeg"] = True
+                data_dict["domain3"]["terminatePos"] = True
+            elif d24 < d_thd:
+                data_dict["domain2"]["terminatePos"] = True
+                data_dict["domain4"]["terminateNeg"] = True
+            elif d34 < d_thd:
+                data_dict["domain3"]["terminateNeg"] = True
+                data_dict["domain4"]["terminatePos"] = True
+
+            terminate_list = []
+            for domain_num in range(1, 5):
+                terminate_list.append(data_dict["domain{0}".format(domain_num)]["terminatePos"])
+                terminate_list.append(data_dict["domain{0}".format(domain_num)]["terminateNeg"])
+
+            # Plot time-evolution data ONLY before collision
+            if (not args.process_all and any(d < d_thd for d in ds)) or f == frames[-1] or all(terminate_list):
+                print 'Vortex rings are about to collide!! Do not compute circulation for later frames...'
+                fig1, ax1 = graph.plot(time, d12_list, fignum=1, subplot=111, label='$d_{12}$')
+                fig1, ax1 = graph.plot(time, d13_list, fignum=1, subplot=111, label='$d_{13}$')
+                fig1, ax1 = graph.plot(time, d24_list, fignum=1, subplot=111, label='$d_{24}$')
+                fig1, ax1 = graph.plot(time, d34_list, fignum=1, subplot=111, label='$d_{34}$')
+                graph.labelaxes(ax1, 'time', 'distance between neighbor cores with opposite vorticity')
+                graph.setaxes(ax1, np.min(time), np.max(time), 0, imsize[1] * scale)
+                plt.legend()
+                plt.show()
+
+                marker = ['v', '^', 's', 'o']  # makers corresponding to domains
+                fillstyle = ['full', 'none']  # Positive core: fill, Negative core: no fill
+
+                for domain_num in range(1, 5):
+                    print domain_num
+
+                    trForGammarPos = data_dict["domain{0}".format(domain_num)]["trForGammarPos"]
+                    trForGammarNeg = data_dict["domain{0}".format(domain_num)]["trForGammarNeg"]
+                    trForVrPos = data_dict["domain{0}".format(domain_num)]["trForVrPos"]
+                    trForVrNeg = data_dict["domain{0}".format(domain_num)]["trForVrNeg"]
                     trForDr = data_dict["domain{0}".format(domain_num)]['trForDr']
-                    gammar = data_dict["domain{0}".format(domain_num)]["gammarPos"]
-                    gammar_err = data_dict["domain{0}".format(domain_num)]["gammarPos_err"]
+                    gammarPos = data_dict["domain{0}".format(domain_num)]["gammarPos"]
+                    gammarPos_err = data_dict["domain{0}".format(domain_num)]["gammarPos_err"]
+                    gammarNeg = np.abs(data_dict["domain{0}".format(domain_num)]["gammarNeg"])  # take absolute values of negative circulation values
+                    gammarNeg_err = data_dict["domain{0}".format(domain_num)]["gammarNeg_err"]
+                    cxmaxlist = data_dict["domain{0}".format(domain_num)]["cxmaxlist"]  # core positions
+                    cymaxlist = data_dict["domain{0}".format(domain_num)]["cymaxlist"] # core positions
+                    cxminlist = data_dict["domain{0}".format(domain_num)]["cxminlist"] # core positions
+                    cyminlist = data_dict["domain{0}".format(domain_num)]["cyminlist"] # core positions
+                    vrPos = data_dict["domain{0}".format(domain_num)]['vrPos']
+                    vrNeg = data_dict["domain{0}".format(domain_num)]['vrNeg']
+                    dr = data_dict["domain{0}".format(domain_num)]['dr']
+
+
+                    labels = ['top left', 'bottom left', 'top right', 'bottom right']
+                    labelsPos = ['top left (+)', 'bottom left (+)', 'top right (+)', 'bottom right (+)']
+                    labelsNeg = ['top left (-)', 'bottom left (-)', 'top right (-)', 'bottom right (-)']
+
+                    # Drop the last element b/c trForVr has elements one less than vrPos/Neg
+                    trForVrPos, trForVrNeg = trForVrPos[:-1], trForVrNeg[:-1]
+
+                    #print trForGammarPos, gammarPos
+                    # Clean data about circulation, ring diameter, ring velocity
+                    if not trForGammarPos == []:
+                        cxmaxlist, gammarPos_temp, cymaxlist = process.clean_multi_dim_array_trio_using_median(
+                            cxmaxlist, gammarPos, cymaxlist, cutoffratio=0.6, mode='less')
+                        cxmaxlist, gammarPos_temp, cymaxlist = process.clean_multi_dim_array_trio_using_median(
+                            cxmaxlist, gammarPos_temp, cymaxlist, cutoffratio=1.3, mode='greater')
+
+                        trForGammarPos, gammarPos, gammarPos_err = process.clean_multi_dim_array_trio_using_median(trForGammarPos, gammarPos, gammarPos_err, cutoffratio=0.6, mode='less')
+                        trForGammarPos, gammarPos, gammarPos_err = process.clean_multi_dim_array_trio_using_median(trForGammarPos, gammarPos, gammarPos_err, cutoffratio=1.3, mode='greater')
+                        gammarPos_avg = np.mean(gammarPos)
+                        gammarPos_std = np.std(gammarPos)
+
+                    else:
+                        gammarPos_avg, gammarPos_std = np.nan, np.nan
+                    if not trForGammarNeg == []:
+                        cxminlist, gammarNeg_temp, cyminlist = process.clean_multi_dim_array_trio_using_median(
+                            cxmaxlist, gammarNeg, cymaxlist, cutoffratio=0.6, mode='less')
+                        cxminlist, gammarNeg__temp, cyminlist = process.clean_multi_dim_array_trio_using_median(
+                            cxmaxlist, gammarNeg, cymaxlist, cutoffratio=1.3, mode='greater')
+                        trForGammarNeg, gammarNeg, gammarNeg_err = process.clean_multi_dim_array_trio_using_median(trForGammarNeg, gammarNeg, gammarNeg_err, cutoffratio=0.6, mode='less')
+                        trForGammarNeg, gammarNeg, gammarNeg_err = process.clean_multi_dim_array_trio_using_median(trForGammarNeg, gammarNeg, gammarNeg_err, cutoffratio=1.3, mode='greater')
+                        gammarNeg_avg = np.mean(gammarNeg)
+                        gammarNeg_std = np.std(gammarNeg)
+                        gammarNeg_std = np.std(gammarNeg)
+                    else:
+                        gammarNeg_avg, gammarNeg_std = np.nan, np.nan
+
+                    if not trForVrPos == []:
+                        trForVrPos, vrPos = process.clean_multi_dim_array_pair_using_cutoff(trForVrPos, vrPos,
+                                                                                            cutoff=1300.,
+                                                                                            mode='greater')
+                        trForVrPos, vrPos = process.clean_multi_dim_array_pair_using_median(trForVrPos, vrPos,
+                                                                                            cutoffratio=0.6,
+                                                                                            mode='less')
+                        trForVrPos, vrPos = process.clean_multi_dim_array_pair_using_median(trForVrPos, vrPos,
+                                                                                            cutoffratio=1.3,
+                                                                                            mode='greater')
+                        vrPos_avg = np.mean(vrPos)
+                        vrPos_std = np.std(vrPos)
+                    else:
+                        vrPos_avg, vrPos_std = np.nan, np.nan
+
+                    if not trForVrNeg == []:
+                        trForVrNeg, vrNeg = process.clean_multi_dim_array_pair_using_cutoff(trForVrNeg, vrNeg,
+                                                                                            cutoff=1300.,
+                                                                                            mode='greater')
+                        trForVrNeg, vrNeg = process.clean_multi_dim_array_pair_using_median(trForVrNeg, vrNeg,
+                                                                                            cutoffratio=0.6,
+                                                                                            mode='less')
+                        trForVrNeg, vrNeg = process.clean_multi_dim_array_pair_using_median(trForVrNeg, vrNeg,
+                                                                                            cutoffratio=1.3,
+                                                                                            mode='greater')
+                        vrNeg_avg = np.mean(vrNeg)
+                        vrNeg_std = np.std(vrNeg)
+                    else:
+                        vrNeg_avg, vrNeg_std = np.nan, np.nan
+
+
+                    if not trForDr == []:
+                        trForDr, dr = process.clean_multi_dim_array_pair_using_cutoff(trForDr, dr, cutoff=4.,
+                                                                                      mode='less')
+                        trForDr, dr = process.clean_multi_dim_array_pair_using_cutoff(trForDr, dr, cutoff=50.,
+                                                                                      mode='greater')
+                        trForDr, dr = process.clean_multi_dim_array_pair_using_median(trForDr, dr, cutoffratio=0.6,
+                                                                                      mode='less')
+                        trForDr, dr = process.clean_multi_dim_array_pair_using_median(trForDr, dr, cutoffratio=1.3,
+                                                                                      mode='greater')
+                        dr_avg = np.mean(dr)
+                        dr_std = np.std(dr)
+
+                    else:
+                        dr_avg, dr_std = np.nan, np.nan
+                    print trForDr, dr
+
+                    # print gammarPos_avg,gammarNeg_avg,vrPos_avg,vrNeg_avg,dr_avg
+
+                    # gammarPos_avg = np.mean(gammarPos)
+                    # gammarNeg_std = np.std(gammarNeg)
+                    # vrPos_avg = np.mean(vrPos)
+                    # vrPos_std = np.std(vrPos)
+                    # vrNeg_avg = np.mean(vrNeg)
+                    # vrNeg_std = np.std(vrNeg)
+
+
+                    # #Error processing in case gammar etc. are empty arrays
+                    # if len(trForGammarPos)==0 or len(trForVrPos)==0 or len(trForDr)==0:
+                    #     fig8 = plt.figure()
+                    #     ax = fig8.add_axes([0, 0, 1, 1])
+                    #     left, width = .25, .5
+                    #     bottom, height = .25, .5
+                    #     right = left + width
+                    #     top = bottom + height
+                    #     ax.text(0.5 * (left + right), 0.5 * (bottom + top), 'No vortex ring was detected!',
+                    #             horizontalalignment='center',
+                    #             verticalalignment='center',
+                    #             fontsize=20, color='red',
+                    #             transform=ax.transAxes)
+                    #     savedir = resultsdir + '/time_evolution/'
+                    #     filename = 'No_vortex_ring_detected'
+                    #     graph.save(savedir + filename, ext='png', close=True)
+                    #     continue
+
+                    # Plot circulation, ring velocity, and diameter
+                    # CIRCULATION PLOT (TIME EVOLUTION)
+                    if not trForGammarPos == []:
+                        fig8, ax8 = graph.errorbar(trForGammarPos, gammarPos, yerr=gammarPos_err, marker='o',
+                                                   color=colors[domain_num - 1], label=labelsPos[domain_num - 1],
+                                                   alpha=0.7, fillstyle=fillstyle[0], fignum=2, subplot=131,
+                                                   figsize=(20, 5))
+                    if not trForGammarNeg == []:
+                        fig8, ax8 = graph.errorbar(trForGammarNeg, gammarNeg, yerr=gammarNeg_err, marker='o',
+                                                   color=colors[domain_num - 1], label=labelsNeg[domain_num - 1],
+                                                   alpha=0.7, fillstyle=fillstyle[1], fignum=2, subplot=131,
+                                                   figsize=(20, 5))
+                    if not trForGammarPos == [] and not trForGammarNeg == []:
+                        graph.labelaxes(ax8, 'Time ($s$)', 'Circulation ($mm^2/s$)')
+                        if not math.isnan(max(gammarPos_avg, gammarNeg_avg)):
+                            gammar_lim = max([max(gammarPos_avg, gammarNeg_avg) * 1.3,
+                                              np.max(np.concatenate((gammarPos, gammarNeg))), gammar_lim])
+                            graph.setaxes(ax8, 0, time[-1], 0, gammar_lim)
+                            # if not trForGammarPos == []:
+                            #     text = 'Average $\Gamma$ (+): %.1f' % gammarPos_avg + '$mm^2/s$'
+                            #     graph.addtext(ax8, x=(time[-1])/10., y=gammarPos_avg * 1.3 / 8. * 4., text=text)
+                            #     text = 'Std. (+): %.1f' % gammarPos_std + '$mm^2/s$'
+                            #     graph.addtext(ax8, x=(time[-1])/10., y=gammarNeg_std * 1.3 / 8. * 3., text=text)
+                            # if not trForGammarNeg == []:
+                            #     text = 'Average $\Gamma$ (-): %.1f' % gammarNeg_avg + '$mm^2/s$'
+                            #     graph.addtext(ax8, x=(time[-1]) / 10., y=gammarNeg_avg * 1.3 / 8. * 2., text=text)
+                            #     text = 'Std. (-): %.1f' % gammarNeg_std + '$mm^2/s$'
+                            #     graph.addtext(ax8, x=(time[-1]) / 10., y=gammarNeg_std * 1.3 / 8. * 1., text=text)
+                    else:
+                        fig8, ax8 = graph.set_fig(fignum=2, subplot=131, figsize=(20, 5))
+                        graph.labelaxes(ax8, 'Time ($s$)', 'Circulation ($mm^2/s$)')
+
+                    # RING VELOCITY PLOT (TIME EVOLUTION)
+                    if not trForVrPos == []:
+                        fig9, ax9 = graph.scatter(trForVrPos, vrPos, marker='o', color=colors[domain_num - 1],
+                                                  fillstyle=fillstyle[0], label=labelsPos[domain_num - 1],
+                                                  alpha=0.7, fignum=2, subplot=132, figsize=(20, 5))
+                    if not trForVrNeg == []:
+                        fig9, ax9 = graph.scatter(trForVrNeg, vrNeg, marker='o', color=colors[domain_num - 1],
+                                                  fillstyle=fillstyle[1], label=labelsNeg[domain_num - 1],
+                                                  alpha=0.7, fignum=2, subplot=132, figsize=(20, 5))
+                    if not trForVrPos == [] and not trForVrNeg == []:
+                        graph.labelaxes(ax9, 'Time ($s$)', 'Ring velocity ($mm/s$)')
+                        if not math.isnan(max(vrPos_avg, vrNeg_avg)):
+                            vr_lim = max([max(vrPos_avg, vrNeg_avg) * 1.3, np.max((np.concatenate((vrPos, vrNeg)))), vr_lim])
+                            graph.setaxes(ax9, 0, time[-1], 0, vr_lim)
+                            # Add text (ring velocity and std)
+                            # if not trForVrPos == []:
+                            #     text = 'Average $v_r$ (+): %.1f' % vrPos_avg + '$mm/s$'
+                            #     graph.addtext(ax9, x=(time[-1])/10., y=vrPos_avg * 1.3 / 8. * 4, text=text)
+                            #     text = 'Std. (-): %.1f' % vrPos_std + '$mm/s$'
+                            #     graph.addtext(ax9, x=(time[-1]) / 10., y=vrPos_std * 1.3 / 8. * 3, text=text)
+                            # if not trForVrNeg == []:
+                            #     text = 'Average $v_r$ (+): %.1f' % vrNeg_avg + '$mm/s$'
+                            #     graph.addtext(ax9, x=(time[-1]) / 10., y=vrNeg_avg * 1.3 / 8 * 2, text=text)
+                            #     text = 'Std. (-): %.1f' % vrNeg_std + '$mm/s$'
+                            #     graph.addtext(ax9, x=(time[-1]) / 10., y=vrNeg_std * 1.3 / 8. * 1, text=text)
+                    else:
+                        # If there is no data, make an empty figure
+                        fig9, ax9 = graph.set_fig(fignum=2, subplot=132, figsize=(20, 5))
+                        graph.labelaxes(ax9, 'Time ($s$)', 'Ring velocity ($mm/s$)')
+
+
+                    # if not trForDr == []: # For some reason, this fails... Use the next line instead- takumi 4/14/18
+                    if not len(trForDr) == 0:
+                        fig10, ax10 = graph.scatter(trForDr, dr, marker='o', color=colors[domain_num - 1],
+                                                    fillstyle=fillstyle[0], label=labels[domain_num - 1],
+                                                    alpha=0.7, fignum=2, subplot=133, figsize=(20, 5))
+                        graph.labelaxes(ax10, 'Time ($s$)', 'Ring diameter ($mm$)')
+                        dr_lim = max(dr_avg * 1.3, np.max(dr), dr_lim)
+                        graph.setaxes(ax10, 0, time[-1], 0, dr_lim)
+                        # text = 'Average $D$: %.1f' % dr_avg + '$mm$'
+                        # graph.addtext(ax10, x=(time[-1])/10., y=dr_avg*1.3/4.*2, text=text)
+                        # text = 'Std.: %.1f' % dr_std + '$mm$'
+                        # graph.addtext(ax10, x=(time[-1])/10., y=dr_avg * 1.3 / 4., text=text)
+                    else:
+                        fig10, ax10 = graph.set_fig(fignum=2, subplot=133, figsize=(20, 5))
+                        graph.labelaxes(ax10, 'Time ($s$)', 'Ring diameter ($mm$)')
+                ax8.legend()
+                ax9.legend()
+                ax10.legend()
+
+                savedir = resultsdir + '/time_evolution/'
+                filename = 'circulation_vring_diameter_before_collision'
+                graph.save(savedir + filename, ext='png', close=True)
+
+
+                ### Plot trajectories
+                fig3, ax31 = graph.set_fig(fignum=3, subplot=111, figsize=(16,10))
+                for domain_num in range(1, 5):
+                    # these are lists of core positions
+                    cxmax = data_dict["domain{0}".format(domain_num)]["cxmaxlist"]
+                    cymax = data_dict["domain{0}".format(domain_num)]["cymaxlist"]
+                    cxmin = data_dict["domain{0}".format(domain_num)]["cxminlist"]
+                    cymin = data_dict["domain{0}".format(domain_num)]["cyminlist"]
+
+                    core_positions = [[cxmax, cymax], [cxmin, cymin]]
+                    vorticity_sign = ['positive', 'negative']
+                    for j, core_position in enumerate(core_positions):
+                        print core_position
+                        cx, cy = core_position[0], core_position[1]
+                        ax31.plot(cx, cy, color=colors[domain_num-1], marker=marker[domain_num-1],
+                                      alpha=0.7, fillstyle=fillstyle[j])
+                        graph.setaxes(ax31, 0, imsize[1]*scale, 0, imsize[0]*scale)
+                        graph.labelaxes(ax31, 'x [mm]', 'y [mm]')
+                        ax31.invert_yaxis()
+
+                savedir = resultsdir + '/time_evolution/'
+                filename = 'trajectories'
+                graph.save(savedir + filename, ext='png', close=True)
+
+
+                # Save data in json format
+                for domain_num in range(1, 5):
+                    trForGammarPos = data_dict["domain{0}".format(domain_num)]["trForGammarPos"]
+                    trForGammarNeg = data_dict["domain{0}".format(domain_num)]["trForGammarNeg"]
+                    trForVrPos = data_dict["domain{0}".format(domain_num)]["trForVrPos"]
+                    trForVrNeg = data_dict["domain{0}".format(domain_num)]["trForVrNeg"]
+                    trForDr = data_dict["domain{0}".format(domain_num)]['trForDr']
+                    gammarPos = data_dict["domain{0}".format(domain_num)]["gammarPos"]
+                    gammarPos_err = data_dict["domain{0}".format(domain_num)]["gammarPos_err"]
+                    gammarNeg = np.abs(data_dict["domain{0}".format(domain_num)][
+                                           "gammarNeg"])  # take absolute values of negative circulation values
+                    gammarNeg_err = data_dict["domain{0}".format(domain_num)]["gammarNeg_err"]
                     cxmaxlist = data_dict["domain{0}".format(domain_num)]["cxmaxlist"]
                     cymaxlist = data_dict["domain{0}".format(domain_num)]["cymaxlist"]
                     cxminlist = data_dict["domain{0}".format(domain_num)]["cxminlist"]
                     cyminlist = data_dict["domain{0}".format(domain_num)]["cyminlist"]
-                    vr = data_dict["domain{0}".format(domain_num)]['vrPos']
+                    vrPos = data_dict["domain{0}".format(domain_num)]['vrPos']
+                    vrNeg = data_dict["domain{0}".format(domain_num)]['vrNeg']
                     dr = data_dict["domain{0}".format(domain_num)]['dr']
 
-                    ### Core with Positive Vorticity
-                    # Time array for Ciruclation
-                    trForGammar.append(f / float(rate))
-                    # Append a maximum circulation value
-                    gammar_max_ind, gammar_max = fa.find_max(mean_gs)
-                    gammar.append(gammar_max)
-                    gammar_err.append(std_gs[gammar_max_ind])
+                    # Save data in json format
+                    time_evolution_data = {'trForGammarPos': trForGammarPos,
+                                           'trForGammarNeg': trForGammarNeg,
+                                           'trForVrPos': trForVrPos,
+                                           'trForVrNeg': trForVrNeg,
+                                           'trForDr': trForDr,
+                                           'gammarPos': gammarPos,
+                                           'gammarNeg': gammarNeg.tolist(),
+                                           'gammarPos_err': gammarPos_err,
+                                           'gammarNeg_err': gammarNeg_err,
+                                           'cxmaxlist': cxmaxlist,
+                                           'cymaxlist': cymaxlist,
+                                           'cxminlist': cxminlist,
+                                           'cyminlist': cyminlist,
+                                           'vrPos': vrPos,
+                                           'vrNeg': vrNeg,
+                                           'dr': dr
+                                           }
+
+                    time_evolution_data_name = 'time_evolution_data_domain%d_before_collision.json' % domain_num
+                    time_evolution_data_path = savedir + time_evolution_data_name
+                    # rw.write_json(time_evolution_data_path, time_evolution_data)
+                    with open(time_evolution_data_path, 'w') as fyle:
+                        json.dump(time_evolution_data, fyle, sort_keys=True, indent=1, separators=(',', ': '))
+                        fyle.close()
+                print '------------------------------'
+                break
+
+            if not args.process_all and any(d < d_thd for d in ds):
+                break
 
 
-                    # Calculate ring velocity
-                    cxmaxlist.append(cx_max_dict["domain{0}".format(domain_num)])
-                    cymaxlist.append(cy_max_dict["domain{0}".format(domain_num)])
-                    cxminlist.append(cx_min_dict["domain{0}".format(domain_num)])
-                    cyminlist.append(cy_min_dict["domain{0}".format(domain_num)])
-                    print '!!!!!!!!!!!!!!'
-                    print cx_max_dict["domain{0}".format(domain_num)]
-                    print cxmaxlist
-                    print '!!!!!!!!!!!!!!'
-
-                    counter = counter_dict["domain{0}Pos".format(domain_num)]
-                    if counter % vrtimestep == 0 and len(cxmaxlist) > vrtimestep:
-                        trForVr.append(f / float(rate))
-                        print trForVr[-1]
-                        if len(trForVr) > 1:
-                            # Calculate ring velocity
-                            vr.append(compute_dist(cxmaxlist[counter], cymaxlist[counter], cxmaxlist[counter-vrtimestep], cymaxlist[counter-vrtimestep])
-                                      / (trForVr[counter/vrtimestep-1]-trForVr[counter/vrtimestep-2]))
-                            print 'Ring velocity (Pos): %.2f, %d, %d' % (vr[-1], f, domain_num)
-                    # Update counter
-                    counter_dict["domain{0}Pos".format(domain_num)] = counter_dict["domain{0}Pos".format(domain_num)] + 1
-
-                    # Calculate ring diameter
-                    try:
-                        dri = compute_dist(cx_max_dict["domain{0}".format(domain_num)], cy_max_dict["domain{0}".format(domain_num)],
-                                          cx_min_dict["domain{0}".format(domain_num)], cy_min_dict["domain{0}".format(domain_num)])
-                        # Update diameter and time arrays
-                        trForDr.append(f/float(rate))
-                        dr.append(dri)
-                        print 'Diameter: %.2f, %d, %d' % (dri, f, domain_num)
-                    except IndexError:
-                        print 'Vortex ring core with negative vorticity was not detected!'
-                        continue
-
-
-                    ### Core with Negative Vorticity
-                    # Compute circulation
-                    mean_gs = []
-                    std_gs = []
-                    for r in radii:
-                        path_x, path_y = r * np.cos(phi) + cxmin, r * np.sin(phi) + cymax
-                        iux_p = ndimage.map_coordinates(iuxgrid, (path_y / __yint__, path_x / __xint__), order=1)
-                        iuy_p = ndimage.map_coordinates(iuygrid, (path_y / __yint__, path_x / __xint__), order=1)
-
-                        # CALCULATE AND PLOT CIRCULATIONS AND STATISTICS
-                        gammas = []
-                        cm_shift_list = np.linspace(-cm_shift * scale, cm_shift * scale, num=10)
-                        for off_i in cm_shift_list:
-                            for off_j in cm_shift_list:
-                                ds = 2 * np.pi * r / float(NP)
-                                path_x, path_y = r * np.cos(phi) + cxmin + off_i, r * np.sin(phi) + cymin + off_j
-                                iux_p = ndimage.map_coordinates(iuxgrid, (path_y / __yint__, path_x / __xint__),
-                                                                order=1)
-                                iuy_p = ndimage.map_coordinates(iuygrid, (path_y / __yint__, path_x / __xint__),
-                                                                order=1)
-                                gammas.append(sum((-iux_p * np.sin(phi) + iuy_p * np.cos(phi)) * ds))
-
-                        mean_g = np.mean(np.asarray(gammas))
-                        mean_gs.append(mean_g)
-                        std_g = np.std(np.asarray(gammas))
-                        std_gs.append(std_g)
-
-                        # STORE ROBUST AND WEIGHTED AVERAGE CIRCULATION DATA
-                        robust_g = mean_gs[np.argmin(np.asarray(std_gs))]
-                        robust_r = radii[np.argmin(np.asarray(std_gs))]
-                        weighted_avg = weighted_mean(mean_gs, std_gs)
-                        weighted_avg_std = weighted_mean_std(std_gs)
-
-                        # # STORE CIRCULATION DATA IN JSON FORMAT AND SAVE PLOT
-                        # circulation_data_neg = {'mean_gamma': list(mean_gs),
-                        #                     'std_gamma': list(std_gs),
-                        #                     'radii': list(radii),
-                        #                     'weighted_avg': weighted_avg,
-                        #                     'weighted_avg_std': weighted_avg_std}
-
-                    # Refer these lists to lists stored in the data_dict  (NOTICE THAT THEY ARE NOT BEING COPIED!)
-                    trForGammar = data_dict["domain{0}".format(domain_num)]["trForGammarNeg"]
-                    trForVr = data_dict["domain{0}".format(domain_num)]["trForVrNeg"]
-                    gammar = data_dict["domain{0}".format(domain_num)]["gammarNeg"]
-                    gammar_err = data_dict["domain{0}".format(domain_num)]["gammarNeg_err"]
-                    vr = data_dict["domain{0}".format(domain_num)]['vrNeg']
-
-                    # Time array for Ciruclation
-                    trForGammar.append(f / float(rate))
-                    # Append a minimum circulation value
-                    gammar_min_ind, gammar_min = fa.find_min(mean_gs)
-                    gammar.append(gammar_min)
-                    gammar_err.append(std_gs[gammar_min_ind])
-
-
-                    # Calculate ring velocity
-                    counter = counter_dict["domain{0}Neg".format(domain_num)]
-                    if counter % vrtimestep == 0 and len(cxminlist)>vrtimestep:
-                        trForVr.append(f / float(rate))
-                        if len(trForVr) > 1:
-                            # Calculate ring velocity
-                            vr.append(compute_dist(cxminlist[counter], cyminlist[counter], cxminlist[counter-vrtimestep], cyminlist[counter-vrtimestep])
-                                      / (trForVr[counter/vrtimestep-1]-trForVr[counter/vrtimestep-2]))
-                            print 'Ring velocity (Neg): %.2f, %d, %d' % (vr[-1], f, domain_num)
-
-                    # Update counter
-                    counter_dict["domain{0}Neg".format(domain_num)] = counter_dict["domain{0}Neg".format(domain_num)] + 1
-
-
-                    print '------------------------------'
-
-
-        print '------------------------------'
-        print 'PLOTTING TIME-EVOLUTION'
-        # Convenction for plotting
-        #marker = ['v', '^', 's', 'o'] # makers corresponding to domains
-        fillstyle = ['full', 'none'] #Positive core: fill, Negative core: no fill
-
-
-        for domain_num in range(1, 5):
-            trForGammarPos = data_dict["domain{0}".format(domain_num)]["trForGammarPos"]
-            trForGammarNeg = data_dict["domain{0}".format(domain_num)]["trForGammarNeg"]
-            trForVrPos = data_dict["domain{0}".format(domain_num)]["trForVrPos"]
-            trForVrNeg = data_dict["domain{0}".format(domain_num)]["trForVrNeg"]
-            trForDr = data_dict["domain{0}".format(domain_num)]['trForDr']
-            gammarPos = data_dict["domain{0}".format(domain_num)]["gammarPos"]
-            gammarPos_err = data_dict["domain{0}".format(domain_num)]["gammarPos_err"]
-            gammarNeg = np.abs(data_dict["domain{0}".format(domain_num)]["gammarNeg"]) # take absolute values of negative circulation values
-            gammarNeg_err = data_dict["domain{0}".format(domain_num)]["gammarNeg_err"]
-            cxmaxlist = data_dict["domain{0}".format(domain_num)]["cxmaxlist"]
-            cymaxlist = data_dict["domain{0}".format(domain_num)]["cymaxlist"]
-            cxminlist = data_dict["domain{0}".format(domain_num)]["cxminlist"]
-            cyminlist = data_dict["domain{0}".format(domain_num)]["cyminlist"]
-            vrPos = data_dict["domain{0}".format(domain_num)]['vrPos']
-            vrNeg = data_dict["domain{0}".format(domain_num)]['vrNeg']
-            dr = data_dict["domain{0}".format(domain_num)]['dr']
-
-            labels = ['top left', 'bottom left', 'top right', 'bottom right']
-            labelsPos = ['top left (+)', 'bottom left (+)', 'top right (+)', 'bottom right (+)']
-            labelsNeg = ['top left (-)', 'bottom left (-)', 'top right (-)', 'bottom right (-)']
-
-            # Drop the last element b/c trForVr has elements one less than vrPos/Neg
-            trForVrPos, trForVrNeg = trForVrPos[:-1], trForVrNeg[:-1]
-            print trForDr, dr
-            #Clean data about circulation, ring diameter, ring velocity
-            if not trForGammarPos ==[]:
-                # trForGammarPos, gammarPos, gammarPos_err = process.clean_multi_dim_array_trio_using_median(trForGammarPos, gammarPos, gammarPos_err, cutoffratio=0.6, mode='less')
-                # trForGammarPos, gammarPos, gammarPos_err = process.clean_multi_dim_array_trio_using_median(trForGammarPos, gammarPos, gammarPos_err, cutoffratio=1.3, mode='greater')
-                gammarPos_avg = np.mean(gammarPos)
-                gammarPos_std = np.std(gammarPos)
-            else:
-                gammarPos_avg, gammarPos_std = np.nan, np.nan
-            if not trForGammarNeg == []:
-                # trForGammarNeg, gammarNeg, gammarNeg_err = process.clean_multi_dim_array_trio_using_median(trForGammarNeg, gammarNeg, gammarNeg_err, cutoffratio=0.6, mode='less')
-                # trForGammarNeg, gammarNeg, gammarNeg_err = process.clean_multi_dim_array_trio_using_median(trForGammarNeg, gammarNeg, gammarNeg_err, cutoffratio=1.3, mode='greater')
-                gammarNeg_avg = np.mean(gammarNeg)
-                gammarNeg_std = np.std(gammarNeg)
-                gammarNeg_std = np.std(gammarNeg)
-            else:
-                gammarNeg_avg, gammarNeg_std = np.nan, np.nan
-            if not trForVrPos == []:
-                trForVrPos, vrPos = process.clean_multi_dim_array_pair_using_cutoff(trForVrPos, vrPos, cutoff=1300., mode='greater')
-                trForVrPos, vrPos = process.clean_multi_dim_array_pair_using_median(trForVrPos, vrPos, cutoffratio=0.6, mode='less')
-                trForVrPos, vrPos = process.clean_multi_dim_array_pair_using_median(trForVrPos, vrPos, cutoffratio=1.3, mode='greater')
-                vrPos_avg = np.mean(vrPos)
-                vrPos_std = np.std(vrPos)
-            else:
-                vrPos_avg, vrPos_std = np.nan, np.nan
-            if not trForVrNeg == []:
-                trForVrNeg, vrNeg = process.clean_multi_dim_array_pair_using_cutoff(trForVrNeg, vrNeg, cutoff=1300., mode='greater')
-                trForVrNeg, vrNeg = process.clean_multi_dim_array_pair_using_median(trForVrNeg, vrNeg, cutoffratio=0.6, mode='less')
-                trForVrNeg, vrNeg = process.clean_multi_dim_array_pair_using_median(trForVrNeg, vrNeg, cutoffratio=1.3, mode='greater')
-                vrNeg_avg = np.mean(vrNeg)
-                vrNeg_std = np.std(vrNeg)
-            else:
-                vrNeg_avg, vrNeg_std = np.nan, np.nan
-            if not trForDr == []:
-                trForDr, dr = process.clean_multi_dim_array_pair_using_cutoff(trForDr, dr, cutoff=4., mode='less')
-                trForDr, dr = process.clean_multi_dim_array_pair_using_cutoff(trForDr, dr, cutoff=50., mode='greater')
-                trForDr, dr = process.clean_multi_dim_array_pair_using_median(trForDr, dr, cutoffratio=0.6, mode='less')
-                trForDr, dr = process.clean_multi_dim_array_pair_using_median(trForDr, dr, cutoffratio=1.3, mode='greater')
-                dr_avg = np.mean(dr)
-                dr_std = np.std(dr)
-                print trForDr, dr
-            else:
-                dr_avg, dr_std = np.nan, np.nan
-
-            # print gammarPos_avg,gammarNeg_avg,vrPos_avg,vrNeg_avg,dr_avg
-
-            # gammarPos_avg = np.mean(gammarPos)
-            # gammarNeg_std = np.std(gammarNeg)
-            # vrPos_avg = np.mean(vrPos)
-            # vrPos_std = np.std(vrPos)
-            # vrNeg_avg = np.mean(vrNeg)
-            # vrNeg_std = np.std(vrNeg)
-
-
-            # #Error processing in case gammar etc. are empty arrays
-            # if len(trForGammarPos)==0 or len(trForVrPos)==0 or len(trForDr)==0:
-            #     fig8 = plt.figure()
-            #     ax = fig8.add_axes([0, 0, 1, 1])
-            #     left, width = .25, .5
-            #     bottom, height = .25, .5
-            #     right = left + width
-            #     top = bottom + height
-            #     ax.text(0.5 * (left + right), 0.5 * (bottom + top), 'No vortex ring was detected!',
-            #             horizontalalignment='center',
-            #             verticalalignment='center',
-            #             fontsize=20, color='red',
-            #             transform=ax.transAxes)
-            #     savedir = resultsdir + '/time_evolution/'
-            #     filename = 'No_vortex_ring_detected'
-            #     graph.save(savedir + filename, ext='png', close=True)
-            #     continue
-
-            # Plot circulation, ring velocity, and diameter
-            # CIRCULATION PLOT (TIME EVOLUTION)
-            if not trForGammarPos == []:
-                fig8, ax8 = graph.errorbar(trForGammarPos, gammarPos, yerr=gammarPos_err, marker='o', color=colors[domain_num-1], label=labelsPos[domain_num-1],
-                                           alpha=0.9, fillstyle=fillstyle[0], fignum=2, subplot=131, figsize=(20, 5))
-            if not trForGammarNeg == []:
-                fig8, ax8 = graph.errorbar(trForGammarNeg, gammarNeg, yerr=gammarNeg_err, marker='o', color=colors[domain_num-1], label=labelsNeg[domain_num-1],
-                                           alpha=0.9, fillstyle=fillstyle[1], fignum=2, subplot=131, figsize=(20, 5))
-            if not trForGammarPos == [] and not trForGammarNeg == []:
-                graph.labelaxes(ax8, 'Time ($s$)', 'Circulation ($mm^2/s$)')
-                if not math.isnan(max(gammarPos_avg, gammarNeg_avg)):
-                    gammar_lim = max([max(gammarPos_avg, gammarNeg_avg)*1.3, np.max(np.concatenate((gammarPos, gammarNeg))), gammar_lim])
-                    graph.setaxes(ax8, 0, time[-1], 0, gammar_lim)
-                    # if not trForGammarPos == []:
-                    #     text = 'Average $\Gamma$ (+): %.1f' % gammarPos_avg + '$mm^2/s$'
-                    #     graph.addtext(ax8, x=(time[-1])/10., y=gammarPos_avg * 1.3 / 8. * 4., text=text)
-                    #     text = 'Std. (+): %.1f' % gammarPos_std + '$mm^2/s$'
-                    #     graph.addtext(ax8, x=(time[-1])/10., y=gammarNeg_std * 1.3 / 8. * 3., text=text)
-                    # if not trForGammarNeg == []:
-                    #     text = 'Average $\Gamma$ (-): %.1f' % gammarNeg_avg + '$mm^2/s$'
-                    #     graph.addtext(ax8, x=(time[-1]) / 10., y=gammarNeg_avg * 1.3 / 8. * 2., text=text)
-                    #     text = 'Std. (-): %.1f' % gammarNeg_std + '$mm^2/s$'
-                    #     graph.addtext(ax8, x=(time[-1]) / 10., y=gammarNeg_std * 1.3 / 8. * 1., text=text)
-            else:
-                fig8, ax8 = graph.set_fig(fignum=2, subplot=131, figsize=(20, 5))
-                graph.labelaxes(ax8, 'Time ($s$)', 'Circulation ($mm^2/s$)')
-
-
-            # RING VELOCITY PLOT (TIME EVOLUTION)
-            if not trForVrPos == []:
-                fig9, ax9 = graph.scatter(trForVrPos, vrPos,  marker='o', color=colors[domain_num-1],fillstyle=fillstyle[0], label=labelsPos[domain_num-1],
-                                          alpha=0.9, fignum=2, subplot=132, figsize=(20, 5))
-            if not trForVrNeg == []:
-                fig9, ax9 = graph.scatter(trForVrNeg, vrNeg,  marker='o', color=colors[domain_num-1], fillstyle=fillstyle[1], label=labelsNeg[domain_num-1],
-                                          alpha=0.9, fignum=2, subplot=132, figsize=(20, 5))
-            if not trForVrPos == [] and not trForVrNeg == []:
-                graph.labelaxes(ax9, 'Time ($s$)', 'Ring velocity ($mm/s$)')
-                print vrPos, vrNeg
-                print trForVrPos, trForVrNeg
-                if not math.isnan(max(vrPos_avg, vrNeg_avg)):
-                    vr_lim = max([max(vrPos_avg, vrNeg_avg)*1.3,  np.max((np.concatenate((vrPos, vrNeg)))), vr_lim])
-                    graph.setaxes(ax9, 0, time[-1], 0, vr_lim)
-                    # Add text (ring velocity and std)
-                    # if not trForVrPos == []:
-                    #     text = 'Average $v_r$ (+): %.1f' % vrPos_avg + '$mm/s$'
-                    #     graph.addtext(ax9, x=(time[-1])/10., y=vrPos_avg * 1.3 / 8. * 4, text=text)
-                    #     text = 'Std. (-): %.1f' % vrPos_std + '$mm/s$'
-                    #     graph.addtext(ax9, x=(time[-1]) / 10., y=vrPos_std * 1.3 / 8. * 3, text=text)
-                    # if not trForVrNeg == []:
-                    #     text = 'Average $v_r$ (+): %.1f' % vrNeg_avg + '$mm/s$'
-                    #     graph.addtext(ax9, x=(time[-1]) / 10., y=vrNeg_avg * 1.3 / 8 * 2, text=text)
-                    #     text = 'Std. (-): %.1f' % vrNeg_std + '$mm/s$'
-                    #     graph.addtext(ax9, x=(time[-1]) / 10., y=vrNeg_std * 1.3 / 8. * 1, text=text)
-            else:
-                # If there is no data, make an empty figure
-                fig9, ax9 = graph.set_fig(fignum=2, subplot=132, figsize=(20, 5))
-                graph.labelaxes(ax9, 'Time ($s$)', 'Ring velocity ($mm/s$)')
-
-            print trForDr, len(trForDr)
-            #if not trForDr == []: # For some reason, this line fails... WHY? Use the next line instead- takumi 4/14/18
-            if not len(trForDr) == 0:
-                print 'here'
-                print trForDr
-                fig10, ax10 = graph.scatter(trForDr, dr, marker='o', color=colors[domain_num-1], fillstyle=fillstyle[0], label=labels[domain_num-1],
-                                            alpha=0.9, fignum=2, subplot=133, figsize=(20, 5))
-                graph.labelaxes(ax10, 'Time ($s$)', 'Ring diameter ($mm$)')
-                print dr_avg*1.3, np.max(dr), dr_lim, domain_num
-                dr_lim = max(dr_avg*1.3, np.max(dr), dr_lim)
-                graph.setaxes(ax10, 0, time[-1], 0, dr_lim)
-                # text = 'Average $D$: %.1f' % dr_avg + '$mm$'
-                # graph.addtext(ax10, x=(time[-1])/10., y=dr_avg*1.3/4.*2, text=text)
-                # text = 'Std.: %.1f' % dr_std + '$mm$'
-                # graph.addtext(ax10, x=(time[-1])/10., y=dr_avg * 1.3 / 4., text=text)
-            else:
-                fig10, ax10 = graph.set_fig(fignum=2, subplot=133, figsize=(20, 5))
-                graph.labelaxes(ax10, 'Time ($s$)', 'Ring diameter ($mm$)')
-        ax8.legend()
-        ax9.legend()
-        ax10.legend()
-
-        savedir = resultsdir + '/time_evolution/'
-        filename = 'circulation_vring_diameter'
-        graph.save(savedir+filename, ext='png', close=True)
-
+        #
+        #
+        # # Processed a cine!
+        #
+        # print '------------------------------'
+        #
+        # print 'PLOTTING TIME-EVOLUTION'
+        # # Convenction for plotting
+        # #marker = ['v', '^', 's', 'o'] # makers corresponding to domains
+        # fillstyle = ['full', 'none'] #Positive core: fill, Negative core: no fill
+        #
+        #
+        # for domain_num in range(1, 5):
+        #     trForGammarPos = data_dict["domain{0}".format(domain_num)]["trForGammarPos"]
+        #     trForGammarNeg = data_dict["domain{0}".format(domain_num)]["trForGammarNeg"]
+        #     trForVrPos = data_dict["domain{0}".format(domain_num)]["trForVrPos"]
+        #     trForVrNeg = data_dict["domain{0}".format(domain_num)]["trForVrNeg"]
+        #     trForDr = data_dict["domain{0}".format(domain_num)]['trForDr']
+        #     gammarPos = data_dict["domain{0}".format(domain_num)]["gammarPos"]
+        #     gammarPos_err = data_dict["domain{0}".format(domain_num)]["gammarPos_err"]
+        #     gammarNeg = np.abs(data_dict["domain{0}".format(domain_num)]["gammarNeg"]) # take absolute values of negative circulation values
+        #     gammarNeg_err = data_dict["domain{0}".format(domain_num)]["gammarNeg_err"]
+        #     cxmaxlist = data_dict["domain{0}".format(domain_num)]["cxmaxlist"]
+        #     cymaxlist = data_dict["domain{0}".format(domain_num)]["cymaxlist"]
+        #     cxminlist = data_dict["domain{0}".format(domain_num)]["cxminlist"]
+        #     cyminlist = data_dict["domain{0}".format(domain_num)]["cyminlist"]
+        #     vrPos = data_dict["domain{0}".format(domain_num)]['vrPos']
+        #     vrNeg = data_dict["domain{0}".format(domain_num)]['vrNeg']
+        #     dr = data_dict["domain{0}".format(domain_num)]['dr']
+        #
+        #     labels = ['top left', 'bottom left', 'top right', 'bottom right']
+        #     labelsPos = ['top left (+)', 'bottom left (+)', 'top right (+)', 'bottom right (+)']
+        #     labelsNeg = ['top left (-)', 'bottom left (-)', 'top right (-)', 'bottom right (-)']
+        #
+        #     # Drop the last element b/c trForVr has elements one less than vrPos/Neg
+        #     trForVrPos, trForVrNeg = trForVrPos[:-1], trForVrNeg[:-1]
+        #     print trForDr, dr
+        #     #Clean data about circulation, ring diameter, ring velocity
+        #     if not trForGammarPos ==[]:
+        #         # trForGammarPos, gammarPos, gammarPos_err = process.clean_multi_dim_array_trio_using_median(trForGammarPos, gammarPos, gammarPos_err, cutoffratio=0.6, mode='less')
+        #         # trForGammarPos, gammarPos, gammarPos_err = process.clean_multi_dim_array_trio_using_median(trForGammarPos, gammarPos, gammarPos_err, cutoffratio=1.3, mode='greater')
+        #         gammarPos_avg = np.mean(gammarPos)
+        #         gammarPos_std = np.std(gammarPos)
+        #     else:
+        #         gammarPos_avg, gammarPos_std = np.nan, np.nan
+        #     if not trForGammarNeg == []:
+        #         # trForGammarNeg, gammarNeg, gammarNeg_err = process.clean_multi_dim_array_trio_using_median(trForGammarNeg, gammarNeg, gammarNeg_err, cutoffratio=0.6, mode='less')
+        #         # trForGammarNeg, gammarNeg, gammarNeg_err = process.clean_multi_dim_array_trio_using_median(trForGammarNeg, gammarNeg, gammarNeg_err, cutoffratio=1.3, mode='greater')
+        #         gammarNeg_avg = np.mean(gammarNeg)
+        #         gammarNeg_std = np.std(gammarNeg)
+        #         gammarNeg_std = np.std(gammarNeg)
+        #     else:
+        #         gammarNeg_avg, gammarNeg_std = np.nan, np.nan
+        #     if not trForVrPos == []:
+        #         trForVrPos, vrPos = process.clean_multi_dim_array_pair_using_cutoff(trForVrPos, vrPos, cutoff=1300., mode='greater')
+        #         trForVrPos, vrPos = process.clean_multi_dim_array_pair_using_median(trForVrPos, vrPos, cutoffratio=0.6, mode='less')
+        #         trForVrPos, vrPos = process.clean_multi_dim_array_pair_using_median(trForVrPos, vrPos, cutoffratio=1.3, mode='greater')
+        #         vrPos_avg = np.mean(vrPos)
+        #         vrPos_std = np.std(vrPos)
+        #     else:
+        #         vrPos_avg, vrPos_std = np.nan, np.nan
+        #     if not trForVrNeg == []:
+        #         trForVrNeg, vrNeg = process.clean_multi_dim_array_pair_using_cutoff(trForVrNeg, vrNeg, cutoff=1300., mode='greater')
+        #         trForVrNeg, vrNeg = process.clean_multi_dim_array_pair_using_median(trForVrNeg, vrNeg, cutoffratio=0.6, mode='less')
+        #         trForVrNeg, vrNeg = process.clean_multi_dim_array_pair_using_median(trForVrNeg, vrNeg, cutoffratio=1.3, mode='greater')
+        #         vrNeg_avg = np.mean(vrNeg)
+        #         vrNeg_std = np.std(vrNeg)
+        #     else:
+        #         vrNeg_avg, vrNeg_std = np.nan, np.nan
+        #     if not trForDr == []:
+        #         trForDr, dr = process.clean_multi_dim_array_pair_using_cutoff(trForDr, dr, cutoff=4., mode='less')
+        #         trForDr, dr = process.clean_multi_dim_array_pair_using_cutoff(trForDr, dr, cutoff=50., mode='greater')
+        #         trForDr, dr = process.clean_multi_dim_array_pair_using_median(trForDr, dr, cutoffratio=0.6, mode='less')
+        #         trForDr, dr = process.clean_multi_dim_array_pair_using_median(trForDr, dr, cutoffratio=1.3, mode='greater')
+        #         dr_avg = np.mean(dr)
+        #         dr_std = np.std(dr)
+        #         print trForDr, dr
+        #     else:
+        #         dr_avg, dr_std = np.nan, np.nan
+        #
+        #     # print gammarPos_avg,gammarNeg_avg,vrPos_avg,vrNeg_avg,dr_avg
+        #
+        #     # gammarPos_avg = np.mean(gammarPos)
+        #     # gammarNeg_std = np.std(gammarNeg)
+        #     # vrPos_avg = np.mean(vrPos)
+        #     # vrPos_std = np.std(vrPos)
+        #     # vrNeg_avg = np.mean(vrNeg)
+        #     # vrNeg_std = np.std(vrNeg)
+        #
+        #
+        #     # #Error processing in case gammar etc. are empty arrays
+        #     # if len(trForGammarPos)==0 or len(trForVrPos)==0 or len(trForDr)==0:
+        #     #     fig8 = plt.figure()
+        #     #     ax = fig8.add_axes([0, 0, 1, 1])
+        #     #     left, width = .25, .5
+        #     #     bottom, height = .25, .5
+        #     #     right = left + width
+        #     #     top = bottom + height
+        #     #     ax.text(0.5 * (left + right), 0.5 * (bottom + top), 'No vortex ring was detected!',
+        #     #             horizontalalignment='center',
+        #     #             verticalalignment='center',
+        #     #             fontsize=20, color='red',
+        #     #             transform=ax.transAxes)
+        #     #     savedir = resultsdir + '/time_evolution/'
+        #     #     filename = 'No_vortex_ring_detected'
+        #     #     graph.save(savedir + filename, ext='png', close=True)
+        #     #     continue
+        #
+        #     # Plot circulation, ring velocity, and diameter
+        #     # CIRCULATION PLOT (TIME EVOLUTION)
+        #     if not trForGammarPos == []:
+        #         fig8, ax8 = graph.errorbar(trForGammarPos, gammarPos, yerr=gammarPos_err, marker='o', color=colors[domain_num-1], label=labelsPos[domain_num-1],
+        #                                    alpha=0.7, fillstyle=fillstyle[0], fignum=2, subplot=131, figsize=(20, 5))
+        #     if not trForGammarNeg == []:
+        #         fig8, ax8 = graph.errorbar(trForGammarNeg, gammarNeg, yerr=gammarNeg_err, marker='o', color=colors[domain_num-1], label=labelsNeg[domain_num-1],
+        #                                    alpha=0.7, fillstyle=fillstyle[1], fignum=2, subplot=131, figsize=(20, 5))
+        #     if not trForGammarPos == [] and not trForGammarNeg == []:
+        #         graph.labelaxes(ax8, 'Time ($s$)', 'Circulation ($mm^2/s$)')
+        #         if not math.isnan(max(gammarPos_avg, gammarNeg_avg)):
+        #             gammar_lim = max([max(gammarPos_avg, gammarNeg_avg)*1.3, np.max(np.concatenate((gammarPos, gammarNeg))), gammar_lim])
+        #             graph.setaxes(ax8, 0, time[-1], 0, gammar_lim)
+        #             # if not trForGammarPos == []:
+        #             #     text = 'Average $\Gamma$ (+): %.1f' % gammarPos_avg + '$mm^2/s$'
+        #             #     graph.addtext(ax8, x=(time[-1])/10., y=gammarPos_avg * 1.3 / 8. * 4., text=text)
+        #             #     text = 'Std. (+): %.1f' % gammarPos_std + '$mm^2/s$'
+        #             #     graph.addtext(ax8, x=(time[-1])/10., y=gammarNeg_std * 1.3 / 8. * 3., text=text)
+        #             # if not trForGammarNeg == []:
+        #             #     text = 'Average $\Gamma$ (-): %.1f' % gammarNeg_avg + '$mm^2/s$'
+        #             #     graph.addtext(ax8, x=(time[-1]) / 10., y=gammarNeg_avg * 1.3 / 8. * 2., text=text)
+        #             #     text = 'Std. (-): %.1f' % gammarNeg_std + '$mm^2/s$'
+        #             #     graph.addtext(ax8, x=(time[-1]) / 10., y=gammarNeg_std * 1.3 / 8. * 1., text=text)
+        #     else:
+        #         fig8, ax8 = graph.set_fig(fignum=2, subplot=131, figsize=(20, 5))
+        #         graph.labelaxes(ax8, 'Time ($s$)', 'Circulation ($mm^2/s$)')
+        #
+        #
+        #     # RING VELOCITY PLOT (TIME EVOLUTION)
+        #     if not trForVrPos == []:
+        #         fig9, ax9 = graph.scatter(trForVrPos, vrPos,  marker='o', color=colors[domain_num-1],fillstyle=fillstyle[0], label=labelsPos[domain_num-1],
+        #                                   alpha=0.7, fignum=2, subplot=132, figsize=(20, 5))
+        #     if not trForVrNeg == []:
+        #         fig9, ax9 = graph.scatter(trForVrNeg, vrNeg,  marker='o', color=colors[domain_num-1], fillstyle=fillstyle[1], label=labelsNeg[domain_num-1],
+        #                                   alpha=0.7, fignum=2, subplot=132, figsize=(20, 5))
+        #     if not trForVrPos == [] and not trForVrNeg == []:
+        #         graph.labelaxes(ax9, 'Time ($s$)', 'Ring velocity ($mm/s$)')
+        #         if not math.isnan(max(vrPos_avg, vrNeg_avg)):
+        #             vr_lim = max([max(vrPos_avg, vrNeg_avg)*1.3,  np.max((np.concatenate((vrPos, vrNeg)))), vr_lim])
+        #             graph.setaxes(ax9, 0, time[-1], 0, vr_lim)
+        #             # Add text (ring velocity and std)
+        #             # if not trForVrPos == []:
+        #             #     text = 'Average $v_r$ (+): %.1f' % vrPos_avg + '$mm/s$'
+        #             #     graph.addtext(ax9, x=(time[-1])/10., y=vrPos_avg * 1.3 / 8. * 4, text=text)
+        #             #     text = 'Std. (-): %.1f' % vrPos_std + '$mm/s$'
+        #             #     graph.addtext(ax9, x=(time[-1]) / 10., y=vrPos_std * 1.3 / 8. * 3, text=text)
+        #             # if not trForVrNeg == []:
+        #             #     text = 'Average $v_r$ (+): %.1f' % vrNeg_avg + '$mm/s$'
+        #             #     graph.addtext(ax9, x=(time[-1]) / 10., y=vrNeg_avg * 1.3 / 8 * 2, text=text)
+        #             #     text = 'Std. (-): %.1f' % vrNeg_std + '$mm/s$'
+        #             #     graph.addtext(ax9, x=(time[-1]) / 10., y=vrNeg_std * 1.3 / 8. * 1, text=text)
+        #     else:
+        #         # If there is no data, make an empty figure
+        #         fig9, ax9 = graph.set_fig(fignum=2, subplot=132, figsize=(20, 5))
+        #         graph.labelaxes(ax9, 'Time ($s$)', 'Ring velocity ($mm/s$)')
+        #
+        #     print trForDr, len(trForDr)
+        #     #if not trForDr == []: # For some reason, this line fails... WHY? Use the next line instead- takumi 4/14/18
+        #     if not len(trForDr) == 0:
+        #         fig10, ax10 = graph.scatter(trForDr, dr, marker='o', color=colors[domain_num-1], fillstyle=fillstyle[0], label=labels[domain_num-1],
+        #                                     alpha=0.7, fignum=2, subplot=133, figsize=(20, 5))
+        #         graph.labelaxes(ax10, 'Time ($s$)', 'Ring diameter ($mm$)')
+        #         dr_lim = max(dr_avg*1.3, np.max(dr), dr_lim)
+        #         graph.setaxes(ax10, 0, time[-1], 0, dr_lim)
+        #         # text = 'Average $D$: %.1f' % dr_avg + '$mm$'
+        #         # graph.addtext(ax10, x=(time[-1])/10., y=dr_avg*1.3/4.*2, text=text)
+        #         # text = 'Std.: %.1f' % dr_std + '$mm$'
+        #         # graph.addtext(ax10, x=(time[-1])/10., y=dr_avg * 1.3 / 4., text=text)
+        #     else:
+        #         fig10, ax10 = graph.set_fig(fignum=2, subplot=133, figsize=(20, 5))
+        #         graph.labelaxes(ax10, 'Time ($s$)', 'Ring diameter ($mm$)')
+        # ax8.legend()
+        # ax9.legend()
+        # ax10.legend()
+        #
+        # savedir = resultsdir + '/time_evolution/'
+        # filename = 'circulation_vring_diameter_all'
+        # graph.save(savedir+filename, ext='png', close=True)
+        #
+        # # Save data in json format
+        # for domain_num in range(1, 5):
+        #     trForGammarPos = data_dict["domain{0}".format(domain_num)]["trForGammarPos"]
+        #     trForGammarNeg = data_dict["domain{0}".format(domain_num)]["trForGammarNeg"]
+        #     trForVrPos = data_dict["domain{0}".format(domain_num)]["trForVrPos"]
+        #     trForVrNeg = data_dict["domain{0}".format(domain_num)]["trForVrNeg"]
+        #     trForDr = data_dict["domain{0}".format(domain_num)]['trForDr']
+        #     gammarPos = data_dict["domain{0}".format(domain_num)]["gammarPos"]
+        #     gammarPos_err = data_dict["domain{0}".format(domain_num)]["gammarPos_err"]
+        #     gammarNeg = np.abs(data_dict["domain{0}".format(domain_num)]["gammarNeg"]) # take absolute values of negative circulation values
+        #     gammarNeg_err = data_dict["domain{0}".format(domain_num)]["gammarNeg_err"]
+        #     cxmaxlist = data_dict["domain{0}".format(domain_num)]["cxmaxlist"]
+        #     cymaxlist = data_dict["domain{0}".format(domain_num)]["cymaxlist"]
+        #     cxminlist = data_dict["domain{0}".format(domain_num)]["cxminlist"]
+        #     cyminlist = data_dict["domain{0}".format(domain_num)]["cyminlist"]
+        #     vrPos = data_dict["domain{0}".format(domain_num)]['vrPos']
+        #     vrNeg = data_dict["domain{0}".format(domain_num)]['vrNeg']
+        #     dr = data_dict["domain{0}".format(domain_num)]['dr']
+        #
         #     # Save data in json format
-        #     time_evolution_data = {'trForGammarPos': trForGammarPos.tolist(),
-        #                            'gammarPos': gammarPos.tolist(),
-        #                            'trForGammarNeg': trForGammarNeg.tolist(),
+        #     time_evolution_data = {'trForGammarPos': trForGammarPos,
+        #                            'trForGammarNeg': trForGammarNeg,
+        #                            'trForVrPos': trForVrPos,
+        #                            'trForVrNeg': trForVrNeg,
+        #                            'trForDr': trForDr,
+        #                            'gammarPos': gammarPos,
         #                            'gammarNeg': gammarNeg.tolist(),
-        #                            'trForVrPos': trForVrPos.tolist(),
-        #                            'vrPos': vrPos.tolist(),
-        #                            'trForVrNeg': trForVrNeg.tolist(),
-        #                            'vrNeg': vrNeg.tolist(),
-        #                            'trForDrPos': trForDr.tolist(),
-        #                            'dr': dr.tolist()
+        #                            'gammarPos_err':gammarPos_err,
+        #                            'gammarNeg_err': gammarNeg_err,
+        #                            'cxmaxlist': cxmaxlist,
+        #                            'cymaxlist': cymaxlist,
+        #                            'cxminlist': cxminlist,
+        #                            'cyminlist': cyminlist,
+        #                            'vrPos': vrPos,
+        #                            'vrNeg': vrNeg,
+        #                            'dr': dr
         #                            }
         #
-        # time_evolution_data_name = 'time_evolution_data.json'
-        # time_evolution_data_path = savedir + 'time_evolution_data.json'
-        # with open(time_evolution_data_path, 'w') as fyle:
-        #     json.dump(time_evolution_data, fyle, sort_keys=True, indent=1, separators=(',', ': '))
-        #     fyle.close()
-
-        import library.tools.rw_data as rw
-
-        time_evolution_data_path = savedir + 'time_evolution_data_four_rings.json'
-        rw.write_json(time_evolution_data_path, data_dict)
-        print '---------------'
+        #     time_evolution_data_name = 'time_evolution_data_domain%d_all.json' %domain_num
+        #     time_evolution_data_path = savedir + time_evolution_data_name
+        #     #rw.write_json(time_evolution_data_path, time_evolution_data)
+        #     with open(time_evolution_data_path, 'w') as fyle:
+        #         json.dump(time_evolution_data, fyle, sort_keys=True, indent=1, separators=(',', ': '))
+        #         fyle.close()
+        #
+        # print '---------------'
 
 
     print 'Done'

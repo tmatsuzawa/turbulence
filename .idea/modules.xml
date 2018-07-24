@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/../ilpm/ilpm/.idea/ilpm.iml" filepath="$PROJECT_DIR$/../ilpm/ilpm/.idea/ilpm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../stephane/stephane/manager/.idea/manager.iml" filepath="$PROJECT_DIR$/../../stephane/stephane/manager/.idea/manager.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../stephane/stephane/.idea/stephane.iml" filepath="$PROJECT_DIR$/../../stephane/stephane/.idea/stephane.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../.idea/takumi.iml" filepath="$PROJECT_DIR$/../.idea/takumi.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/turbulence.iml" filepath="$PROJECT_DIR$/.idea/turbulence.iml" />
+    </modules>
+  </component>
+</project>

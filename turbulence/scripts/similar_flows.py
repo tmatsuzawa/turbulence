@@ -52,7 +52,7 @@ def update_data_dict(dict, key, subkey, subsubkey, data):
 def compute_stroke_ratio_LD(span, orifice_d=25.6, piston_d=160.,  num_orifices=1):
     LD = (piston_d / orifice_d)**2 * span / orifice_d / num_orifices
     return LD
-
+ 
 def fit_func_for_vring_vs_veff(x, a, b):
     return a*x*(np.log(x)+b)
 
@@ -278,7 +278,7 @@ for i, data_PIV_basedir in enumerate(data_PIV_basedir_list):
 
     graph.save(base_dir + 'gamma_vs_Vring')
 
-
+    # Store data in json
     output_dict = {}
     output_dict["veff_all"] = veff_all
     output_dict["vr_all"] = vr_all

@@ -1,4 +1,8 @@
 import Hough_track as ht
+#import turbulence.scripts.piston_tracking.experiment_movies.experiment_movie as mnf
+
+import sys
+sys.path.append('/Users/stephane/Documents/git/takumi/turbulence/turbulence/scripts/piston_tracking/')
 import experiment_movies.experiment_movie as mnf
 import numpy as np
 import time
@@ -6,6 +10,7 @@ from mode_drawing_functions.get_speed_and_plot import get_speed_and_plot_withres
 import argparse
 import mode_drawing_functions.mode_movie as modemov
 import mode_drawing_functions.new_mode_functions as nmf
+
 
 parser = argparse.ArgumentParser(description='Track videos of gyros.')
 parser.add_argument('-check', '--check', help='Display intermediate results', action='store_true')
@@ -26,6 +31,7 @@ parser.add_argument('-amp', '--amplitude', help='Amplitude of mode movies',
                     type=float, default=2.)
 parser.add_argument('-overwrite_modes', '--overwrite_modes', help='Overwrite the stills for movie of the normal modes',
                     action='store_true')
+
 
 args = parser.parse_args()
 

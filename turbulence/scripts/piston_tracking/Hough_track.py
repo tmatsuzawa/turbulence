@@ -7,7 +7,7 @@ import os
 import sys
 import time
 import tracking_helper_functions as thf
-import Experiment_movies
+import experiment_movies
 from settings import tracking_settings
 import matplotlib.pyplot as plt
 # from click_pts import ImagePoint
@@ -17,6 +17,8 @@ import cPickle as pkl
 
 ''''''
 
+# If true, save images with a tracked path
+save_tracking_path = False
 
 def run_tracking(tracking_settings, reverse=False, overwrite=False):
     """
@@ -248,12 +250,13 @@ def run_tracking(tracking_settings, reverse=False, overwrite=False):
 
             st = time.time()
             com_data = []
+            tracking_path_x, tracking_path_y = [], []
             for ii in xrange(lf - ff):
                 # For the new current frame, get the data and adjust brightness
                 ind = ii + ff
                 movie.extract_frame_data(ind)
                 movie.adjust_frame()
-
+                print ff, ii, lf
                 if (ii in tracking_settings['cf']) or ('all' in tracking_settings['cf']):
                     # For cf frames (ie those in the list of tracking_settings['cf']), use special centroid-finding
                     # method to get the positions of the particles
@@ -385,6 +388,13 @@ def run_tracking(tracking_settings, reverse=False, overwrite=False):
                 com_data.append(timepts)
                 path = os.path.join(path_to_step_data, 'steps.hdf5')
 
+                if save_tracking_path:
+                    tracking_path_x.append(timepts[0, 1])
+                    tracking_path_y.append(timepts[0, 2])
+                    tracking_path_dir = os.path.join(output, 'tracking_path')
+                    if not os.path.exists(tracking_path_dir):
+                        os.mkdir(tracking_path_dir)
+                    movie.save_frame_with_tracking_path(centroid_arr=[tracking_path_x, tracking_path_y], name=tracking_path_dir + '/frame_%d' %ii)
                 if ii == 0:
                     ffile = h5py.File(path, "w")
 
@@ -398,6 +408,7 @@ def run_tracking(tracking_settings, reverse=False, overwrite=False):
 
 
 def extract_frame_rate(fn):
+    import library.basics.formatstring as fs
     """Pick out the frame rate from the file name
 
     Parameters
@@ -412,9 +423,10 @@ def extract_frame_rate(fn):
     """
     print 'fn = ', fn
     if 'fps' in fn:
-        frame_rate = float(fn.split('fps')[0].split('_')[-1])
+        #frame_rate = float(fn.split('fps')[0].split('_D')[-1])
+        frame_rate = fs.get_float_from_str(fn, 'fps', '_D')
     elif 'pps' in fn:
-        frame_rate = float(fn.split('pps')[0].split('_')[-1])
+        frame_rate = float(fn.split('pps')[0].split('_D')[-1])
     else:
         raise RuntimeError('No frame rate in the filename. Cine framerate discernment is unreliable. Exiting.')
 

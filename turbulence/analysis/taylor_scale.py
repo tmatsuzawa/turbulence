@@ -7,9 +7,12 @@ test
 '''measurement of the taylor scale'''
 
 import numpy as np
-# import turbulence.analysis.strain_tensor as strain_tensor
+import turbulence.jhtd.strain_tensor as strain_tensor
 import turbulence.display.graphes as graphes
 import matplotlib.pyplot as plt
+
+# compute and taylor_scale is not very clear what they do... - takumi
+
 
 def compute(M, i, Dt=50, display=False):
     # compute the taylor scale by averaging U dU/dx over space.
@@ -45,14 +48,17 @@ def compute(M, i, Dt=50, display=False):
 
     if display:
         graphes.hist(E_dE / np.std(E_dE), num=1000, label='ko--', fignum=1)
+        plt.ylabel('Normalized E_dE / np.std(E_dE)')
+        plt.xlabel('bins')
         graphes.hist(E / np.std(E), num=1000, label='r^-', fignum=1)
-        graphes.set_axes(-10, 10, 1, 10 ** 5)
-        graphes.legende('E', 'pdf(E)', '')
+        plt.ylabel('E / np.std(E)')
+        plt.xlabel('bins')
+        # graphes.set_axis(0, 10, 1, 10 ** 5)
+        # graphes.legende('E', 'pdf(E)', '')
 
     lambda_R0 = np.mean(E) / np.std(E_dE)
-    print('')
-    print(str(M.t[i]) + ' : ' + str(lambda_R0))
-    #    input()
+    print('lambda_R0, lambda_Rl, lambda_Rt')
+    print('t = ' + str(M.t[i]) + ' : ' + str(lambda_R0))
 
     dtheta = np.pi / 100
     angles = np.arange(0, np.pi, dtheta)
@@ -67,9 +73,10 @@ def compute(M, i, Dt=50, display=False):
     for j, theta in enumerate(angles):
         U_theta = Ux[index] * np.cos(theta) + Uy[index] * np.sin(theta)
 
+        # derivative of the same component, but in the normal direction
         dU_l = dU[..., 0, 0, :] * np.cos(theta) + dU[..., 1, 1, :] * np.sin(theta)
-        dU_t = dU[..., 1, 0, :] * np.cos(theta) + dU[..., 0, 1, :] * np.sin(
-            theta)  # derivative of the same component, but in the normal direction
+        dU_t = dU[..., 1, 0, :] * np.cos(theta) + dU[..., 0, 1, :] * np.sin(theta)
+
 
         # longitudinal of U dU
         E_dE_l.append(np.std(U_theta * dU_l))
@@ -85,8 +92,8 @@ def compute(M, i, Dt=50, display=False):
     lambda_Rl_std = np.std(np.asarray(lambda_R_l))
     lambda_Rt_std = np.std(np.asarray(lambda_R_t))
 
-    print(str(M.t[i]) + ' : ' + str(lambda_Rl))
-    print(str(M.t[i]) + ' : ' + str(lambda_Rt))
+    print('t = ' + str(M.t[i]) + ' : ' + str(lambda_Rl))
+    print('t = ' + str(M.t[i]) + ' : ' + str(lambda_Rt))
 
     #    graphes.graph(angles,E_dE_l,fignum=1,label='ko')
     #    graphes.graph(angles,E_dE_t,fignum=1,label='r^')
@@ -100,7 +107,6 @@ def compute(M, i, Dt=50, display=False):
 
     Urms = np.sqrt(np.std(E))  # E is in mm^2/s^-2
     return lambdas, Urms
-
 
 def taylor_scale(M, fignum=1, display=True, label='k^'):
     #author: stephane
@@ -131,7 +137,7 @@ def taylor_scale(M, fignum=1, display=True, label='k^'):
     graphes.legende('<U''>', 'lambda', '')
 
 
-def compute_u2_duidxi(Mfluc, clean=False):
+def compute_u2_duidxi(Mfluc, nu=1.004, x0=None, y0=None, x1=None, y1=None, clean=True):
     """
     Returns time averaged U2, Ux2, Uy2, dUidxi2, dUxdx2, dUydy2 at every point
     Averaging is done manually because Mfluc may contain inf and nan simultaneously.
@@ -148,124 +154,111 @@ def compute_u2_duidxi(Mfluc, clean=False):
                         dUidxi2ave, dUxdx2ave, dUydy2ave (2D array)
 
     """
+    if x0 is None:
+        x0, y0 = 0, 0
+        x1, y1 = Mfluc.Ux.shape[1], Mfluc.Ux.shape[0]
+    print 'Will average from (%d, %d) to (%d, %d)' % (x0, y0, x1, y1)
 
-    Mfluc.Ux2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
-    Mfluc.Uy2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
-    Mfluc.U2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
+    # Mfluc.Ux2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
+    # Mfluc.Uy2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
+    # Mfluc.U2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
+    #
+    # Mfluc.dUxdx = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
+    # Mfluc.dUydy = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
+    #
+    # Mfluc.dUidxi2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
+    # Mfluc.dUxdx2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
+    # Mfluc.dUydy2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
+    #
+    # Mfluc.U2ave = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
+    # Mfluc.Ux2ave = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
+    # Mfluc.Uy2ave = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
+    #
+    # Mfluc.dUidxi2ave = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
+    # Mfluc.dUxdx2ave = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
+    # Mfluc.dUydy2ave = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
 
-    Mfluc.dUxdx = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
-    Mfluc.dUydy = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
 
-    Mfluc.dUidxi2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
-    Mfluc.dUxdx2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
-    Mfluc.dUydy2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1], Mfluc.Ux.shape[2]))
+    Dx = np.absolute(np.nanmean(np.diff(Mfluc.x[0, ...])))  # Dx and Dy should be constants
+    Dy = np.absolute(np.nanmean(np.diff(Mfluc.y[..., 0])))  # Dx and Dy should be constants
 
-    Mfluc.U2ave = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-    Mfluc.Ux2ave = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-    Mfluc.Uy2ave = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
+    # for t in range(tmin, Mfluc.Ux.shape[2]):
+    #     for y in range(0, Mfluc.Ux.shape[0] - 1):
+    #         for x in range(0, Mfluc.Ux.shape[1] - 1):
+    #
+    #             Mfluc.Ux2[y, x, t] = Mfluc.Ux[y, x, t] ** 2
+    #             Mfluc.Uy2[y, x, t] = Mfluc.Uy[y, x, t] ** 2
+    #             Mfluc.dUxdx[y, x, t] = (Mfluc.Ux[y + 1, x, t] - Mfluc.Ux[y, x, t]) / Dx  # du'_x/dx
+    #             Mfluc.dUydy[y, x, t] = (Mfluc.Uy[y, x + 1, t] - Mfluc.Uy[y, x, t]) / Dy  # du'_y/dy
+    #             Mfluc.dUxdx2[y, x, t] = Mfluc.dUxdx[y, x, t] ** 2
+    #             Mfluc.dUydy2[y, x, t] = Mfluc.dUydy[y, x, t] ** 2
+    #
+    #             Mfluc.U2[y, x, t] = (Mfluc.Ux2[y, x, t] + Mfluc.Uy2[y, x, t])
+    #             Mfluc.dUidxi2[y, x, t] = Mfluc.dUxdx[y, x, t] ** 2 + Mfluc.dUydy[y, x, t] ** 2
+    Mfluc.Ux2 = Mfluc.Ux ** 2
+    Mfluc.Uy2 = Mfluc.Uy ** 2
+    Mfluc.dUxdx = np.gradient(Mfluc.Ux, Dx, axis=1)
+    Mfluc.dUydy = np.gradient(Mfluc.Uy, Dy, axis=0)
+    Mfluc.dUxdx2 = Mfluc.dUxdx ** 2
+    Mfluc.dUydy2 = Mfluc.dUydy ** 2
 
-    Mfluc.dUidxi2ave = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-    Mfluc.dUxdx2ave = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-    Mfluc.dUydy2ave = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-
-
-    nu = 1.004  # [mm^2/s]: kinematic viscosity of water at 20C
-    print Mfluc.Ux.shape
-
-    tmin = 0
-    Dx = np.absolute(np.nanmean(np.diff(Mfluc.x[0, ...])))
-    Dy = np.absolute(np.nanmean(np.diff(Mfluc.y[..., 0])))
-
-    for t in range(tmin, Mfluc.Ux.shape[2]):
-        for x in range(0, Mfluc.Ux.shape[0] - 1):
-            for y in range(0, Mfluc.Ux.shape[1] - 1):
-                if x == Mfluc.Ux.shape[0] - 1 or y == Mfluc.Ux.shape[1] - 1:
-                    continue
-
-                Mfluc.Ux2[x, y, t] = Mfluc.Ux[x, y, t] * Mfluc.Ux[x, y, t]
-                Mfluc.Uy2[x, y, t] = Mfluc.Uy[x, y, t] * Mfluc.Uy[x, y, t]
-                Mfluc.dUxdx[x, y, t] = (Mfluc.Ux[x + 1, y, t] - Mfluc.Ux[x, y, t]) / Dx  # du'_x/dx
-                Mfluc.dUydy[x, y, t] = (Mfluc.Uy[x, y + 1, t] - Mfluc.Uy[x, y, t]) / Dy  # du'_y/dy
-                Mfluc.dUxdx2[x, y, t] = Mfluc.dUxdx[x, y, t] * Mfluc.dUxdx[x, y, t]
-                Mfluc.dUydy2[x, y, t] = Mfluc.dUydy[x, y, t] * Mfluc.dUydy[x, y, t]
-
-                Mfluc.U2[x, y, t] = (Mfluc.Ux2[x, y, t] + Mfluc.Uy2[x, y, t])
-                Mfluc.dUidxi2[x, y, t] = Mfluc.dUxdx[x, y, t] * Mfluc.dUxdx[x, y, t] + Mfluc.dUydy[x, y, t] * \
-                                                                                       Mfluc.dUydy[x, y, t]
-
-    ##Time average of u^2 and (du/dx)^2
-    ## np.nanmean may not output proper mean when inf&nan are contained in the arrays
-    # Mfluc.U2ave = np.nanmean(Mfluc.U2[...,indices],axis=2)
-    # Mfluc.dUidxi2ave = np.nanmean(Mfluc.dUidxi2[...,indices],axis=2)
+    Mfluc.U2 = (Mfluc.Ux2 + Mfluc.Uy2)
+    Mfluc.dUidxi2 = Mfluc.dUxdx ** 2 + Mfluc.dUydy ** 2
 
     # time average
+    ## if data contains
     if clean:
-        Mfluc.U2ave = np.nanmean(Mfluc.U2[...],axis=2)
-        Mfluc.Ux2ave = np.nanmean(Mfluc.Ux2[...],axis=2)
-        Mfluc.Uy2ave = np.nanmean(Mfluc.Uy2[...],axis=2)
-        Mfluc.dUidxi2ave = np.nanmean(Mfluc.dUidxi2[...],axis=2)
-        Mfluc.dUxdx2ave = np.nanmean(Mfluc.dUxdx2[...],axis=2)
-        Mfluc.dUydy2ave = np.nanmean(Mfluc.dUydy2[...],axis=2)
+        Mfluc.U2ave = np.nanmean(Mfluc.U2[...], axis=2)
+        Mfluc.Ux2ave = np.nanmean(Mfluc.Ux2[...], axis=2)
+        Mfluc.Uy2ave = np.nanmean(Mfluc.Uy2[...], axis=2)
+        Mfluc.dUidxi2ave = np.nanmean(Mfluc.dUidxi2[...], axis=2)
+        Mfluc.dUxdx2ave = np.nanmean(Mfluc.dUxdx2[...], axis=2)
+        Mfluc.dUydy2ave = np.nanmean(Mfluc.dUydy2[...], axis=2)
     else:
-        counter_1 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-        counter_2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-        counter_3 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-        counter_4 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-        counter_5 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-        counter_6 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
+        # Depreciated. Manually averaging quantities
+        counter_1 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1])) # counter for Mfluc.U2
+        counter_2 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1])) # counter for Mfluc.Ux2
+        counter_3 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1])) # counter for Mfluc.Uy2
+        counter_4 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1])) # counter for Mfluc.dUidxi2
+        counter_5 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1])) # counter for Mfluc.dUxdx2
+        counter_6 = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1])) # counter for Mfluc.dUydy2
 
         for t in range(tmin, Mfluc.Ux.shape[2]):
-            for x in range(0, Mfluc.Ux.shape[0]):
-                for y in range(0, Mfluc.Ux.shape[1]):
-                    #             if np.isnan(Mfluc.U2[x,y,t])==False and np.isinf(Mfluc.U2[x,y,t])==False:
-                    #                 Mfluc.U2ave[x,y] += Mfluc.U2[x,y,t]
-                    #                 counter_1[x,y]+=1
-                    if np.isnan(Mfluc.Ux2[x, y, t]) == False and np.isinf(Mfluc.Ux2[x, y, t]) == False:
-                        Mfluc.Ux2ave[x, y] += Mfluc.Ux2[x, y, t]
-                        counter_2[x, y] += 1
-                    if np.isnan(Mfluc.Uy2[x, y, t]) == False and np.isinf(Mfluc.Uy2[x, y, t]) == False:
-                        Mfluc.Uy2ave[x, y] += Mfluc.Uy2[x, y, t]
-                        counter_3[x, y] += 1
-
-                        #             if np.isnan(Mfluc.dUidxi2[x,y,t])==False and np.isinf(Mfluc.dUidxi2[x,y,t])==False:
-                        #                 counter_4[x,y]+=1
-                        #                 Mfluc.dUidxi2ave[x,y] += Mfluc.dUidxi2[x,y,t]
-                    if np.isnan(Mfluc.dUxdx2[x, y, t]) == False and np.isinf(Mfluc.dUxdx2[x, y, t]) == False:
-                        Mfluc.dUxdx2ave[x, y] += Mfluc.dUxdx2[x, y, t]
-                        counter_5[x, y] += 1
-                    if np.isnan(Mfluc.dUydy2[x, y, t]) == False and np.isinf(Mfluc.dUydy2[x, y, t]) == False:
-                        Mfluc.dUydy2ave[x, y] += Mfluc.dUydy2[x, y, t]
-                        counter_6[x, y] += 1
+            for y in range(y0, y1):
+                for x in range(x0, x1):
+                    if np.isnan(Mfluc.Ux2[y, x, t]) == False and np.isinf(Mfluc.Ux2[y, x, t]) == False:
+                        Mfluc.Ux2ave[y, x] += Mfluc.Ux2[y, x, t]
+                        counter_2[y, x] += 1
+                    if np.isnan(Mfluc.Uy2[y, x, t]) == False and np.isinf(Mfluc.Uy2[y, x, t]) == False:
+                        Mfluc.Uy2ave[y, x] += Mfluc.Uy2[y, x, t]
+                        counter_3[y, x] += 1
+                    if np.isnan(Mfluc.dUxdx2[y, x, t]) == False and np.isinf(Mfluc.dUxdx2[y, x, t]) == False:
+                        Mfluc.dUxdx2ave[y, x] += Mfluc.dUxdx2[y, x, t]
+                        counter_5[y, x] += 1
+                    if np.isnan(Mfluc.dUydy2[y, x, t]) == False and np.isinf(Mfluc.dUydy2[y, x, t]) == False:
+                        Mfluc.dUydy2ave[y, x] += Mfluc.dUydy2[y, x, t]
+                        counter_6[y, x] += 1
 
         print ('Calculating the mean U2 and dUidxi2...')
 
-        for x in range(0, Mfluc.Ux.shape[0]):
-            for y in range(0, Mfluc.Ux.shape[1]):
-                #         if counter_1[x,y]==0:
-                #             Mfluc.U2ave[x,y] = 0
-                #         else:
-                #             Mfluc.U2ave[x,y] = Mfluc.U2ave[x,y]/counter_1[x,y]
-                if counter_2[x, y] == 0:
-                    Mfluc.Ux2ave[x, y] = 0
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                if counter_2[y, x] == 0:
+                    Mfluc.Ux2ave[y, x] = 0
                 else:
-                    Mfluc.Ux2ave[x, y] = Mfluc.Ux2ave[x, y] / counter_2[x, y]
-                if counter_3[x, y] == 0:
-                    Mfluc.Uy2ave[x, y] = 0
+                    Mfluc.Ux2ave[y, x] = Mfluc.Ux2ave[y, x] / counter_2[y, x]
+                if counter_3[y, x] == 0:
+                    Mfluc.Uy2ave[y, x] = 0
                 else:
-                    Mfluc.Uy2ave[x, y] = Mfluc.Uy2ave[x, y] / counter_3[x, y]
-
-                    #         if counter_4[x,y]==0:
-                    #             Mfluc.dUidxi2ave[x,y] = 0
-                    #         else:
-                    #             Mfluc.dUidxi2ave[x,y] = Mfluc.dUidxi2ave[x,y]/counter_4[x,y]
-                if counter_5[x, y] == 0:
-                    Mfluc.dUxdx2ave[x, y] = 0
+                    Mfluc.Uy2ave[y, x] = Mfluc.Uy2ave[y, x] / counter_3[y, x]
+                if counter_5[y, x] == 0:
+                    Mfluc.dUxdx2ave[y, x] = 0
                 else:
-                    Mfluc.dUxdx2ave[x, y] = Mfluc.dUxdx2ave[x, y] / counter_5[x, y]
-                if counter_6[x, y] == 0:
-                    Mfluc.dUydy2ave[x, y] = 0
+                    Mfluc.dUxdx2ave[y, x] = Mfluc.dUxdx2ave[y, x] / counter_5[y, x]
+                if counter_6[y, x] == 0:
+                    Mfluc.dUydy2ave[y, x] = 0
                 else:
-                    Mfluc.dUydy2ave[x, y] = Mfluc.dUydy2ave[x, y] / counter_6[x, y]
+                    Mfluc.dUydy2ave[y, x] = Mfluc.dUydy2ave[y, x] / counter_6[y, x]
 
     Mfluc.U2ave[...] = (Mfluc.Ux2ave[...] + Mfluc.Uy2ave[...]) / 2
     Mfluc.dUidxi2ave[...] = (Mfluc.dUxdx2ave[...] + Mfluc.dUydy2ave[...]) / 2
@@ -275,7 +268,67 @@ def compute_u2_duidxi(Mfluc, clean=False):
     #return Mfluc.U2ave, Mfluc.Ux2ave, Mfluc.Uy2ave,  Mfluc.dUidxi2ave, Mfluc.dUxdx2ave, Mfluc.dUydy2ave
     return Mfluc
 
-def plot_lambda_Re_lambda_heatmaps(Mfluc,cutoff=10**(-3),vminRe=0,vmaxRe=800, vminLambda=0,vmaxLambda=800, nu=1.004):
+def compute_rate_of_strain_tensor(M):
+    x0, y0 = 0, 0
+    x1, y1 = M.Ux.shape[1], M.Ux.shape[0]
+    Dx = np.absolute(np.nanmean(np.diff(M.x[0, ...])))  # Dx and Dy should be constants
+    Dy = np.absolute(np.nanmean(np.diff(M.y[..., 0])))  # Dx and Dy should be constants
+    # actual rate of strain tensor
+    M.dUxdx = np.gradient(M.Ux, Dx, axis=1)
+    M.dUydy = np.gradient(M.Uy, Dy, axis=0)
+    M.dUxdy = np.gradient(M.Ux, Dy, axis=0)
+    M.dUydx = np.gradient(M.Uy, Dx, axis=1)
+    M.Sxx, M.Syy = M.dUxdx, M.dUydy
+    M.Sxy = M.Syx = 1. / 2. * (M.dUxdy + M.dUydx) # rate-of-strain tensor is symmetric
+
+    # mean flow
+    M.Ux_mean = np.nanmean(M.Ux, axis=2) #mean flow
+    M.Uy_mean = np.nanmean(M.Uy, axis=2) #mean flow
+    M.dUxdx_mean = np.gradient(M.Ux_mean, Dx, axis=1) #mean flow
+    M.dUxdy_mean = np.gradient(M.Ux_mean, Dy, axis=0) #mean flow
+    M.dUydx_mean = np.gradient(M.Uy_mean, Dx, axis=1) #mean flow
+    M.dUydy_mean = np.gradient(M.Uy_mean, Dy, axis=0) #mean flow
+    M.Sxx_mean, M.Syy_mean = M.dUxdx_mean, M.dUydy_mean
+    M.Sxy_mean = M.Syx_mean = 1. / 2. * (M.dUxdy_mean + M.dUydx_mean) # rate-of-strain tensor is symmetric
+
+
+    # fluctuating rate of strain tensor
+    Ux_fluc, Uy_fluc = np.zeros(M.Ux.shape), np.zeros(M.Ux.shape)
+    for t in range(M.Ux.shape[2]):
+        Ux_fluc[..., t], Uy_fluc[..., t] = M.Ux[..., t] - np.nanmean(M.Ux, axis=2), M.Uy[..., t] - np.nanmean(M.Uy, axis=2)
+    M.dUxdx_fluc = np.gradient(Ux_fluc, Dx, axis=1)
+    M.dUydy_fluc = np.gradient(Uy_fluc, Dy, axis=0)
+    M.dUxdy_fluc = np.gradient(Ux_fluc, Dy, axis=0)
+    M.dUydx_fluc = np.gradient(Uy_fluc, Dx, axis=1)
+    M.Sxx_fluc, M.Syy_fluc = M.dUxdx_fluc, M.dUydy_fluc
+    M.Sxy_fluc = M.Syx_fluc = 1. / 2. * (M.dUxdy_fluc + M.dUydx_fluc) # rate-of-strain tensor is symmetric
+    return M
+
+
+def plot_lambda_Re_lambda_heatmaps(Mfluc,cutoff=10**(-3),vminRe=0,vmaxRe=800, vminLambda=0,vmaxLambda=800, nu=1.004,
+                                   x0=None, y0=None, x1=None, y1=None, redo=False):
+    """
+    Plots a heatmap of local Re_lambda and lambda
+    Parameters
+    ----------
+    Mfluc
+    cutoff
+    vminRe
+    vmaxRe
+    vminLambda
+    vmaxLambda
+    nu
+
+    Returns
+    -------
+
+    """
+    if x0 is None:
+        x0, y0 = 0, 0
+        x1, y1 = Mfluc.Ux.shape[1], Mfluc.Ux.shape[0]
+        print 'Will average from (%d, %d) to (%d, %d)  (index)' % (x0, y0, x1, y1)
+    nrows, ncolumns = y1 - y0, x1 - x0
+
     Mfluc.lambdaT_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
     Mfluc.lambdaTx_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
     Mfluc.lambdaTy_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
@@ -283,30 +336,106 @@ def plot_lambda_Re_lambda_heatmaps(Mfluc,cutoff=10**(-3),vminRe=0,vmaxRe=800, vm
     Mfluc.Re_lambdaTx_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
     Mfluc.Re_lambdaTy_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
 
-    try :
-        Mfluc.U2ave
-    except AttributeError:
+    if not hasattr(Mfluc, 'U2ave') or redo:
         print 'Mfluc does not have attribute Mfluc.U2ave. Calculate it.'
-        Mfluc=compute_u2_duidxi(Mfluc)
+        Mfluc = compute_u2_duidxi(Mfluc, x0=x0, y0=y0, x1=x1, y1=y1)
+        print Mfluc.Ux2ave.shape
 
     # Calculate Local Taylor microscale: lambdaT
-    for x in range(0, Mfluc.Ux.shape[0] - 1):
-        for y in range(0, Mfluc.Ux.shape[1] - 1):
-            if Mfluc.dUidxi2ave[x, y] < cutoff:
-                Mfluc.lambdaT_Local[x, y] = 0
+    for y in range(0, Mfluc.Ux.shape[0] - 1):
+        for x in range(0, Mfluc.Ux.shape[1] - 1):
+            if Mfluc.dUidxi2ave[y, x] < cutoff:
+                Mfluc.lambdaT_Local[y, x] = 0
             else:
-                Mfluc.lambdaT_Local[x, y] = np.sqrt(Mfluc.U2ave[x, y] / Mfluc.dUidxi2ave[x, y])
-                Mfluc.Re_lambdaT_Local[x, y] = Mfluc.lambdaT_Local[x, y] * np.sqrt(Mfluc.U2ave[x, y]) / nu
-            if Mfluc.dUxdx2ave[x, y] < cutoff:
-                Mfluc.lambdaTx_Local[x, y] = 0
+                Mfluc.lambdaT_Local[y, x] = np.sqrt(Mfluc.U2ave[y, x] / Mfluc.dUidxi2ave[y, x])
+                Mfluc.Re_lambdaT_Local[y, x] = Mfluc.lambdaT_Local[y, x] * np.sqrt(Mfluc.U2ave[y, x]) / nu
+            if Mfluc.dUxdx2ave[y, x] < cutoff:
+                Mfluc.lambdaTx_Local[y, x] = 0
             else:
-                Mfluc.lambdaTx_Local[x, y] = np.sqrt(Mfluc.Ux2ave[x, y] / Mfluc.dUxdx2ave[x, y])
-                Mfluc.Re_lambdaTx_Local[x, y] = Mfluc.lambdaTx_Local[x, y] * np.sqrt(Mfluc.Ux2ave[x, y]) / nu
-            if Mfluc.dUydy2ave[x, y] < cutoff:
-                Mfluc.lambdaTy_Local[x, y] = 0
+                Mfluc.lambdaTx_Local[y, x] = np.sqrt(Mfluc.Ux2ave[y, x] / Mfluc.dUxdx2ave[y, x])
+                Mfluc.Re_lambdaTx_Local[y, x] = Mfluc.lambdaTx_Local[y, x] * np.sqrt(Mfluc.Ux2ave[y, x]) / nu
+            if Mfluc.dUydy2ave[y, x] < cutoff:
+                Mfluc.lambdaTy_Local[y, x] = 0
             else:
-                Mfluc.lambdaTy_Local[x, y] = np.sqrt(Mfluc.Uy2ave[x, y] / Mfluc.dUydy2ave[x, y])
-                Mfluc.Re_lambdaTy_Local[x, y] = Mfluc.lambdaTy_Local[x, y] * np.sqrt(Mfluc.Uy2ave[x, y]) / nu
+                Mfluc.lambdaTy_Local[y, x] = np.sqrt(Mfluc.Uy2ave[y, x] / Mfluc.dUydy2ave[y, x])
+                Mfluc.Re_lambdaTy_Local[y, x] = Mfluc.lambdaTy_Local[y, x] * np.sqrt(Mfluc.Uy2ave[y, x]) / nu
+
+    # Plot Taylor miroscale
+    graphes.color_plot(Mfluc.x[y0:y1, x0:x1], Mfluc.y[y0:y1, x0:x1], Mfluc.Re_lambdaT_Local[y0:y1, x0:x1], fignum=1, vmin=vminRe, vmax=vmaxRe)
+    graphes.colorbar()
+    plt.title('Local $Re_\lambda$')
+    plt.xlabel('X (mm)')
+    plt.ylabel('Y (mm)')
+    graphes.color_plot(Mfluc.x[y0:y1, x0:x1], Mfluc.y[y0:y1, x0:x1], Mfluc.Re_lambdaTx_Local[y0:y1, x0:x1], fignum=2, vmin=vminRe, vmax=vmaxRe)
+    graphes.colorbar()
+    plt.title('Local $Re_{\lambda,x}$')
+    plt.xlabel('X (mm)')
+    plt.ylabel('Y (mm)')
+    graphes.color_plot(Mfluc.x[y0:y1, x0:x1], Mfluc.y[y0:y1, x0:x1], Mfluc.Re_lambdaTy_Local[y0:y1, x0:x1], fignum=3, vmin=vminRe, vmax=vmaxRe)
+    graphes.colorbar()
+    plt.title('Local $Re_{\lambda,y}$')
+    plt.xlabel('X (mm)')
+    plt.ylabel('Y (mm)')
+
+    graphes.color_plot(Mfluc.x[y0:y1, x0:x1], Mfluc.y[y0:y1, x0:x1], Mfluc.lambdaT_Local[y0:y1, x0:x1], fignum=4, vmin=vminLambda, vmax=vmaxLambda)
+    graphes.colorbar()
+    plt.title('Local $\lambda$')
+    plt.xlabel('X (mm)')
+    plt.ylabel('Y (mm)')
+    graphes.color_plot(Mfluc.x[y0:y1, x0:x1], Mfluc.y[y0:y1, x0:x1], Mfluc.lambdaTx_Local[y0:y1, x0:x1], fignum=5, vmin=vminLambda, vmax=vmaxLambda)
+    graphes.colorbar()
+    plt.title('Local $\lambda_x$')
+    plt.xlabel('X (mm)')
+    plt.ylabel('Y (mm)')
+    graphes.color_plot(Mfluc.x[y0:y1, x0:x1], Mfluc.y[y0:y1, x0:x1], Mfluc.lambdaTy_Local[y0:y1, x0:x1], fignum=6, vmin=vminLambda, vmax=vmaxLambda)
+    graphes.colorbar()
+    plt.title('Local $\lambda_y$')
+    plt.xlabel('X (mm)')
+    plt.ylabel('Y (mm)')
+
+
+def plot_lambda_Re_lambda_coarse(Mfluc, cutoff=10**(-3), vminRe=0,vmaxRe=800, vminLambda=0, vmaxLambda=10, nu=1.004,
+                                 x0=None, y0=None, x1=None, y1=None, redo=False):
+
+    if not hasattr(Mfluc, 'U2ave') or redo:
+        print 'Mfluc does not have attribute Mfluc.U2ave. Calculate it.'
+        Mfluc=compute_u2_duidxi(Mfluc, x0=x0, y0=y0, x1=x1, y1=y1)
+
+
+
+    # Calculate Local Taylor microscale: lambdaT
+    Mfluc.lambdaT_Local = np.sqrt(Mfluc.U2ave / Mfluc.dUidxi2ave)
+    Mfluc.Re_lambdaT_Local = Mfluc.lambdaT_Local * np.sqrt(Mfluc.U2ave) / nu
+
+    Mfluc.lambdaTx_Local = np.sqrt(Mfluc.Ux2ave / Mfluc.dUxdx2ave)
+    Mfluc.Re_lambdaTx_Local = Mfluc.lambdaTx_Local * np.sqrt(Mfluc.Ux2ave) / nu
+
+    Mfluc.lambdaTy_Local = np.sqrt(Mfluc.Uy2ave / Mfluc.dUydy2ave)
+    Mfluc.Re_lambdaTy_Local = Mfluc.lambdaTy_Local * np.sqrt(Mfluc.Uy2ave) / nu
+
+    # Mfluc.lambdaT_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
+    # Mfluc.lambdaTx_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
+    # Mfluc.lambdaTy_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
+    # Mfluc.Re_lambdaT_Local = np.zeros((Mfluc.x.shape[0], Mfluc.Ux.shape[1]))
+    # Mfluc.Re_lambdaTx_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
+    # Mfluc.Re_lambdaTy_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
+    # for x in range(0, Mfluc.Ux.shape[0] - 1):
+    #     for y in range(0, Mfluc.Ux.shape[1] - 1):
+    #         if Mfluc.dUidxi2ave[x, y] < cutoff:
+    #             Mfluc.lambdaT_Local[x, y] = 0
+    #         else:
+    #             Mfluc.lambdaT_Local[x, y] = np.sqrt(Mfluc.U2ave[x, y] / Mfluc.dUidxi2ave[x, y])
+    #             Mfluc.Re_lambdaT_Local[x, y] = Mfluc.lambdaT_Local[x, y] * np.sqrt(Mfluc.U2ave[x, y]) / nu
+    #         if Mfluc.dUxdx2ave[x, y] < cutoff:
+    #             Mfluc.lambdaTx_Local[x, y] = 0
+    #         else:
+    #             Mfluc.lambdaTx_Local[x, y] = np.sqrt(Mfluc.Ux2ave[x, y] / Mfluc.dUxdx2ave[x, y])
+    #             Mfluc.Re_lambdaTx_Local[x, y] = Mfluc.lambdaTx_Local[x, y] * np.sqrt(Mfluc.Ux2ave[x, y]) / nu
+    #         if Mfluc.dUydy2ave[x, y] < cutoff:
+    #             Mfluc.lambdaTy_Local[x, y] = 0
+    #         else:
+    #             Mfluc.lambdaTy_Local[x, y] = np.sqrt(Mfluc.Uy2ave[x, y] / Mfluc.dUydy2ave[x, y])
+    #             Mfluc.Re_lambdaTy_Local[x, y] = Mfluc.lambdaTy_Local[x, y] * np.sqrt(Mfluc.Uy2ave[x, y]) / nu
 
                 # Plot Taylor miroscale
 
@@ -343,89 +472,35 @@ def plot_lambda_Re_lambda_heatmaps(Mfluc,cutoff=10**(-3),vminRe=0,vmaxRe=800, vm
     plt.ylabel('Y (mm)')
 
 
-def plot_lambda_Re_lambda_coarse(Mfluc,cutoff=10**(-3),vminRe=0,vmaxRe=800, vminLambda=0,vmaxLambda=800, nu=1.004):
-    Mfluc.lambdaT_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-    Mfluc.lambdaTx_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-    Mfluc.lambdaTy_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-    Mfluc.Re_lambdaT_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-    Mfluc.Re_lambdaTx_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
-    Mfluc.Re_lambdaTy_Local = np.zeros((Mfluc.Ux.shape[0], Mfluc.Ux.shape[1]))
 
-    try :
-        Mfluc.U2ave
-    except AttributeError:
-        print 'Mfluc does not have attribute Mfluc.U2ave. Calculate it.'
-        Mfluc=compute_u2_duidxi(Mfluc)
+def compute_lambda_Re_lambda(Mfluc, nu=1.004, x0=None, y0=None, x1=None, y1=None, redo=False):
+    """
+    Compute local lambda and Re_lambda through velocity gradients
+    Parameters
+    ----------
+    Mfluc
+    nu
 
-    # Calculate Local Taylor microscale: lambdaT
-    for x in range(0, Mfluc.Ux.shape[0] - 1):
-        for y in range(0, Mfluc.Ux.shape[1] - 1):
-            if Mfluc.dUidxi2ave[x, y] < cutoff:
-                Mfluc.lambdaT_Local[x, y] = 0
-            else:
-                Mfluc.lambdaT_Local[x, y] = np.sqrt(Mfluc.U2ave[x, y] / Mfluc.dUidxi2ave[x, y])
-                Mfluc.Re_lambdaT_Local[x, y] = Mfluc.lambdaT_Local[x, y] * np.sqrt(Mfluc.U2ave[x, y]) / nu
-            if Mfluc.dUxdx2ave[x, y] < cutoff:
-                Mfluc.lambdaTx_Local[x, y] = 0
-            else:
-                Mfluc.lambdaTx_Local[x, y] = np.sqrt(Mfluc.Ux2ave[x, y] / Mfluc.dUxdx2ave[x, y])
-                Mfluc.Re_lambdaTx_Local[x, y] = Mfluc.lambdaTx_Local[x, y] * np.sqrt(Mfluc.Ux2ave[x, y]) / nu
-            if Mfluc.dUydy2ave[x, y] < cutoff:
-                Mfluc.lambdaTy_Local[x, y] = 0
-            else:
-                Mfluc.lambdaTy_Local[x, y] = np.sqrt(Mfluc.Uy2ave[x, y] / Mfluc.dUydy2ave[x, y])
-                Mfluc.Re_lambdaTy_Local[x, y] = Mfluc.lambdaTy_Local[x, y] * np.sqrt(Mfluc.Uy2ave[x, y]) / nu
+    Returns
+    -------
 
-                # Plot Taylor miroscale
+    """
+    if x0 is None:
+        x0, y0 = 0, 0
+        x1, y1 = Mfluc.Ux.shape[1], Mfluc.Ux.shape[0]
+    print 'Will average from (%d, %d) to (%d, %d)  (index)' % (x0, y0, x1, y1)
 
-    graphes.color_plot(Mfluc.x, Mfluc.y, Mfluc.Re_lambdaT_Local, fignum=1, vmin=vminRe, vmax=vmaxRe)
-    graphes.colorbar()
-    plt.title('Local $Re_\lambda$')
-    plt.xlabel('X (mm)')
-    plt.ylabel('Y (mm)')
-    graphes.color_plot(Mfluc.x, Mfluc.y, Mfluc.Re_lambdaTx_Local, fignum=2, vmin=vminRe, vmax=vmaxRe)
-    graphes.colorbar()
-    plt.title('Local $Re_{\lambda,x}$')
-    plt.xlabel('X (mm)')
-    plt.ylabel('Y (mm)')
-    graphes.color_plot(Mfluc.x, Mfluc.y, Mfluc.Re_lambdaTy_Local, fignum=3, vmin=vminRe, vmax=vmaxRe)
-    graphes.colorbar()
-    plt.title('Local $Re_{\lambda,y}$')
-    plt.xlabel('X (mm)')
-    plt.ylabel('Y (mm)')
+    if not hasattr(Mfluc, 'U2ave') or redo:
+        print 'Mfluc does not have attribute Mfluc.U2ave, or redo the computation. Calculate it.'
+        Mfluc = compute_u2_duidxi(Mfluc, x0=x0, y0=y0, x1=x1, y1=y1, clean=True)
 
-    graphes.color_plot(Mfluc.x, Mfluc.y, Mfluc.lambdaT_Local, fignum=4, vmin=vminLambda, vmax=vmaxLambda)
-    graphes.colorbar()
-    plt.title('Local $\lambda$')
-    plt.xlabel('X (mm)')
-    plt.ylabel('Y (mm)')
-    graphes.color_plot(Mfluc.x, Mfluc.y, Mfluc.lambdaTx_Local, fignum=5, vmin=vminLambda, vmax=vmaxLambda)
-    graphes.colorbar()
-    plt.title('Local $\lambda_x$')
-    plt.xlabel('X (mm)')
-    plt.ylabel('Y (mm)')
-    graphes.color_plot(Mfluc.x, Mfluc.y, Mfluc.lambdaTy_Local, fignum=6, vmin=vminLambda, vmax=vmaxLambda)
-    graphes.colorbar()
-    plt.title('Local $\lambda_y$')
-    plt.xlabel('X (mm)')
-    plt.ylabel('Y (mm)')
+    Mfluc.lambdaT = np.sqrt(np.nanmean(Mfluc.U2ave[y0:y1, x0:x1])/np.nanmean(Mfluc.dUidxi2ave[y0:y1, x0:x1]))
+    Mfluc.lambdaTx = np.sqrt(np.nanmean(Mfluc.Ux2ave[y0:y1, x0:x1])/np.nanmean(Mfluc.dUxdx2ave[y0:y1, x0:x1]))
+    Mfluc.lambdaTy = np.sqrt(np.nanmean(Mfluc.Uy2ave[y0:y1, x0:x1])/np.nanmean(Mfluc.dUydy2ave[y0:y1, x0:x1]))
 
-
-
-def compute_lambda_Re_lambda(Mfluc, nu=1.004):
-    try :
-        Mfluc.U2ave  # Check if  Mfluc has attribute called U2ave
-    except AttributeError:
-        print 'Mfluc does not have attribute Mfluc.U2ave. Calculate it.'
-        Mfluc=compute_u2_duidxi(Mfluc)
-
-    Mfluc.lambdaT = np.sqrt(np.nanmean(Mfluc.U2ave)/np.nanmean(Mfluc.dUidxi2ave))
-    Mfluc.lambdaTx = np.sqrt(np.nanmean(Mfluc.Ux2ave)/np.nanmean(Mfluc.dUxdx2ave))
-    Mfluc.lambdaTy = np.sqrt(np.nanmean(Mfluc.Uy2ave)/np.nanmean(Mfluc.dUydy2ave))
-
-    Mfluc.Re_lambdaT = np.sqrt(np.nanmean(Mfluc.U2ave)) * Mfluc.lambdaT / nu
-    Mfluc.Re_lambdaTx = np.sqrt(np.nanmean(Mfluc.Ux2ave)) * Mfluc.lambdaTx / nu
-    Mfluc.Re_lambdaTy = np.sqrt(np.nanmean(Mfluc.Uy2ave)) * Mfluc.lambdaTy / nu
+    Mfluc.Re_lambdaT = np.sqrt(np.nanmean(Mfluc.U2ave[y0:y1, x0:x1])) * Mfluc.lambdaT / nu
+    Mfluc.Re_lambdaTx = np.sqrt(np.nanmean(Mfluc.Ux2ave[y0:y1, x0:x1])) * Mfluc.lambdaTx / nu
+    Mfluc.Re_lambdaTy = np.sqrt(np.nanmean(Mfluc.Uy2ave[y0:y1, x0:x1])) * Mfluc.lambdaTy / nu
     print 'lambdaT, Re_lambdaT, lambdaTx, Re_lambdaTx, lambdaTy, Re_lambdaTy'
     print Mfluc.lambdaT, Mfluc.Re_lambdaT, Mfluc.lambdaTx, Mfluc.Re_lambdaTx, Mfluc.lambdaTy, Mfluc.Re_lambdaTy
     return Mfluc

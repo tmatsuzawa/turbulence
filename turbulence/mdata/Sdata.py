@@ -154,7 +154,7 @@ class Sdata(object):
         """
         Look for measurements associated to this cine file, and if so, load them in Mdata objects, 
         and return a list of them.
-        Should it be inserted direcly in the Sdata object ? 
+        Should it be inserted directly in the Sdata object ? 
         -> It could be problematic for the storage, but simpler from a coding point of view.
         """
         fileList_M = glob.glob(file_architecture.os_c(self.dirCine) + 'M_' + self.Id.date + '/M_'
@@ -163,7 +163,6 @@ class Sdata(object):
         Mlist = []
         # print("Data processed found at : "+str(fileList_M))
         for filename in fileList_M:
-            # print(filename)
             Mlist.append(M_manip.load_Mdata_file(filename, data=True))
 
         return Mlist
@@ -193,7 +192,7 @@ class Sdata(object):
             if name == key_fix:
                 getattr(self, 'load')(f[key_fix + key][keys[0]])
             else:
-                obj = getattr(getattr(stephane.mdata, name), name)(generate=False)
+                obj = getattr(getattr(turbulence.mdata, name), name)(generate=False)
                 setattr(self, name, obj)
                 getattr(getattr(self, name), 'load')(f[key_fix + key][keys[0]])
                 #   print("done")

@@ -95,7 +95,7 @@ def get_speed_and_plot(path, lowcutoff=50, minpower=0, clim=None, check=False):
 
 def get_speed_and_plot_withresolution(path, lowcutoff=50, hicutoff=325, minpower=0, clim=None, check=False):
     """Extract speeds from tracking data and plot as scatterplot with positions of the gyroscopes, including error bars
-    fromresolution of fft
+    from resolution of fft
 
     Parameters
     ----------
@@ -116,11 +116,6 @@ def get_speed_and_plot_withresolution(path, lowcutoff=50, hicutoff=325, minpower
     coords = np.array([data[2], data[3]]).T
 
     tot_power, fft_list_x, fft_list_y, freq = nmf.ffts_and_add(data, cutoff=0.)
-    # plt.plot(freq, fft_list_x[1], 'o--')
-    # plt.plot(freq, fft_list_y[1], 'o--')
-    # # print 'fft_list_x = ', fft_list_x
-    # # plt.plot(freq, tot_power, '.-')
-    # plt.savefig(os.path.join(path, 'test.png'))
 
     maxes = []
     real_coords = []
@@ -188,6 +183,9 @@ def get_speed_and_plot_withresolution(path, lowcutoff=50, hicutoff=325, minpower
     if check:
         print 'resolution = ', resolution
     return coords, maxes, resolution
+
+
+
 
 if __name__ == "__main__":
     path = '/Volumes/labshared2/noah/20170430_test97gyro_withmotor_1p1inhoop_kagome/' \

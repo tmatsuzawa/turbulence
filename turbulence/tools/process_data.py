@@ -5,7 +5,7 @@ Module to clean PIV data stored in Mdata class objects
 import numpy as np
 import copy
 import numpy.ma as ma
-
+from scipy.interpolate import interp1d
 
 def interpolate_using_mask(arr1, mask):
     """
@@ -45,7 +45,7 @@ def interpolate_using_mask(arr1, mask):
 
 def get_mask_for_unphysical(U, cutoffU=2000., fill_value = np.nan):
     """
-
+    Returns a mask for masking module. if absolute value of value is greater than cutoff, the value is masked.
     Parameters
     ----------
     U: array-like
@@ -74,8 +74,6 @@ def get_mask_for_unphysical(U, cutoffU=2000., fill_value = np.nan):
     # Update the mask to False (no masking)
     U_fixed.mask = False
 
-
-
     # Mask unreasonable values of U_fixed
     b = ma.masked_greater(U_fixed, cutoffU)
     c = ma.masked_less(U_fixed, -cutoffU)
@@ -100,6 +98,29 @@ def get_mask_for_unphysical(U, cutoffU=2000., fill_value = np.nan):
 
 
     return mask
+
+def get_mask_for_unphysical_using_median(U, cutoffratio=0.4, mode='less'):
+    median = np.median(U)
+    if mode=='less' or mode=='l':
+        U_masked = ma.masked_less(U, median*cutoffratio)
+    elif mode=='lesseqal' or mode=='leq':
+        U_masked = ma.masked_less_equal(U, median * cutoffratio)
+    elif mode=='greater' or mode=='g':
+        U_masked = ma.masked_greater(U, median * cutoffratio)
+    elif mode=='greaterequal' or mode=='geq':
+        U_masked = ma.masked_greater_equal(U, median * cutoffratio)
+    return U_masked.mask
+
+def get_mask_for_unphysical_using_cutoff(U, cutoff=None, mode='less'):
+    if mode=='less' or mode=='l':
+        U_masked = ma.masked_less(U, cutoff)
+    elif mode=='lesseqal' or mode=='leq':
+        U_masked = ma.masked_less_equal(U, cutoff)
+    elif mode=='greater' or mode=='g':
+        U_masked = ma.masked_greater(U, cutoff)
+    elif mode=='greaterequal' or mode=='geq':
+        U_masked = ma.masked_greater_equal(U, cutoff)
+    return U_masked.mask
 
 def fill_unphysical_with_sth(U, mask, fill_value=np.nan):
     """
@@ -133,3 +154,186 @@ def clean_vdata(M, cutoffU=2000, fill_value=np.nan):
     M.Uy[:]= Uy_interpolated[:]
     print 'Cleaning Done.'
     return M
+
+## CLEANING N-D arrays
+def clean_multi_dim_array(data, cutoff, verbose=True):
+    """
+
+    Parameters
+    ----------
+    data: N-d array
+    cutoff: cutoff value above which will be removed and then interpolated
+            elements below -cutoff will be also removed and then interpolated, float
+    verbose: If True, prints out the number of elements that get removed and interpolated in details, bool
+
+    Returns
+    -------
+    data_interpolated: N-d array with no np.nan, np.inf, any values above cutoff nor below -cutoff
+
+    """
+    mask = get_mask_for_unphysical(data, cutoffU=cutoff, fill_value=99999., verbose=verbose)
+    data_filled_with_nans = fill_unphysical_with_sth(data, mask, fill_value=np.nan)
+    data_interpolated = interpolate_using_mask(data_filled_with_nans, mask)
+    '...Cleaning Done.'
+    return data_interpolated
+
+def clean_multi_dim_array_using_median(data, cutoffratio=0.4, mode='less'):
+    """
+    Cleans a multidimensional array using median
+    Often, data comes with an array of arguments. e.g. x=[10.2, 20.4, np.nan, 40.7], t=[1., 2., 3., 4.]
+    Then, this outputs x_clean=[10.2, 20.4, 40.7], t=[1., 2., 4.]
+
+    Parameters
+    ----------
+    arg: N-d array argument array
+    data: N-d array
+    cutoffratio: ratio used to
+    verbose
+
+    Returns
+    -------
+    clean_arg N-d array
+    clean_data N-d array
+
+    """
+    mask = get_mask_for_unphysical_using_median(data, cutoffratio, mode)
+    data_masked =  ma.array(data, mask=mask)
+    clean_data = data_masked.compress()
+    '...Cleaning Done.'
+    return clean_data, data_masked, mask
+
+## CLEANING a N-D array PAIR
+def clean_multi_dim_array_pair_using_median(arg, data, cutoffratio=0.4, mode='less'):
+    """
+    Cleans two multidimensional arrays using a mask of data
+    Often, data comes with an array of arguments. e.g. x=[10.2, 20.4, np.nan, 40.7], t=[1., 2., 3., 4.]
+    Then, this outputs x_clean=[10.2, 20.4, 40.7], t=[1., 2., 4.]
+
+    Parameters
+    ----------
+    arg: N-d array argument array
+    data: N-d array
+    cutoffratio: ratio used to
+    verbose
+
+    Returns
+    -------
+    clean_arg N-d array
+    clean_data N-d array
+
+    """
+    mask = get_mask_for_unphysical_using_median(data, cutoffratio, mode)
+    data_masked =  ma.array(data, mask=mask)
+    arg_masked = ma.array(arg, mask=mask)
+    clean_data = data_masked.compressed()
+    clean_arg = arg_masked.compressed()
+    '...Cleaning Done.'
+    return clean_arg, clean_data
+
+def clean_multi_dim_array_pair_using_cutoff(arg, data, cutoff, mode='less'):
+    """
+    Cleans two multidimensional arrays using a mask of data
+    Often, data comes with an array of arguments. e.g. x=[10.2, 20.4, np.nan, 40.7], t=[1., 2., 3., 4.]
+    Then, this outputs x_clean=[10.2, 20.4, 40.7], t=[1., 2., 4.]
+
+    Parameters
+    ----------
+    arg: N-d array argument array
+    data: N-d array
+    cutoffratio: ratio used to
+    verbose
+
+    Returns
+    -------
+    clean_arg N-d array
+    clean_data N-d array
+
+    """
+    mask = get_mask_for_unphysical_using_cutoff(data, cutoff, mode)
+    data_masked =  ma.array(data, mask=mask)
+    arg_masked = ma.array(arg, mask=mask)
+    clean_data = data_masked.compressed()
+    clean_arg = arg_masked.compressed()
+    '...Cleaning Done.'
+    return clean_arg, clean_data
+
+## CLEANING a N-D array TRIO
+def clean_multi_dim_array_trio_using_median(arg, data1, data2, cutoffratio=0.4, mode='less'):
+    """
+    Cleans two multidimensional arrays using a mask of data
+    Often, data comes with an array of arguments and error. e.g. x=[10.2, 20.4, np.nan, 40.7], xerr=[0.1, 0.3, np.nan,-0.6], t=[1., 2., 3., 4.]
+    Then, this outputs x_clean=[10.2, 20.4, 40.7], xerr_clean=[0.1, 0.3,-0.6] ,t_clean=[1., 2., 4.]
+
+    Parameters
+    ----------
+    arg: N-d array argument array
+    data1: N-d array
+    data2: N-d array
+    cutoffratio: ratio used to
+    verbose
+
+    Returns
+    -------
+    clean_arg N-d array
+    clean_data1 N-d array
+    clean_data2 N-d array
+
+    """
+    mask = get_mask_for_unphysical_using_median(data1, cutoffratio, mode)
+    data1_masked =  ma.array(data1, mask=mask)
+    data2_masked =  ma.array(data2, mask=mask)
+    arg_masked = ma.array(arg, mask=mask)
+    clean_data1 = data1_masked.compressed()
+    clean_data2 = data2_masked.compressed()
+    clean_arg = arg_masked.compressed()
+    '...Cleaning Done.'
+    return clean_arg, clean_data1, clean_data2
+
+
+def clean_multi_dim_array_trio_using_cutoff(arg, data1, data2, cutoff, mode='less'):
+    """
+    Cleans two multidimensional arrays using a mask of data
+    Often, data comes with an array of arguments and error. e.g. x=[10.2, 20.4, np.nan, 40.7], xerr=[0.1, 0.3, np.nan,-0.6], t=[1., 2., 3., 4.]
+    Then, this outputs x_clean=[10.2, 20.4, 40.7], xerr_clean=[0.1, 0.3,-0.6] ,t_clean=[1., 2., 4.]
+
+    Parameters
+    ----------
+    arg: N-d array argument array
+    data1: N-d array
+    data2: N-d array
+    cutoffratio: ratio used to
+    verbose
+
+    Returns
+    -------
+    clean_arg N-d array
+    clean_data1 N-d array
+    clean_data2 N-d array
+
+    """
+    mask = get_mask_for_unphysical_using_cutoff(data1, cutoff, mode)
+    data1_masked =  ma.array(data1, mask=mask)
+    data2_masked =  ma.array(data2, mask=mask)
+    arg_masked = ma.array(arg, mask=mask)
+    clean_data1 = data1_masked.compressed()
+    clean_data2 = data2_masked.compressed()
+    clean_arg = arg_masked.compressed()
+    '...Cleaning Done.'
+    return clean_arg, clean_data1, clean_data2
+
+
+def interpolate_1Darray(x, data, xint=None, xnum=None, mode='cubic'):
+    xmin, xmax = np.min(x), np.max(x)
+    if xint is None and xnum is None:
+        xnum = len(x)*10
+        xint = np.abs(xmax-xmin)/float(xnum)
+    elif xint is None and xnum is not None:
+        xint = np.abs(xmax - xmin) / float(xnum)
+    elif xint is not None and xnum is not None:
+        print 'WARNING: Both x interval and xnum were provided! Ignoring provided x interval...'
+        xint = np.abs(xmax - xmin) / float(xnum)
+
+    xnew = np.arange(xmin, xmax + xint, xint)
+    f = interp1d(x, data, kind=mode)
+    datanew = f(xnew)
+    return xnew, datanew

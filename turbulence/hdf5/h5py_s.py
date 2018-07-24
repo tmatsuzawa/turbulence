@@ -34,8 +34,8 @@ def create(filename):
 def write(obj,erase=False,filename=None,key=''):
     """
     Write into a hdf5 file all the parameters recursively
-    hdf5 file contains a dictionnary for each Class instance (e.g. Sdata, param, id) the parameters
-    each individual is a dictionnary containing the attributes of the class + '__module__' and '__doc__'
+    hdf5 file contains a dictionary for each Class instance (e.g. Sdata, param, id) the parameters
+    each individual is a dictionary containing the attributes of the class + '__module__' and '__doc__'
     INPUT
     -----
     obj : Class instance 
