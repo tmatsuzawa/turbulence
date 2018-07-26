@@ -2,39 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="fd4eda94-a0dd-4339-a341-586fd3a4bc5c" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/turbulence/scripts/make_movie.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/turbulence/scripts/misc/__init__.py" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/turbulence/hdf5/Sdata_test13.hdf5" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/pistontuning.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/turbulence/stat_avg/Mdata.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/turbulence/stat_avg/__init__.py" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/analysis/Fourier.py" afterPath="$PROJECT_DIR$/turbulence/analysis/Fourier.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/analysis/compilation.py" afterPath="$PROJECT_DIR$/turbulence/analysis/compilation.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/analysis/length_scales_new.py" afterPath="$PROJECT_DIR$/turbulence/analysis/length_scales_new.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/analysis/taylor_scale.py" afterPath="$PROJECT_DIR$/turbulence/analysis/taylor_scale.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/analysis/vgradient.py" afterPath="$PROJECT_DIR$/turbulence/analysis/vgradient.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/display/graph.py" afterPath="$PROJECT_DIR$/turbulence/display/graph.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/hdf5/h5py_s.py" afterPath="$PROJECT_DIR$/turbulence/hdf5/h5py_s.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/manager/Data_processing.py" afterPath="$PROJECT_DIR$/turbulence/manager/Data_processing.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/manager/cine2pic.py" afterPath="$PROJECT_DIR$/turbulence/manager/cine2pic.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/manager/file_architecture.py" afterPath="$PROJECT_DIR$/turbulence/manager/file_architecture.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/mdata/M_manip.py" afterPath="$PROJECT_DIR$/turbulence/mdata/M_manip.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/mdata/Sdata.py" afterPath="$PROJECT_DIR$/turbulence/mdata/Sdata.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/mdata/Sdata_manip.py" afterPath="$PROJECT_DIR$/turbulence/mdata/Sdata_manip.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/scripts/PIVLab_plot_eight.py" afterPath="$PROJECT_DIR$/turbulence/scripts/PIVLab_plot_eight.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/scripts/isosurfaces/visualize_blob_3d_smallbox_t00.py" afterPath="$PROJECT_DIR$/turbulence/scripts/isosurfaces/visualize_blob_3d_smallbox_t00.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/Hough_track.py" afterPath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/Hough_track.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/data_compilation.py" afterPath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/data_compilation.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/experiment_movies/experiment_movie.py" afterPath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/experiment_movies/experiment_movie.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/link_points.py" afterPath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/link_points.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/mode_drawing_functions/get_speed_and_plot.py" afterPath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/mode_drawing_functions/get_speed_and_plot.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/mode_drawing_functions/new_mode_functions.py" afterPath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/mode_drawing_functions/new_mode_functions.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/movie_instance.py" afterPath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/movie_instance.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/pipeline_track.py" afterPath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/pipeline_track.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/settings.py" afterPath="$PROJECT_DIR$/turbulence/scripts/piston_tracking/settings.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/scripts/similar_flows.py" afterPath="$PROJECT_DIR$/turbulence/scripts/similar_flows.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/tools/process_data.py" afterPath="$PROJECT_DIR$/turbulence/tools/process_data.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/turbulence/tools/rw_data.py" afterPath="$PROJECT_DIR$/turbulence/tools/rw_data.py" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/turbulence/flowtrace/trace_flows.py" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -46,18 +15,6 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="PIV_plot_eight_read_data.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/turbulence/scripts/PIV_plot_eight_read_data.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-              <folding>
-                <element signature="e#0#34#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="PIVLab_plot.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/turbulence/scripts/PIVLab_plot.py">
           <provider selected="true" editor-type-id="text-editor">
@@ -88,23 +45,47 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="similar_flows.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/turbulence/scripts/similar_flows.py">
+      <file leaf-file-name="flowtrace_demo.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../library/image_processing/flowtrace_demo.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="608">
-              <caret line="280" column="24" lean-forward="false" selection-start-line="280" selection-start-column="24" selection-end-line="280" selection-end-column="24" />
+            <state relative-caret-position="180">
+              <caret line="14" column="68" lean-forward="false" selection-start-line="14" selection-start-column="68" selection-end-line="14" selection-end-column="68" />
+              <folding>
+                <element signature="e#0#10#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="trace_flows.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/../library/image_processing/trace_flows.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="771">
+              <caret line="76" column="0" lean-forward="true" selection-start-line="76" selection-start-column="0" selection-end-line="76" selection-end-column="0" />
+              <folding>
+                <element signature="e#0#11#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="movies.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../library/image_processing/movies.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="0">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="flowtrace_demo.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../library/image_processing/flowtrace_demo.py">
+      <file leaf-file-name="flowtrace.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../library/image_processing/flowtrace.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="120">
-              <caret line="8" column="0" lean-forward="true" selection-start-line="8" selection-start-column="0" selection-end-line="13" selection-end-column="0" />
+            <state relative-caret-position="1305">
+              <caret line="93" column="46" lean-forward="false" selection-start-line="93" selection-start-column="40" selection-end-line="93" selection-end-column="46" />
               <folding>
-                <element signature="e#0#10#0" expanded="true" />
+                <element signature="e#841#860#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -113,7 +94,7 @@
       <file leaf-file-name="flowtrace_takumi.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/../library/scripts/flow_visualization/flowtrace_takumi.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="150">
+            <state relative-caret-position="120">
               <caret line="10" column="0" lean-forward="false" selection-start-line="10" selection-start-column="0" selection-end-line="10" selection-end-column="0" />
               <folding>
                 <element signature="e#0#31#0" expanded="true" />
@@ -122,11 +103,21 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="flowtrace.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="movies.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/../ilpm/ilpm/movies.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="330">
+              <caret line="22" column="24" lean-forward="false" selection-start-line="22" selection-start-column="24" selection-end-line="22" selection-end-column="24" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="flowtrace.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/../flowtrace_python/flowtrace.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="750">
-              <caret line="50" column="30" lean-forward="false" selection-start-line="50" selection-start-column="30" selection-end-line="50" selection-end-column="30" />
+            <state relative-caret-position="150">
+              <caret line="10" column="68" lean-forward="false" selection-start-line="10" selection-start-column="68" selection-end-line="10" selection-end-column="68" />
               <folding>
                 <element signature="e#841#860#0" expanded="true" />
                 <element signature="e#5476#9941#0" expanded="false" />
@@ -149,8 +140,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>addtext(</find>
-      <find>find_nea</find>
       <find>[x, y]</find>
       <find>get(</find>
       <find>Sdata_ge</find>
@@ -179,6 +168,8 @@
       <find>suptitle</find>
       <find>mp</find>
       <find>core</find>
+      <find>subtract_median</find>
+      <find>median</find>
     </findStrings>
     <replaceStrings>
       <replace>turbulence</replace>
@@ -216,8 +207,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/turbulence/mdata/Mdata_PIVlab.py" />
-        <option value="$PROJECT_DIR$/turbulence/scripts/PIVLab_plot_trackpy.py" />
         <option value="$PROJECT_DIR$/../library/basics/roipoly.py" />
         <option value="/Volumes/labshared3-1/takumi/2018_05_13_mid/freq1Hz/PIV_AnalysisResults/PIV_sv_vp_left_macro55mm_fps2000_D25p6mm_piston10p5mm_freq1Hz_v200mms_fx0p1259mmpx_setting1/time_evolution/phase_space_plots/library/display/graph.py" />
         <option value="$PROJECT_DIR$/turbulence/scripts/test_mpl_connect.py" />
@@ -264,9 +253,11 @@
         <option value="$PROJECT_DIR$/../library/image_processing.py" />
         <option value="$PROJECT_DIR$/../library/image_processing/__init__.py" />
         <option value="$PROJECT_DIR$/../flowtrace_python/flowtrace.py" />
-        <option value="$PROJECT_DIR$/../library/image_processing/flowtrace_demo.py" />
         <option value="$PROJECT_DIR$/../library/scripts/flow_visualization/flowtrace.py" />
         <option value="$PROJECT_DIR$/../library/scripts/flow_visualization/flowtrace_takumi.py" />
+        <option value="$PROJECT_DIR$/../test/ilpm/test.py" />
+        <option value="$PROJECT_DIR$/../library/image_processing/flowtrace_demo.py" />
+        <option value="$PROJECT_DIR$/../library/image_processing/trace_flows.py" />
       </list>
     </option>
   </component>
@@ -308,6 +299,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -348,46 +340,6 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="scripts" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="turbulence" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="takumi" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="library" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="scripts" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="flow_visualization" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="turbulence" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="takumi" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="library" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
               <option name="myItemId" value="image_processing" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
@@ -402,7 +354,7 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="flowtrace_python" />
+              <option name="myItemId" value="ilpm" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -435,35 +387,12 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="turbulence" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="turbulence" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="takumi" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="turbulence" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="turbulence" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="manager" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
       </pane>
       <pane id="Scope" />
-      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -478,19 +407,19 @@
     </option>
   </component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/../library/image_processing" />
+      <recent name="$PROJECT_DIR$/turbulence/scripts" />
+      <recent name="$PROJECT_DIR$/../library/basics" />
+      <recent name="/Volumes/labshared3-1/kris/4_8_18" />
+      <recent name="$PROJECT_DIR$/../library/display" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/turbulence/scripts/misc" />
       <recent name="$PROJECT_DIR$/../library/basics" />
       <recent name="$PROJECT_DIR$/../library/display" />
       <recent name="$PROJECT_DIR$/turbulence/scripts" />
       <recent name="$PROJECT_DIR$/turbulence/tools" />
-    </key>
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/turbulence/scripts" />
-      <recent name="$PROJECT_DIR$/../library/basics" />
-      <recent name="/Volumes/labshared3-1/kris/4_8_18" />
-      <recent name="$PROJECT_DIR$/../library/display" />
-      <recent name="$PROJECT_DIR$/../library/tools" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -684,12 +613,10 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="712" y="23" width="1848" height="1315" extended-state="0" />
-    <editor active="true" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.21594684" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.22259136" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32983023" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.14554374" sideWeight="0.5044297" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.14554374" sideWeight="0.49557033" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.14390843" sideWeight="0.49537894" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32983023" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
@@ -703,6 +630,7 @@
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.14554374" sideWeight="0.49557033" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
     <layout-to-restore>
@@ -748,34 +676,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/turbulence/analysis/toto.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/turbulence/display/graphes.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="474">
-          <caret line="785" column="47" lean-forward="false" selection-start-line="785" selection-start-column="47" selection-end-line="785" selection-end-column="47" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/turbulence/analysis/taylor_scale.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1215">
-          <caret line="199" column="51" lean-forward="false" selection-start-line="199" selection-start-column="4" selection-end-line="199" selection-end-column="51" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/turbulence/manager/Measures.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="362">
-          <caret line="79" column="30" lean-forward="false" selection-start-line="79" selection-start-column="30" selection-end-line="79" selection-end-column="30" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/../library/basics/std_func.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="510">
@@ -836,7 +736,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3210">
           <caret line="218" column="47" lean-forward="false" selection-start-line="218" selection-start-column="47" selection-end-line="218" selection-end-column="47" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -865,7 +764,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1260">
           <caret line="87" column="55" lean-forward="false" selection-start-line="87" selection-start-column="54" selection-end-line="87" selection-end-column="55" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -880,7 +778,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3900">
           <caret line="263" column="59" lean-forward="false" selection-start-line="263" selection-start-column="58" selection-end-line="263" selection-end-column="59" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -888,9 +785,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="435">
           <caret line="31" column="0" lean-forward="false" selection-start-line="31" selection-start-column="0" selection-end-line="31" selection-end-column="82" />
-          <folding>
-            <element signature="e#3368#4527#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -898,7 +792,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="450">
           <caret line="32" column="82" lean-forward="false" selection-start-line="32" selection-start-column="82" selection-end-line="32" selection-end-column="82" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -906,9 +799,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="975">
           <caret line="75" column="7" lean-forward="false" selection-start-line="75" selection-start-column="7" selection-end-line="75" selection-end-column="7" />
-          <folding>
-            <element signature="e#0#14#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -923,7 +813,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="195">
           <caret line="23" column="14" lean-forward="false" selection-start-line="23" selection-start-column="14" selection-end-line="23" selection-end-column="14" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -931,7 +820,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1020">
           <caret line="68" column="59" lean-forward="false" selection-start-line="68" selection-start-column="59" selection-end-line="68" selection-end-column="59" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -939,9 +827,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="105">
           <caret line="8" column="0" lean-forward="false" selection-start-line="8" selection-start-column="0" selection-end-line="8" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#18#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -949,7 +834,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="600">
           <caret line="144" column="54" lean-forward="false" selection-start-line="144" selection-start-column="54" selection-end-line="144" selection-end-column="54" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -957,7 +841,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="572">
           <caret line="303" column="67" lean-forward="true" selection-start-line="303" selection-start-column="67" selection-end-line="303" selection-end-column="67" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -965,7 +848,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3390">
           <caret line="226" column="21" lean-forward="false" selection-start-line="226" selection-start-column="13" selection-end-line="226" selection-end-column="21" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -998,12 +880,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="819">
           <caret line="647" column="26" lean-forward="true" selection-start-line="647" selection-start-column="26" selection-end-line="647" selection-end-column="26" />
-          <folding>
-            <element signature="e#14962#16126#0" expanded="false" />
-            <element signature="e#16648#16715#0" expanded="false" />
-            <element signature="e#16837#18342#0" expanded="false" />
-            <element signature="e#18859#19016#1" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1011,9 +887,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="608">
           <caret line="66" column="27" lean-forward="false" selection-start-line="66" selection-start-column="27" selection-end-line="66" selection-end-column="27" />
-          <folding>
-            <element signature="e#0#31#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1021,7 +894,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="728">
           <caret line="842" column="44" lean-forward="false" selection-start-line="842" selection-start-column="44" selection-end-line="842" selection-end-column="44" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1029,9 +901,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#34#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1051,37 +920,12 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/turbulence/scripts/PIVLab_plot_eight.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="30">
-          <caret line="2" column="51" lean-forward="false" selection-start-line="2" selection-start-column="51" selection-end-line="2" selection-end-column="51" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/turbulence/stat_avg/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/turbulence/stat_avg/Mdata.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/turbulence/stat_avg/__init__.py" />
+    <entry file="file://$PROJECT_DIR$/turbulence/stat_avg/Mdata.py" />
     <entry file="file://$PROJECT_DIR$/../library/display/grid_turbulence.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-8572">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#44#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1089,23 +933,14 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-5542">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../library/image_processing.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/../library/image_processing.py" />
     <entry file="file://$PROJECT_DIR$/../library/display/plotting.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="263">
           <caret line="2994" column="20" lean-forward="false" selection-start-line="2994" selection-start-column="20" selection-end-line="2994" selection-end-column="20" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1113,15 +948,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="765">
           <caret line="51" column="10" lean-forward="false" selection-start-line="51" selection-start-column="10" selection-end-line="51" selection-end-column="10" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/turbulence/scripts/similar_flows.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="608">
-          <caret line="280" column="24" lean-forward="false" selection-start-line="280" selection-start-column="24" selection-end-line="280" selection-end-column="24" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1129,27 +955,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../library/image_processing/flowtrace_demo.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
-          <caret line="8" column="0" lean-forward="true" selection-start-line="8" selection-start-column="0" selection-end-line="13" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#10#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../library/scripts/flow_visualization/flowtrace_takumi.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="150">
-          <caret line="10" column="0" lean-forward="false" selection-start-line="10" selection-start-column="0" selection-end-line="10" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#31#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1158,7 +963,75 @@
         <state />
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/../test/ilpm/test.py" />
+    <entry file="file://$PROJECT_DIR$/../flowtrace_python/flowtrace.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="150">
+          <caret line="10" column="68" lean-forward="false" selection-start-line="10" selection-start-column="68" selection-end-line="10" selection-end-column="68" />
+          <folding>
+            <element signature="e#841#860#0" expanded="true" />
+            <element signature="e#5476#9941#0" expanded="false" />
+            <element signature="e#10019#11473#0" expanded="false" />
+            <element signature="e#11507#12186#0" expanded="false" />
+            <element signature="e#12264#14618#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../library/image_processing/flowtrace.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1305">
+          <caret line="93" column="46" lean-forward="false" selection-start-line="93" selection-start-column="40" selection-end-line="93" selection-end-column="46" />
+          <folding>
+            <element signature="e#841#860#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/../ilpm/ilpm/movies.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="330">
+          <caret line="22" column="24" lean-forward="false" selection-start-line="22" selection-start-column="24" selection-end-line="22" selection-end-column="24" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../library/scripts/flow_visualization/flowtrace_takumi.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="120">
+          <caret line="10" column="0" lean-forward="false" selection-start-line="10" selection-start-column="0" selection-end-line="10" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#31#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/turbulence/scripts/similar_flows.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="966">
+          <caret line="280" column="24" lean-forward="false" selection-start-line="280" selection-start-column="24" selection-end-line="280" selection-end-column="24" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/turbulence/scripts/PIVLab_plot_eight.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="30">
+          <caret line="2" column="51" lean-forward="false" selection-start-line="2" selection-start-column="51" selection-end-line="2" selection-end-column="51" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../library/image_processing/flowtrace_demo.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="180">
+          <caret line="14" column="68" lean-forward="false" selection-start-line="14" selection-start-column="68" selection-end-line="14" selection-end-column="68" />
+          <folding>
+            <element signature="e#0#10#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../library/image_processing/movies.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
@@ -1166,16 +1039,12 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../flowtrace_python/flowtrace.py">
+    <entry file="file://$PROJECT_DIR$/../library/image_processing/trace_flows.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="750">
-          <caret line="50" column="30" lean-forward="false" selection-start-line="50" selection-start-column="30" selection-end-line="50" selection-end-column="30" />
+        <state relative-caret-position="771">
+          <caret line="76" column="0" lean-forward="true" selection-start-line="76" selection-start-column="0" selection-end-line="76" selection-end-column="0" />
           <folding>
-            <element signature="e#841#860#0" expanded="true" />
-            <element signature="e#5476#9941#0" expanded="false" />
-            <element signature="e#10019#11473#0" expanded="false" />
-            <element signature="e#11507#12186#0" expanded="false" />
-            <element signature="e#12264#14618#0" expanded="false" />
+            <element signature="e#0#11#0" expanded="true" />
           </folding>
         </state>
       </provider>
