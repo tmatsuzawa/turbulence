@@ -78,8 +78,9 @@ def make_image(gridpts, pts, tree, radii, lums, args, max_intensity=None, show=F
             print 'considering particle ' + str(kk) + '...'
         inds = tree.query_ball_point(pts[kk], r=args.cutoff_sigma * float(args.size) * (1. + args.size_sigma))
         if not inds:
+            print 'Warning: no contribution from particle ' + str(kk)
             print 'pt = ', pts[kk]
-            raise RuntimeError('Empty indices for particle ' + str(kk))
+            print ' --> ie there was no point within cutoff_sigma * size * (1. + size_sigma) of this particle'
 
         dists = nt.dist_pts(gridpts[inds], np.array([pts[kk]])).ravel()
         if args.shape_method == 'gaussian':
@@ -344,7 +345,26 @@ inds = np.zeros_like(pts[:, 0], dtype=int)
 for (pt, ii) in zip(pts, range(len(inds))):
     if ii % 100 == 0:
         print 'finding nearest gridpt for tracer particle ' + str(ii) + ' / ' + str(len(pts))
-    inds[ii] = tree.query(pt, k=1)[0]
+    # note: output of query is (dist, index)
+    inds[ii] = tree.query(pt, k=1)[1]
+
+# reshape ux0 and uy0 to crop them to gridpoints
+ux0 = ux0[gridpts[:, 0].astype(int), gridpts[:, 1].astype(int)]
+uy0 = uy0[gridpts[:, 0].astype(int), gridpts[:, 1].astype(int)]
+
+# Check the query results so that pts have velocities of nearest ux0 elements
+# colors = ux0.ravel()[inds]
+# gridcolors = ux0.ravel()
+# print 'gridpts = ', gridpts
+# print 'gridcolors = ', gridcolors
+# print 'np.shape(colors) = ', np.shape(colors)
+# print 'np.shape(gridcolors) = ', np.shape(gridcolors)
+# print 'np.shape(gridpts[:, 0]) = ', np.shape(gridpts[:, 0])
+# plt.scatter(gridpts[:, 0], gridpts[:, 1], c=gridcolors)
+# plt.scatter(pts[:, 0], pts[:, 1], c=colors)
+# plt.colorbar()
+# plt.show()
+# sys.exit()
 
 pts[:, 0] += ux0.ravel()[inds] * args.dt
 pts[:, 1] += uy0.ravel()[inds] * args.dt
