@@ -2,14 +2,13 @@
 """
 Created on Thu Mar 26 10:43:49 2015
 
-@author: stephane
+@author: stephane, takumi
 """
 
 import turbulence.cine as cine
 from scipy import misc
 import os
 import numpy as np
-import math
 import turbulence.tools.browse as browse
 import turbulence.tools.rw_data as rw_data
 # Convert cine file to a list of .TIFF images
@@ -213,7 +212,7 @@ def sampleCine(c,mode,step,start=0,stop=0,ctime=1):
     return indexList
     
 def saveDir(file,post=''):
-    fileroot=browse.get_string(file,'','.cine',0)
+    fileroot=browse.get_string(file,'','.cine', 0)
     if not (fileroot==''):
         Dir=fileroot+post+'/'
         root='im'

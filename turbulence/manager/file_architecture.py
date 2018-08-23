@@ -17,6 +17,9 @@ Dir_data = []
 
 distant_root = '/Volumes/'
 
+#irvinator2
+Dir_data.append(distant_root + 'bigraid/takumi/turbulence/middle-sized/PIV/')
+
 Dir_data.append(distant_root + 'labshared3/Stephane/Experiments/Accelerated_grid/')
 Dir_data.append(distant_root + 'labshared/Stephane_lab1/')
 Dir_data.append(distant_root + 'labshared/Stephane_lab1/Vortices/')

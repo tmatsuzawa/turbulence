@@ -65,12 +65,12 @@ def read_v_on_xy_plane_at_t0(filepath,z=0):
     uy0 = uy[z, :, :]  # ux(z=0,y,x)
     uz0 = uz[z, :, :]  # uz(z=0,y,x)
 
-    print 'Extracted the velocity field on the z=0 plane! (t=t0)'
+    print 'Extracted the velocity field on the z=%d plane! (t=t0)' % z
     return ux0, uy0, uz0
 
 def generate_XYZT_arrays(param):
     """
-    Generate 1d arrays of time and positions. The main use is to plot graphs.
+    Generate 1d arrays of time and positions. The main use is for plotting.
     Parameters
     ----------
     param: dict, this stores values used to get a data cutout from the JHTD

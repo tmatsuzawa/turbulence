@@ -36,10 +36,10 @@ parser.add_argument('-n',dest='n',default=10,type=int, help='Number of images fo
 parser.add_argument('-step',dest='step',default=2,type=int, help='Under sampling of the data. Default value is 2')
 parser.add_argument('-stacks',dest='stacks',default=False,type=bool, help='if True, make images for stacks of piv')
 parser.add_argument('-cinetype',dest='cinetype',default='' ,type=str, help='Provide a header of cinefiles you would like to process')
-parser.add_argument('-offset',dest='offset',default=0 ,type=int, help='Provide a cinefile you would like to process')
+parser.add_argument('-offset',dest='offset',default=0 ,type=int, help='start processing from the n-th cine in the cinelist')
 args = parser.parse_args()
 
-def  main(date):
+def main(date):
     """
     main function
     INTPUT
@@ -91,7 +91,10 @@ def process(directory):
             ref_movie.make_ref(fileList_bubble)
 #            caller(fileList_ref,step)
     #    step = caller(fileList,step)
+
         step = caller(fileList_other,step)
+
+
 
 
 
@@ -146,20 +149,20 @@ def caller(fileList,step):
     OUTPUT
     step : updated value of step. ++1 if still running, -1 if all the functions have been called
     """
-    list_fun = [ref_movie.make,         # generate a movie directory to be used as a reference (grid position, spatial scale, eventually time zero)
-                make_timestep_files,    # generate timestep txt files to be used as an input for generating to-be-PIV-processed images
-                make_piv_folders]#,       # input folder 
-                #make_result_folder]     # output folders for PIV measurements. Everything is stored into a PIV_data file
-                                       
+    list_fun = [ref_movie.make, # generate a movie directory to be used as a reference (grid position, spatial scale, eventually time zero)
+                make_timestep_files, # generate timestep txt files to be used as an input for generating to-be-PIV-processed images
+                make_piv_folders]       # input folder
+                # make_result_folder]     # output folders for PIV measurements. Everything is stored into a PIV_data file
+
     n = len(list_fun)
-    functions = {key:fun for key,fun in zip(range(n),list_fun)}
-                     
-    if step<n:
+    functions = {key: fun for key, fun in zip(range(n), list_fun)}
+
+    if step < n:
         print(functions[step].__name__)
         functions[step](fileList)
-        step+=1
+        step += 1
     else:
-        step=-1
+        step = -1
     return step
     
 def iterate(fileList,function):
