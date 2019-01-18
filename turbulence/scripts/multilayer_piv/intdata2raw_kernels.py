@@ -25,7 +25,7 @@ parser.add_argument('-fps', '--fps', help='frame rate of recorded video. default
                     )
 parser.add_argument('-cutoff', '--cutoff', help='Energy cutoff in mm2/s2. default: 3x10^4',
                     type=float,
-                    default=3.*10**6
+                    default=1.*10**4
                     )
 args = parser.parse_args()
 
@@ -110,7 +110,7 @@ plt.show()
 
 # e_scaled = np.delete(e_scaled, range(95, 112), 0)
 
-output_path = dir + '/%s_%04d_%04d_%04d_cutoff_%08d_deltadx_%s_mod.raw'\
+output_path = dir + '/%s_%04d_%04d_%04d_cutoff_%08d_deltadx_%s_mod_lp1_-30.raw'\
                     % (os.path.split(args.filepath)[1], e_scaled.shape[0], e_scaled.shape[1], e_scaled.shape[2],
                        args.cutoff, str(deltafx).replace('.', 'p'))
 e_scaled.tofile(output_path)
@@ -143,7 +143,7 @@ for i in range(e.shape[2]):
     ax.invert_yaxis()
     graph.add_colorbar(cc, option='scientific')
     graph.title(ax, 'z=%.3f' % data['z'][0, 0, i])
-    graph.save(dir + '/mod_deltadx_%s/zm%03d' % (str(deltafx).replace('.', 'p'), i), ext='png')
+    graph.save(dir + '/mod_deltadx_%s_-30/zm%03d' % (str(deltafx).replace('.', 'p'), i), ext='png')
     plt.close('all')
 
     if i < 100:
@@ -159,7 +159,7 @@ for i in range(e.shape[2]):
     ax.invert_yaxis()
     graph.add_colorbar(cc, option='scientific')
     graph.title(ax, 'z=%.3f' % data['z'][0, 0, i])
-    graph.save(dir + '/mod_deltadx_%s_perspective_correction_bubble_corr_kernel/zm%03d' % (str(deltafx).replace('.', 'p'), i), ext='png')
+    graph.save(dir + '/mod_deltadx_%s_perspective_correction_bubble_corr_kernel_lp1_-30/zm%03d' % (str(deltafx).replace('.', 'p'), i), ext='png')
     plt.close('all')
 
 plt.plot(np.nanmean(e / cutoffe * 255, axis=(0, 1)), label='original')
@@ -171,7 +171,7 @@ plt.show()
 e_mod[e_mod > cutoffe] = cutoffe
 e_mod_scaled = e_mod / cutoffe * 255
 e_mod_scaled = e_mod_scaled.astype('uint8')
-output_path = dir + '/%s_%04d_%04d_%04d_cutoff_%08d_deltadx_%s_mod_corrected_using_kernel0_and_4.raw'\
+output_path = dir + '/%s_%04d_%04d_%04d_cutoff_%08d_deltadx_%s_mod_corrected_using_kernel0_and_4_lp1_-30.raw'\
                     % (os.path.split(args.filepath)[1], e_scaled.shape[0], e_scaled.shape[1], e_scaled.shape[2],
                        args.cutoff, str(deltafx).replace('.', 'p'))
 e_mod_scaled.tofile(output_path)
@@ -184,14 +184,14 @@ fig, ax, cc = graph.color_plot(data['y'][..., i], data['x'][..., i], e_scaled_sm
 graph.add_colorbar(cc, ax=ax)
 graph.show()
 
-output_path = dir + '/%s_%04d_%04d_%04d_cutoff_%08d_deltadx_%s_mod_small.raw'\
+output_path = dir + '/%s_%04d_%04d_%04d_cutoff_%08d_deltadx_%s_mod_small_lp1_-30.raw'\
                     % (os.path.split(args.filepath)[1], e_scaled_small.shape[0], e_scaled_small.shape[1], e_scaled_small.shape[2],
                        args.cutoff, str(deltafx).replace('.', 'p'))
 e_scaled_small.tofile(output_path)
 print '... saved ', output_path
 ###
 e_mod_scaled_small = e_mod_scaled[..., 15:83]
-output_path = dir + '/%s_%04d_%04d_%04d_cutoff_%08d_deltadx_%s_mod_corrected_using_kernel0_and_4_small.raw'\
+output_path = dir + '/%s_%04d_%04d_%04d_cutoff_%08d_deltadx_%s_mod_corrected_using_kernel0_and_4_small_lp1_-30.raw'\
                     % (os.path.split(args.filepath)[1], e_mod_scaled_small.shape[0], e_mod_scaled_small.shape[1], e_mod_scaled_small.shape[2],
                        args.cutoff, str(deltafx).replace('.', 'p'))
 e_mod_scaled_small.tofile(output_path)

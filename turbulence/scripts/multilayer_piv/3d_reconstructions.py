@@ -131,6 +131,21 @@ def get_setup(setups, id):
             return setup
 
 
+def draw_fov_for_lens_with_unfixed_f(w_fov_min, h_fov_min, w_fov_max, h_fov_max):
+    """
+
+    Parameters
+    ----------
+    w_fov_min
+    h_fov_min
+    w_fov_max
+    h_fov_max
+
+    Returns
+    -------
+
+    """
+
 # Load hdf5 data
 for j, datadir in enumerate(datadirs):
     hdf5dir = os.path.join(datadir, 'hdf5data')

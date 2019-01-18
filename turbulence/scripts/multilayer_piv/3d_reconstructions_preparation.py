@@ -6,11 +6,15 @@ import argparse
 import library.basics.formatstring as fs
 import library.display.graph as graph
 import turbulence.manager.pivlab2hdf5 as pivlab2hdf5
+import library.tools.process_data as process
 import os
 from math import *
 import sys
 import h5py
 from mpl_toolkits.mplot3d import Axes3D
+import copy
+import scipy.ndimage.filters as filters
+
 
 global rad2deg
 rad2deg = 180. / np.pi
@@ -29,42 +33,94 @@ parser.add_argument('-overwrite', '--overwrite', help='Default: False',
                     type=bool, default=False)
 # parser.add_argument('-setup', '--setup', help='Header specifying PIVLab output directories. Default: PIV',
 #                     type=str, default='PIV')
+parser.add_argument('-delete', '--delete', nargs='+', help='z-indices to ignore to make an interpolated grid data',
+                    type=int, default=[])
+parser.add_argument('-mode', '--mode', help='interpolation method. choose from linear and nearest.',
+                    type=str, default='nearest')
+
 
 args = parser.parse_args()
 
 datadirs = glob.glob(os.path.join(args.dir, args.header + '*'))
+
 setup_files = glob.glob(os.path.join(args.dir, '*.3dsetup'))
 ndata = len(datadirs)  # number of scans required to complete a scan of entire system
 
 # Check if time_avg data exits. if so, perform interpolation.
 avg_data_raw_path = args.dir + '/time_avg_field_raw.h5'
-avg_data_raw_path = args.dir + 'time_avg_field_raw_portion_0p01.h5'
+# avg_data_raw_path = args.dir + '/time_avg_field_raw_portion_1p0.h5'
+# avg_data_raw_path = args.dir + '/time_avg_field_raw_portion_0p01.h5'
+
+
+# plotting settings
+vmin, vmax = 0, 3*10**4
+
 if os.path.exists(avg_data_raw_path) and not args.overwrite:
     with h5py.File(avg_data_raw_path, 'r') as data:
         from scipy.interpolate import griddata
         x, y, z = np.asarray(data['x']), np.asarray(data['y']), np.asarray(data['z'])
         ux, uy, uz = np.asarray(data['ux_avg']), np.asarray(data['uy_avg']), np.asarray(data['uz_avg'])
-        data_spacing = 8.
-        scale, frame_rate = 0.1497, 2000.
-        x, y, z = x/data_spacing, y/data_spacing, z/data_spacing
-        e = (ux**2 + uy**2 + uz**2)/2.
-        # figure out
-        order = z[0,0,:].argsort()
 
-        data_list = [x, y, z, ux, uy, uz, e]
+
+
+        # width, height, depth = ux.shape
+
+        # Read a sample setup file to extract scale
+        # Load setup file
+        setup_str = open(setup_files[0], 'rt').read()
+        setup = {}
+        dummy = {}
+        exec ("from math import *", dummy)
+        exec (setup_str, dummy, setup)
+
+        data_spacing = float(setup['W']) / 2.
+        scale, frame_rate = setup['scale'], setup['frame_rate']  # mm/px, frames per sec
+
+        # conversion
+        # x, y, z = x / data_spacing, y / data_spacing, z / data_spacing
+        ux, uy, uz = ux * scale * frame_rate, uy * scale * frame_rate, uz * scale * frame_rate  # px/frame * mm/1px * frames/1sec
+
+        # figure out order
+        order = z[0, 0, :].argsort()
+        data_list = [x, y, z, ux, uy, uz]
         for i in range(len(data_list)):
-            data_list[i][:] =  data_list[i][:,:, order]
+            data_list[i][:] = data_list[i][:, :, order]
+
+        # Delete some some data values if you like
+        def ignore_data_values(data, index_list=args.delete):
+            return np.delete(data, index_list, axis=2)
+        x, y, z, ux, uy, uz = map(ignore_data_values, (x, y, z, ux, uy, uz))
+
+
+        # clean data
+        mask_ux = process.get_mask_for_unphysical(ux, cutoffU=200., fill_value=99999., verbose=True)
+        mask_uy = process.get_mask_for_unphysical(uy, cutoffU=200., fill_value=99999., verbose=True)
+        mask_uz = process.get_mask_for_unphysical(uz, cutoffU=200., fill_value=99999., verbose=True)
+
+
+        ux = process.interpolate_using_mask(ux, mask_ux)
+        uy = process.interpolate_using_mask(uy, mask_uy)
+        uz = process.interpolate_using_mask(uz, mask_uz)
+
+        # filter
+        ux = filters.gaussian_filter(ux, [0.5, 0.5, 0])
+        uy = filters.gaussian_filter(uy, [0.5, 0.5, 0])
+        uz = filters.gaussian_filter(uz, [0.5, 0.5, 0])
+
+
+        x, y, z = x/data_spacing, y/data_spacing, z/data_spacing
+        e = (ux**2 + uy**2)/2.
 
 
         for i in range(x.shape[2]):
             print i, np.min(z[..., i]), np.max(z[..., i]), np.mean(z[..., i])
-            fig, ax, cc = graph.color_plot(x[..., i], y[..., i], e[..., i], cmap='plasma')
-            graph.add_colorbar(cc, label=r'$\bar{E}_{2D}=\frac{1}{2}(\bar{U_x}^2)$')
+            fig, ax, cc = graph.color_plot(x[..., i], y[..., i], e[..., i], cmap='plasma', vmin=vmin, vmax=vmax)
+            graph.add_colorbar(cc, label=r'$\bar{E}_{2D}=\frac{1}{2}(\bar{U_x}^2)$', option='scientific')
             graph.labelaxes(ax, 'X (px)', 'Y (px)')
             graph.title(ax, '<z>=%.2f px' % np.mean(z[..., i]))
             fig.tight_layout()
-            filename = 'time_avg_energy_raw/zm%03d' % i
-            graph.save(args.dir + filename, ext='png', close=True, verbose=False)
+            filename = '/time_avg_energy_raw_%s/zm%03d' % (args.mode, i)
+            graph.save(args.dir + filename, ext='png', close=True, verbose=True)
 
 
 
@@ -77,23 +133,33 @@ if os.path.exists(avg_data_raw_path) and not args.overwrite:
         print 'make grid'
 
         # xx, yy, zz= np.mgrid[2:126:100j, 2:90:100j, -40:40:100j]
-        xx, yy, zz= np.mgrid[xmin:xmax:100j, ymin:ymax:100j, zmin:zmax:100j]
+        xx, yy, zz= np.mgrid[xmin:xmax:200j, ymin:ymax:200j, zmin:zmax:200j]
 
         print '... Done'
 
         print 'make a griddata'
-        grid_ux = griddata(points, np.ravel(ux)*scale*frame_rate, (xx, yy, zz), method='nearest')
-        grid_uy = griddata(points, np.ravel(uy)*scale*frame_rate, (xx, yy, zz), method='nearest')
-        grid_uz = griddata(points, np.ravel(uz)*scale*frame_rate, (xx, yy, zz), method='nearest')
-        grid_e = (grid_ux**2 + grid_uy**2 + grid_uz**2)/2. # 2d energy
+        grid_ux = griddata(points, np.ravel(ux), (xx, yy, zz), method=args.mode)
+        grid_uy = griddata(points, np.ravel(uy), (xx, yy, zz), method=args.mode)
+        # grid_uz = griddata(points, np.ravel(uz), (xx, yy, zz), method='nearest')
+        grid_e = (grid_ux**2 + grid_uy**2)/2. # 2d energy
 
         for i in range(xx.shape[2]):
-            fig, ax, cc = graph.color_plot(xx[..., i], yy[..., i], grid_e[..., i], cmap='plasma')
-            graph.add_colorbar(cc, label=r'$\bar{E}_{2D}=\frac{1}{2}(\bar{U_x}^2)$')
+            fig, ax, cc = graph.color_plot(xx[..., i], yy[..., i], grid_e[..., i], cmap='plasma', vmin=vmin, vmax=vmax)
+            graph.add_colorbar(cc, label=r'$\bar{E}_{2D}=\frac{1}{2}(\bar{U_x}^2)$', option='scientific')
             graph.labelaxes(ax, 'X (px)', 'Y (px)')
             fig.tight_layout()
-            filename = 'time_avg_energy/im%05d' % i
+            filename = '/time_avg_energy_%s/im%05d' % (args.mode, i)
             graph.save(args.dir + filename, ext='png', close=True)
+
+        import library.tools.rw_data as rw
+        savedata = {}
+        savedata['x'] = xx
+        savedata['y'] = yy
+        savedata['ux'] = grid_ux
+        savedata['uy'] = grid_uy
+        savedata['energy'] = grid_e
+        filepath = args.dir + '/grid_data_%s' % args.mode
+        rw.write_hdf5_dict(filepath, savedata)
         # plt.show()
 
 
@@ -104,7 +170,10 @@ else:
     zz2_top, zz2_bottom = np.empty(ndata), np.empty(ndata)
     z0s = np.empty(ndata)
     dthetas = np.empty(ndata)
-    setups = [{}, {}, {}]
+
+    # make a list of dictionaries, Each dictionary has a different id
+    dummy_func = lambda x: copy.deepcopy(x)
+    setups = [dummy_func({}) for i in range(((ndata)))]
 
     for i in range(ndata):
         # Load setup file
@@ -123,8 +192,8 @@ else:
         setup['id'] = int(setup_files[i][-9:-8]) # this id corresponds to the location of laser
         frame_rate = float(setup['frame_rate'])
     scale_raw = setup['scale'] # mm/px
-    # data_spacing = setup['W'] / 2 # data spacing. number of pixels between neighboring data points. px
-    data_spacing = setup['W'] # data spacing. number of pixels between neighboring data points. px # fix for 11/5/18 data
+    data_spacing = setup['W'] / 2 # data spacing. number of pixels between neighboring data points. px
+    # data_spacing = setup['W'] # data spacing. number of pixels between neighboring data points. px # fix for 11/5/18 data
     depth_mm = np.max(zz2_top) - np.min(zz2_bottom) # mm
 
     depth = int(depth_mm / scale_raw / data_spacing) # data point
@@ -160,12 +229,14 @@ else:
         cine_width = setup['cine_width'] # mm
         scale = setup['scale'] # mm/px
         dtheta = setup['theta'] / float(setup['nslice'] - 1)
-        theta = dtheta * ((setup['nslice'] - 1) / 2. - sliceno)
+        # theta = dtheta * ((setup['nslice'] - 1) / 2. - sliceno)
+        theta = dtheta * (sliceno - (setup['nslice'] - 1) / 2.)
         dz = setup['z1'] / float(setup['nslice'] - 1) # mm
-        zoffset = dz * ((setup['nslice'] - 1) / 2. - sliceno) # mm
+        # zoffset = dz * ((setup['nslice'] - 1) / 2. - sliceno) # mm
+        zoffset = dz * (sliceno - (setup['nslice'] - 1) / 2.) # mm
         x_new = x # px
         y_new = y # px
-        z_new = z0 - zoffset / scale - (x1 / scale + cine_width-x) * np.tan(theta / rad2deg)
+        z_new = z0 + zoffset / scale + (x1 / scale + cine_width-x) * np.tan(theta / rad2deg)
         # print 'x1, cinewidth, theta', x1, cine_width, theta
         return x_new, y_new, z_new
 
@@ -199,8 +270,10 @@ else:
     for j, datadir in enumerate(datadirs):
         hdf5dir = os.path.join(datadir, 'hdf5data')
         h5files = glob.glob(hdf5dir + '/slice*.h5')
+
+
         # grab a setup file
-        setup_id = int(datadir[-1])
+        setup_id = int(datadir[-6])
         setup = get_setup(setups, setup_id)
         print setup
         z0, scale = setup['z0'],  setup['scale']  # mm, mm/px
@@ -220,8 +293,8 @@ else:
 
         for i, h5file in enumerate(sorted(h5files)):
             sliceno = int(fs.get_float_from_str(h5file, 'slice', '.h5'))
-            print sliceno,  setup['nslice'] - sliceno -1
-            # sliceno = setup['nslice'] - sliceno -1
+            print sliceno,  setup['nslice'] - sliceno - 1
+            sliceno = setup['nslice'] - sliceno -1
             print 'Check: Slice No must be ordered! 0-%d: %02d' % (setup['nslice'], sliceno)
             data = h5py.File(h5file, 'r')
             x_raw, y_raw = np.asarray(data['x']), np.asarray(data['y'])
@@ -230,7 +303,7 @@ else:
             # position correction
             # uz is just a projection of ux_raw here
             x, y, z = transform_coord(x_raw, y_raw, z0 / scale, sliceno, setup) # 2d arrays
-            ux, uy, uz = transform_vel(ux_raw, uy_raw , 0, dtheta * ((setup['nslice']-1)/2.-sliceno)) # 2d arrays
+            ux, uy, uz = transform_vel(ux_raw, uy_raw , 0, dtheta * (sliceno - (setup['nslice']-1)/2.)) # 2d arrays
 
             # Insert data
             for k, data_raw in enumerate([x, y, z]):
@@ -242,35 +315,15 @@ else:
 
             print 'j, sliceno, zmin, zmax, xmin, xmax: ', j, sliceno, np.min(z), np.max(z),  np.min(x), np.max(x)
 
-            # try:
-            #     #
-            #     newshape = (rows, cols, 1) # (y, x, z)
-            #     print '-----------'
-            #     print x.reshape(newshape).shape
-            #     x = np.swapaxes(x.reshape(newshape), 0, 1) # (x, y, z)
-            #
-            #
-            #     print x.shape, xdata.shape
-            #     xdata = np.stack((xdata, x), axis=2) # 3d array for x, y, z  (x,y,z)
-            #     print xdata.shape
-            #     # uxdata = np.dstack((uxdata, ux.reshape(newshape)))  # 4d array for ux, uy, uz (z,y,x, t)
-            # except NameError:
-            #     newshape = (rows, cols, 1)
-            #     xdata = x.reshape((rows, cols, 1)) # (y,x,z)
-            #     # print xdata.shape
-            #     xdata = np.swapaxes(xdata, 0, 1)# (x,y,z)
-            #     print xdata.shape
-            #
             data.close()
+            ## laser plane visualization
             # if i in [0, 8, 16]:
             #     fig = plt.figure()
             #     ax = fig.add_subplot(111, projection='3d')
-            #     nn = 20
             #     ax.scatter(x,y,z)
             #     ax.set_xlabel('X Label')
             #     ax.set_ylabel('Y Label')
             #     ax.set_zlabel('Z Label')
-            #
             #     plt.show()
 
 
@@ -302,7 +355,7 @@ else:
     # 60000 * 2/3 * duty cycle = 34000 frames
     # 2000 frames for each slice. interal: 60 frames = 30 ms
     # used a pair of images to extract a v field -> 1000 data points
-    ratio = 0.01
+    ratio = 0.1
     duration = vel_data[0].shape[3]
     for i in range(3):
         print '%d / 3' % i
@@ -310,7 +363,7 @@ else:
         avg2_data[i] = np.nanmean(vel_data[i][..., 0:int(duration*ratio)]**2, axis=3)
 
     import library.tools.rw_data as rw
-    griddata_path = args.dir + '/time_avg_field_raw_portion_%s' % (str(ratio).replace('.', 'p'))
+    griddata_path = args.dir + '/time_avg_field_raw_portion_ver2_%s' % (str(ratio).replace('.', 'p'))
     data = {}
     data['ux_avg'] = avg_data[0]
     data['uy_avg'] = avg_data[1]
@@ -322,6 +375,34 @@ else:
     data['y'] = coord_data[1]
     data['z'] = coord_data[2]
     rw.write_hdf5_dict(griddata_path, data)
+
+
+    # visualize laser sheet position
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    nn = 20
+    colors = graph.get_first_n_colors_from_color_cycle(ndata)
+    for i in range(ndata):
+        # ax.scatter(coord_data[0][::nn, ::nn, i * 17: (i + 1) * 17], coord_data[1][::nn, ::nn, i * 17: (i + 1) * 17],
+        #             coord_data[2][::nn, ::nn, i * 17: (i + 1) * 17],
+        #             alpha=0.3)
+        ax.scatter(coord_data[0][::nn, ::nn, i * 17: (i * 17)+1], coord_data[1][::nn, ::nn, i * 17:  (i * 17)+1],
+                    coord_data[2][::nn, ::nn, i * 17: (i * 17)+1],
+                    alpha=0.3, color=colors[i])
+        ax.scatter(coord_data[0][::nn, ::nn, (i * 17) + 15: (i * 17) + 16], coord_data[1][::nn, ::nn, (i * 17) + 15:  (i * 17) + 16],
+                   coord_data[2][::nn, ::nn, (i * 17) + 15: (i * 17) + 16],
+                   alpha=0.3, marker='x',s=60, color=colors[i])
+
+    ax.set_xlabel('X Label')
+    ax.set_ylabel('Y Label')
+    ax.set_zlabel('Z Label')
+    ax.view_init(azim=270, elev=00)
+    fig.tight_layout()
+    graph.save(args.dir + '/laser_pos2', ext='png')
+
+    plt.show()
+
+
 
 
 

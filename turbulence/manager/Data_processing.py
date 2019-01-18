@@ -11,8 +11,8 @@ Generates :
 #Process data
 #several steps to process data :
 # generates ref movies for each cine file in the date folder
-import sys
-sys.path.append('/Users/stephane/Documents/git/takumi/turbulence/')
+# import sys
+# sys.path.append('/Users/stephane/Documents/git/takumi/turbulence/')
 import turbulence.manager.ref_movie as ref_movie
 import turbulence.manager.file_architecture as file_architecture
 import turbulence.manager.cine2pic as cine2pic
@@ -33,10 +33,11 @@ parser.add_argument('-f',dest='folder',default=None,type=str,help='base folder t
 parser.add_argument('-s',dest='start',default=None,type=int, help='start processing index of the cinefile List')
 parser.add_argument('-e',dest='end',default=None,type=int, help='end processing index of the cinefile List')
 parser.add_argument('-n',dest='n',default=10,type=int, help='Number of images for the ref movie (optional)')
-parser.add_argument('-step',dest='step',default=2,type=int, help='Under sampling of the data. Default value is 2')
-parser.add_argument('-stacks',dest='stacks',default=False,type=bool, help='if True, make images for stacks of piv')
-parser.add_argument('-cinetype',dest='cinetype',default='' ,type=str, help='Provide a header of cinefiles you would like to process')
-parser.add_argument('-offset',dest='offset',default=0 ,type=int, help='start processing from the n-th cine in the cinelist')
+parser.add_argument('-step', dest='step',default=2,type=int, help='Under sampling of the data. Default value is 2')
+parser.add_argument('-imstep', dest='imstep',default=1,type=int, help='Separation between image A and B. Default 1')
+parser.add_argument('-stacks', dest='stacks',default=False,type=bool, help='if True, make images for stacks of piv')
+parser.add_argument('-cinetype', dest='cinetype',default='' ,type=str, help='Provide a header of cinefiles you would like to process')
+parser.add_argument('-offset', dest='offset',default=0 ,type=int, help='start processing from the n-th cine in the cinelist')
 args = parser.parse_args()
 
 def main(date):
@@ -169,14 +170,13 @@ def iterate(fileList,function):
     for file in fileList[args.start:args.end]:
         function(file)
 
-def make_timestep_files(fileList,Dt=1,starts=[],ends=[],Dt_list=[]):
+def make_timestep_files(fileList,Dt=args.imstep,starts=[],ends=[],Dt_list=[]):
     """
     Generate a timestep .txt file that will be used to process the data with the right time step
     INPUT
     -----
     fileList : list of filename to process
-    Dt : int. timestep to be applied. Default value : 1
-        Rmq : could be switched to a list of timestep and associated start/end indexes for each timestep 
+    Dt : int. Separation between image A and image B
     Optional variables (not implemented yet) : starts, ends and Dt_list to set a list of timestep for different instants in the movie.
     OUTPUT
     -----
@@ -201,7 +201,7 @@ def make_timestep_files(fileList,Dt=1,starts=[],ends=[],Dt_list=[]):
                 return None
             c=cine.Cine(file)
             n=c.len()-1
-            print(n)
+            #print(n)
                
         values = [[0],[n],[Dt]]
         
@@ -209,7 +209,7 @@ def make_timestep_files(fileList,Dt=1,starts=[],ends=[],Dt_list=[]):
         file_timestep = os.path.dirname(file) +'/PIV_timestep_'+base+'.txt'
         
         if not os.path.isfile(file_timestep):
-            rw_data.write_dictionnary(file_timestep,keys,values)
+            rw_data.write_dictionnary(file_timestep, keys, values)
      
 def make_piv_folders(fileList,step=None):
     """
@@ -231,7 +231,7 @@ def make_piv_folders(fileList,step=None):
     #from a dirname corresponding to a particular date, 
     #generate folders containing individual TIFF for PIV processing (no matter the PIV software used)
     if args.stacks==True:
-        for file in fileList[args.start:args.end]:
+        for  file in fileList[args.start:args.end]:
             print(file)
             cine2pic.cine2tiff_for_pivstacks(file, 'File', step, post='_File', offset=args.offset)
 
@@ -239,7 +239,7 @@ def make_piv_folders(fileList,step=None):
     else:
         for file in fileList[args.start:args.end]:
             print(file)
-            cine2pic.cine2tiff(file,'File',step,post='_File')
+            cine2pic.cine2tiff(file,'File',step, post='_File')
     print(str(len(fileList))+' cine files to be processed')
 
 def make_result_folder(fileList,type_analysis='Sample',algo='PIVlab',W=32,ratio=None):
@@ -278,18 +278,15 @@ def make_result_folder(fileList,type_analysis='Sample',algo='PIVlab',W=32,ratio=
 
         if not os.path.isdir(foldername):
             os.makedirs(foldername)
-        
-    #default    
+
     
-#date = '2015_09_28'
-#main(date)    
 if __name__ == '__main__':
     if args.stacks==False:
         main(args.date)
     else:
         if args.folder is None:
             args.folder = file_architecture.get_dir(args.date)
-        cinelist = glob.glob(args.folder + '/' + args.cinetype +'*')
+        cinelist = glob.glob(args.folder + '/' + args.cinetype +'*.cine')
         print ('The following files will be processed')
         for item in cinelist:
             print (item)

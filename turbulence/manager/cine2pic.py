@@ -15,7 +15,7 @@ import turbulence.tools.rw_data as rw_data
 import glob
 
 import sys
-sys.path.append('/Users/stephane/Documents/git/takumi/turbulence')
+# sys.path.append('/Users/stephane/Documents/git/takumi/turbulence')
 
 def cine2tiff(file,mode,step,start=0,stop=0,ctime=1,folder='/Tiff_folder',post=''):
     """
@@ -49,7 +49,7 @@ def cine2tiff(file,mode,step,start=0,stop=0,ctime=1,folder='/Tiff_folder',post='
     None
     """
     #file : path of the cine file
-    
+    print mode
     try:
         c = cine.Cine(file)     
     except:
@@ -74,22 +74,22 @@ def cine2tiff(file,mode,step,start=0,stop=0,ctime=1,folder='/Tiff_folder',post='
     if mode=='File':       
         filename=os.path.dirname(file)+'/PIV_timestep_'+os.path.basename(file)[:-5]+'.txt'
        # print(filename)
-        indexList,ndigit=sample_from_file(filename,step=step)
+        indexList, ndigit=sample_from_file(filename,step=step)
         #print(indexList)
 
     savefile = os.path.dirname(file)+folder+'/'+os.path.basename(file)
-    Dir,root=saveDir(savefile,post+'')
+    Dir,root=saveDir(savefile, post+'')
   #  Dir='/Users/stephane/Documents/Experiences_local/Accelerated_grid/2015_03_21/PIV_bv_hp_Zm80mm_fps10000_H1000mm_zoom_S100mm/'+post+'/'
     if not os.path.isdir(Dir):
         os.makedirs(Dir)
-    
-    #print(indexList)
+
+    print(indexList)
     for index in indexList:
         # get frames from cine file
         filename=Dir+root+browse.digit_to_s(index,ndigit)+'.tiff'
         #save only if the image does not already exist !
         if not os.path.exists(filename):
-            print(filename,index)
+            print(filename, index)
             
             if index<len(c):
                 data = c.get_frame(index)            
@@ -141,7 +141,22 @@ def test_sample(c,start=0,stop=0):
     ndigit=len(str(N))
     return indexList,ndigit
     
-def manual_sampling(start,end,Dt=[1],step=1, piv=False):
+def manual_sampling(start,end,Dt=[1],step=1, piv=True):
+    """
+    Returns a list of indices which indicates when to save tiff files from a cine.
+    i.e. [0,1, 10, 11] will be passed so that cine2tiff will save images at only those frames.
+    Parameters
+    ----------
+    start
+    end
+    Dt
+    step
+    piv
+
+    Returns
+    -------
+
+    """
     #start : start image, list format 
     #end :  end image list format
     #Dt : time step between images A and B for PIV analysis. list format
@@ -160,25 +175,23 @@ def manual_sampling(start,end,Dt=[1],step=1, piv=False):
         pas=Dt[i]
 
 #       index=[d+j for j in np.arange(0,f-d,pas)]     
-        indexA=[d+j for j in np.arange(0,f-d-pas,step*pas)]
+        indexA=[d+j for j in np.arange(0,f-d-pas,step)]
         if piv:
-            indexB=[d+j for j in np.arange(pas,f-d,step*pas)]
+            indexB=[d+j for j in np.arange(pas,f-d,step)]
         else:
             indexB=[]
-        
+
         #store the new indexes in a list
         indexList=indexList+indexA+indexB
-    
     indexList.sort()
     print('number of images to save : '+str(len(indexList)))
     
-    return indexList,ndigit
-#def sampleCine_fromRef(c,)
-      
+    return indexList, ndigit
+
 def sample_from_file(filename,step=1):
     #file must contain a list of starting and ending index, associated with a time step Dt
     # filename : name of the parameter file
-    # step : optionnal time step between two successive pairs of images. If step=1, the step will be equal to Dt
+    # step : optional time step between two successive pairs of images. If step=1, the step will be equal to Dt
     Header,data=rw_data.read_dataFile(filename,'\t','\t')
 
     start=[int(p) for p in data['start']]
@@ -226,12 +239,7 @@ def saveDir(file,post=''):
 
 def cine2tiff_for_pivstacks(file, mode, step, start=0, stop=0, ctime=1, offset=0, folder='/Tiff_folder', post=''):
     """
-    Generate a list of tiff files extracted from a cinefile.
-        Different modes of processing can be used, that are typically useful for PIV processing :
-        test : log samples the i;ages, using the function test_sample. Default is 10 intervals log spaced, every 500 images.
-        Sample : standard extraction from start to stop, every step images, with an interval ctime between images A and B.
-        File : read directly the start, stop and ctime from a external file. Read automatically if the .txt file is in format :
-        'PIV_timestep'+cine_basename+.'txt'
+
     INPUT
     -----
     file : str
@@ -287,11 +295,10 @@ def cine2tiff_for_pivstacks(file, mode, step, start=0, stop=0, ctime=1, offset=0
 
     savefile = os.path.dirname(file) + folder + '/' + os.path.basename(file)
     Dir, root = saveDir(savefile, post + '')
-    #  Dir='/Users/stephane/Documents/Experiences_local/Accelerated_grid/2015_03_21/PIV_bv_hp_Zm80mm_fps10000_H1000mm_zoom_S100mm/'+post+'/'
+
     if not os.path.isdir(Dir):
         os.makedirs(Dir)
 
-    # print(indexList)
     for index in indexList:
         # get frames from cine file
         filename = Dir + root + browse.digit_to_s(index, ndigit) + '.tiff'
@@ -307,7 +314,7 @@ def cine2tiff_for_pivstacks(file, mode, step, start=0, stop=0, ctime=1, offset=0
 
             if index < len(c):
                 a = index % 60
-                if (a % 3 != 0 + offset) and (a < 51):
+                if (a % 3 != offset) and (a < 51):
                     data = c.get_frame(index)
                     misc.imsave(filename, data, 'tiff')
 

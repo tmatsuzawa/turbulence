@@ -54,8 +54,8 @@ def get_cutout(
         #auth_token = 'edu.jhu.pha.turbulence.testing-201311',
         #auth_token='edu.uchicago.sperrard-9cf78a64',
         auth_token='edu.uchicago.tmatsuzawa-5e4905e2',
-        #base_website='dsp033.pha.jhu.edu'
-        base_website='turbulence.pha.jhu.edu'
+        base_website='dsp033.pha.jhu.edu'
+        # base_website='turbulence.pha.jhu.edu'
         ):
 
     url = ('http://{0}/jhtdb/getcutout/{1}/{2}/{3}/'.format(base_website, auth_token, data_set, data_type)
@@ -108,7 +108,9 @@ def get_big_cutout(filename='tst',
                    data_set='isotropic1024coarse',
                    data_type='u',
                    auth_token='edu.uchicago.tmatsuzawa-5e4905e2',
-                   base_website='turbulence.pha.jhu.edu'):
+                   # base_website='turbulence.pha.jhu.edu'
+                   base_website = 'dsp033.pha.jhu.edu'
+                   ):
     big_data_file = h5py.File(filename + '.h5', mode='w')
     xchunk_list = [chunk_xdim for n in range(int(xl / chunk_xdim))]
     if not (xl % chunk_xdim == 0):

@@ -29,9 +29,9 @@ args = parser.parse_args()
 fps = args.fps
 
 # Image dir
-root = '/Volumes/labshared3-1/takumi/2018_07_22_wide/'
+root = '/Volumes/labshared3-1/takumi/2018_07_27_fluorescence/'
 indir = root + 'Tiff_folder/' \
-               'PIV_fv_vp_left_macro55mm_fps2000_Dp56p57mm_D12p8mm_piston10p5mm_freq3Hz_v300mms_setting1_File/'
+               'PIV_fv_vp_left_macro55mm_fps100_Dp56p57mm_D12p8mm_piston10p5mm_freq3Hz_v300mms_setting1_long'
 # Output dir
 outdir = root + 'flowtrace_step%d_ftm%d_fps%d_subtractmed%r/' % (args.step, args.ftm, args.fps, args.subtract_median)
 
@@ -75,6 +75,7 @@ if len(glob.glob(outdir + 'trace_flows*.png')) < len(todo) or args.overwrite:
         imsum *= args.brighten / float(count)
         imsum = imsum.astype('uint8')
         imsum[imsum > 255] = 255
+        imsum[imsum < 0] = 0
 
 
         result = Image.fromarray(imsum)

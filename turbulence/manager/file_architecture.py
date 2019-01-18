@@ -19,6 +19,10 @@ distant_root = '/Volumes/'
 
 #irvinator2
 Dir_data.append(distant_root + 'bigraid/takumi/turbulence/middle-sized/PIV/')
+Dir_data.append(distant_root + 'bigraid/takumi/turbulence/3dprintedbox/PIV_Dp57mm_Do12p8mm/')
+Dir_data.append(distant_root + 'bigraid/takumi/turbulence/3dprintedbox/PIV_Dp120p0mm_Do25p6mm/')
+Dir_data.append(distant_root + 'bigraid/takumi/turbulence/3dprintedbox/multilayerPIV_Dp57mm_Do12p8mm/')
+Dir_data.append(distant_root + 'bigraid/takumi/turbulence/3dprintedbox/multilayerPIV_Dp120mm_Do25p6mm/')
 
 Dir_data.append(distant_root + 'labshared3/Stephane/Experiments/Accelerated_grid/')
 Dir_data.append(distant_root + 'labshared/Stephane_lab1/')
@@ -36,6 +40,9 @@ Dir_data.append(distant_root + 'labshared3-1/takumi/2018_07_17_resolution_check/
 Dir_data.append(distant_root + 'labshared3-1/noah/')
 Dir_data.append(distant_root + 'labshared3-1/kris/')
 #Dir_data.append(distant_root + 'labshared3-1/bob/')
+
+Dir_data.append(distant_root + 'labshared4/takumi/')
+
 
 # Dir_data.append(distant_root+'Stephane/Vortices/Stephane/')
 # Dir_data.append(distant_root+'labshared/Stephane_lab1/Vortices/') -> to be analyzed later

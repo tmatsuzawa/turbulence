@@ -1,8 +1,6 @@
 import numpy as np
 import os
 from math import *
-import sys
-sys.path.append('/Users/stephane/Documents/git/takumi/turbulence/')
 # import turbulence.tools.fitting as fitting
 import turbulence.hdf5.h5py_s as h5py_s
 
@@ -223,7 +221,7 @@ def errorfill(x, y, yerr, fignum=1, color=None, subplot=None, alpha_fill=0.3, ax
     return fig, ax, color_patch
 
 
-## Heatmaps
+## 2d color maps
 def color_plot(x, y, z, subplot=None, fignum=1, vmin=0, vmax=0, figsize=__figsize__, log10=False, show=False, cbar=False, cmap='jet'):
     """  Color plot of 2D array
     Parameters
@@ -317,7 +315,7 @@ def add_colorbar(mappable, fig=None, ax=None, fignum=1, subplot=None, label=None
     #     cb.set_clim(vmin=vmin, vmax=vmax)
     return cb
 
-def colorbar(fignum=plt.gcf().number, subplot=plt.gca() ,label=None, fontsize=__fontsize__, **kwargs):
+def colorbar(fignum=None, subplot=None ,label=None, fontsize=__fontsize__, **kwargs):
     """
 
     Parameters
@@ -364,7 +362,9 @@ def tologlog(ax=None):
 
 
 ##Title
-def title(title, fignum=plt.gcf().number):
+def title(title, fignum=None):
+    if fignum is None:
+        fignum= plt.gcf().number
     fig, ax = set_fig(fignum)
     plt.title(title, fontsize=__fontsize__)
 
@@ -376,7 +376,9 @@ def addtext(ax, subplot=111, text='text goes here', x=0, y=0, fontsize=__fontsiz
 
 
 ##Clear plot
-def clf(fignum=plt.gcf().number):
+def clf(fignum=None):
+    if fignum is None:
+        fignum= plt.gcf().number
     plt.figure(fignum)
     plt.clf()
 
@@ -393,6 +395,12 @@ def countcolorcycle(color_cycle = __color_cycle__):
     color_cycle = iter(plt.rcParams['axes.prop_cycle'].by_key()['color'])
     return sum(1 for color in color_cycle)
 
+
+def get_first_n_colors_from_color_cycle(n):
+    color_list=[]
+    for i in range(n):
+        color_list.append(next(__color_cycle__))
+    return color_list
 
 
 
@@ -1228,3 +1236,4 @@ def distribution(Y, normfactor=1, a=10., label='k', fignum=1, norm=True):
     # for i in range(10,5000,1):
     #    vfield_plot(M_log[4],i,1)
     # input()
+

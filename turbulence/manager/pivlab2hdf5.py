@@ -28,45 +28,49 @@ def pivlab2hdf5_dirbase(dirbase):
         print 'Processing %s' % datadir
 
         datafiles = glob.glob(datadir + '/*.txt')
+
         for i, datafile in enumerate(datafiles):
-            if i % 100 == 0:
-                print '%d / %d' % (i, len(datafiles))
-            data = np.loadtxt(datafile, delimiter=',', skiprows=3)
+            if not 'piv_settings/' in datafile:
+                if i % 100 == 0:
+                    print '%d / %d' % (i, len(datafiles))
+                data = np.loadtxt(datafile, delimiter=',', skiprows=3)
 
-            xx, yy = data[:, 0], data[:, 1]
-            ux, uy = data[:, 2], data[:, 3]
-            omega = data[:, 4]
 
-            if i == 0:
-                delta_y = np.diff(yy)[0]
-                delta_x = delta_y
+                xx, yy = data[:, 0], data[:, 1]
+                ux, uy = data[:, 2], data[:, 3]
+                omega = data[:, 4]
 
-                ncols = int((np.max(xx) - np.min(xx)) / delta_x) + 1
-                nrows = int((np.max(yy) - np.min(yy)) / delta_y) + 1
-                shape_temp = (ncols, nrows)
+                if i == 0:
+                    delta_y = np.diff(yy)[0]
+                    delta_x = delta_y
 
-                xgrid, ygrid = xx.reshape(shape_temp).T, yy.reshape(shape_temp).T
+                    ncols = int((np.max(xx) - np.min(xx)) / delta_x) + 1
+                    nrows = int((np.max(yy) - np.min(yy)) / delta_y) + 1
+                    shape_temp = (ncols, nrows)
 
-            ux_grid, uy_grid, omega_grid = ux.reshape(shape_temp).T, uy.reshape(shape_temp).T, omega.reshape(
-                shape_temp).T
+                    xgrid, ygrid = xx.reshape(shape_temp).T, yy.reshape(shape_temp).T
 
-            if i == 0:
-                uxdata = np.zeros((nrows, ncols, len(datafiles)))
-                uydata = np.zeros((nrows, ncols, len(datafiles)))
-                omegadata = np.zeros((nrows, ncols, len(datafiles)))
-            uxdata[..., i] = ux_grid
-            uydata[..., i] = uy_grid
-            omegadata[..., i] = omega_grid
+                ux_grid, uy_grid, omega_grid = ux.reshape(shape_temp).T, uy.reshape(shape_temp).T, omega.reshape(
+                    shape_temp).T
 
-        savedata = {}
-        savedata['x'] = xgrid
-        savedata['y'] = ygrid
-        savedata['ux'] = uxdata
-        savedata['uy'] = uydata
-        savedata['omega'] = omegadata
+                if i == 0:
+                    uxdata = np.zeros((nrows, ncols, len(datafiles)))
+                    uydata = np.zeros((nrows, ncols, len(datafiles)))
+                    omegadata = np.zeros((nrows, ncols, len(datafiles)))
+                uxdata[..., i] = ux_grid
+                uydata[..., i] = uy_grid
+                omegadata[..., i] = omega_grid
 
-        hdf5path = parentdir + '/hdf5data/' + os.path.split(datadir)[1]
-        rw.write_hdf5_dict(hdf5path, savedata)
+        if not 'piv_settings/' in datafile:
+            savedata = {}
+            savedata['x'] = xgrid
+            savedata['y'] = ygrid
+            savedata['ux'] = uxdata
+            savedata['uy'] = uydata
+            savedata['omega'] = omegadata
+
+            hdf5path = parentdir + '/hdf5data/' + os.path.split(datadir)[1]
+            rw.write_hdf5_dict(hdf5path, savedata)
 
     print '... Done'
 
@@ -125,7 +129,7 @@ def pivlab2hdf5(dir):
 def main(args):
     if args.dir is None:
         print 'Make hdf5 files for directories under ' + args.dirbase
-        pivlab2hdf5(args.dirbase)
+        pivlab2hdf5_dirbase(args.dirbase)
     else:
         print 'Make a hdf5 file for the following directory: ' + args.dir
         pivlab2hdf5(args.dir)

@@ -335,7 +335,8 @@ class Cine(object):
 
         self.f.seek(image_start + annotation_size)
 
-        frame = frombuffer(self.f.read(image_size), data_type)
+        frame = frombuffer(self.f.read(image_size), data_type)  # original
+        # frame = frombuffer(self.f.read(image_size), 'int32')
 #        print len(frame)
 
         if (actual_bits == 10):
